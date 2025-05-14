@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Dict, List, Any, Optional, Tuple
 
 from config.dynamic_config import dynamic_config
-from web_anp_llmapp import chat_to_ANP
+from demo_autorun import chat_to_ANP
 
 class AgentService:
     """智能体服务类
