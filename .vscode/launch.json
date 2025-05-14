@@ -1,0 +1,141 @@
+{
+    // 使用 IntelliSense 了解相关属性。
+    // 悬停以查看现有属性的描述。
+    // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+
+        {
+            "name": "win-web-api",
+            "type": "debugpy",
+            "request": "launch",
+            "python": ".venv/Scripts/python.exe",
+            "program": "${workspaceFolder}/web_api.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+           // "preLaunchTask": "win-activate-venv"
+        },
+        {
+            "name": "mac-web-llmapp",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/web_anp_llmapp.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "python": "${workspaceFolder}/.venv/bin/python"
+        },
+        {
+            "name": "win-web-llmapp",
+            "type": "debugpy",
+            "request": "launch",
+            "python": ".venv/Scripts/python.exe",
+            "program": "${workspaceFolder}/web_anp_llmapp.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+           // "preLaunchTask": "win-activate-venv"
+        },
+        {
+            "name": "mcp-debug-webllmapp",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/web_anp_llmapp.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "preLaunchTask": "activate-venv"
+        },
+        {
+            "name": "mcp-debug-llmagent",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/anp_llmagent.py",
+            "args": "${command:pickArgs}",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "preLaunchTask": "activate-venv"
+        },
+        
+        {
+            "name": "mcp-debug-stdio-server",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/anp_mcpwrapper/mcp_stdio_client.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "preLaunchTask": "activate-venv"
+        },
+        {
+            "name": "mcp-debug-sse-server",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/anp_mcpwrapper/mcp_stdio_server.py",
+            "args": "${command:pickArgs}",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "preLaunchTask": "activate-venv"
+        },
+        {
+            "name": "mcp-debug-llmapp",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/anp_llmapp.py",
+            "args": "${command:pickArgs}",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "preLaunchTask": "activate-venv"
+        },
+        {
+            "name": "Attach to Running MCP Server",
+            "type": "debugpy",
+            "request": "attach",
+            "processId": "${command:pickProcess}",
+            "justMyCode": false
+        },
+        {
+            "name": "Python Debugger: Current File with Arguments all code",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": "${command:pickArgs}",
+            "preLaunchTask": "activate-venv"
+        },
+        {
+            "name": "Python Debugger: Current File with Arguments",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": "${command:pickArgs}",
+            "preLaunchTask": "activate-venv-and-run-mcp"
+        },
+        {
+            "name": "Attach to MCP Client",
+            "type": "debugpy",
+            "request": "attach",
+            "connect": {
+                "host": "localhost",
+                "port": 5679
+            },
+            "justMyCode": false
+        },
+        {
+            "name": "Python: MCP SSE 服务器",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/mcp_sse_server.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "preLaunchTask": "activate-venv"
+        },
+        {
+            "name": "Python: MCP SSE 客户端",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/mcp_sse_client.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "preLaunchTask": "activate-venv"
+        }
+    ]
+}

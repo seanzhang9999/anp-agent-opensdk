@@ -1,0 +1,95 @@
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+    <!-- 背景 -->
+    <rect width="800" height="600" fill="#f8f9fa" />
+    
+    <!-- 标题 -->
+    <text x="400" y="30" font-family="Times New Roman, 宋体" font-size="24" text-anchor="middle" font-weight="bold">MCP 服务器与客户端交互结构图</text>
+    
+    <!-- MCP 服务器部分 -->
+    <rect x="50" y="70" width="300" height="450" fill="#e6f3ff" stroke="#0066cc" stroke-width="2" rx="10" />
+    <text x="200" y="95" font-family="Times New Roman, 宋体" font-size="18" text-anchor="middle" font-weight="bold">MCP 服务器 (mcp_server.py)</text>
+    
+    <!-- 服务器组件 -->
+    <rect x="70" y="110" width="260" height="80" fill="#ffffff" stroke="#0066cc" stroke-width="1" rx="5" />
+    <text x="200" y="130" font-family="Times New Roman, 宋体" font-size="14" text-anchor="middle">FastMCP 服务器实例</text>
+    <text x="200" y="150" font-family="Times New Roman, 宋体" font-size="12" text-anchor="middle">mcp = FastMCP("DID WBA MCP Server")</text>
+    <text x="200" y="170" font-family="Times New Roman, 宋体" font-size="12" text-anchor="middle">lifespan=app_lifespan</text>
+    
+    <!-- 工具函数 -->
+    <rect x="70" y="200" width="260" height="120" fill="#ffffff" stroke="#0066cc" stroke-width="1" rx="5" />
+    <text x="200" y="220" font-family="Times New Roman, 宋体" font-size="14" text-anchor="middle">MCP 工具函数</text>
+    <text x="200" y="240" font-family="Times New Roman, 宋体" font-size="12" text-anchor="middle">@mcp.tool()</text>
+    <text x="200" y="260" font-family="Times New Roman, 宋体" font-size="12" text-anchor="middle">- start_did_server()</text>
+    <text x="200" y="280" font-family="Times New Roman, 宋体" font-size="12" text-anchor="middle">- stop_did_server()</text>
+    <text x="200" y="300" font-family="Times New Roman, 宋体" font-size="12" text-anchor="middle">- start_did_client()</text>
+    <text x="200" y="320" font-family="Times New Roman, 宋体" font-size="12" text-anchor="middle">- stop_did_client()</text>
+    
+    <!-- 资源和事件 -->
+    <rect x="70" y="330" width="260" height="80" fill="#ffffff" stroke="#0066cc" stroke-width="1" rx="5" />
+    <text x="200" y="350" font-family="Times New Roman, 宋体" font-size="14" text-anchor="middle">资源和事件</text>
+    <text x="200" y="370" font-family="Times New Roman, 宋体" font-size="12" text-anchor="middle">@mcp.resource("status://did-wba")</text>
+    <text x="200" y="390" font-family="Times New Roman, 宋体" font-size="12" text-anchor="middle">get_connection_events()</text>
+    
+    <!-- 事件监听器 -->
+    <rect x="70" y="420" width="260" height="80" fill="#ffffff" stroke="#0066cc" stroke-width="1" rx="5" />
+    <text x="200" y="440" font-family="Times New Roman, 宋体" font-size="14" text-anchor="middle">事件监听器</text>
+    <text x="200" y="460" font-family="Times New Roman, 宋体" font-size="12" text-anchor="middle">connection_event_listener()</text>
+    <text x="200" y="480" font-family="Times New Roman, 宋体" font-size="12" text-anchor="middle">asyncio.wait(tasks, return_when=FIRST_COMPLETED)</text>
+    
+    <!-- MCP 客户端部分 -->
+    <rect x="450" y="70" width="300" height="300" fill="#f0f7e6" stroke="#339900" stroke-width="2" rx="10" />
+    <text x="600" y="95" font-family="Times New Roman, 宋体" font-size="18" text-anchor="middle" font-weight="bold">MCP 客户端 (mcp_client_example.py)</text>
+    
+    <!-- 客户端组件 -->
+    <rect x="470" y="110" width="260" height="80" fill="#ffffff" stroke="#339900" stroke-width="1" rx="5" />
+    <text x="600" y="130" font-family="Times New Roman, 宋体" font-size="14" text-anchor="middle">客户端会话</text>
+    <text x="600" y="150" font-family="Times New Roman, 宋体" font-size="12" text-anchor="middle">ClientSession(read_stream, write_stream)</text>
+    <text x="600" y="170" font-family="Times New Roman, 宋体" font-size="12" text-anchor="middle">stdio_client(StdioServerParameters)</text>
+    
+    <!-- 客户端操作 -->
+    <rect x="470" y="200" width="260" height="150" fill="#ffffff" stroke="#339900" stroke-width="1" rx="5" />
+    <text x="600" y="220" font-family="Times New Roman, 宋体" font-size="14" text-anchor="middle">客户端操作</text>
+    <text x="600" y="240" font-family="Times New Roman, 宋体" font-size="12" text-anchor="middle">- client.read_resource("status://did-wba")</text>
+    <text x="600" y="260" font-family="Times New Roman, 宋体" font-size="12" text-anchor="middle">- client.invoke_tool("start_did_server")</text>
+    <text x="600" y="280" font-family="Times New Roman, 宋体" font-size="12" text-anchor="middle">- client.invoke_tool("start_did_client", {...})</text>
+    <text x="600" y="300" font-family="Times New Roman, 宋体" font-size="12" text-anchor="middle">- client.invoke_tool("get_connection_events", {...})</text>
+    <text x="600" y="320" font-family="Times New Roman, 宋体" font-size="12" text-anchor="middle">- client.invoke_tool("stop_did_client")</text>
+    <text x="600" y="340" font-family="Times New Roman, 宋体" font-size="12" text-anchor="middle">- client.invoke_tool("stop_did_server")</text>
+    
+    <!-- DID WBA 部分 -->
+    <rect x="250" y="400" width="300" height="180" fill="#f9f0ff" stroke="#6600cc" stroke-width="2" rx="10" opacity="0.8" />
+    <text x="400" y="425" font-family="Times New Roman, 宋体" font-size="18" text-anchor="middle" font-weight="bold">DID WBA 组件</text>
+    
+    <!-- DID WBA 功能 -->
+    <rect x="270" y="440" width="260" height="120" fill="#ffffff" stroke="#6600cc" stroke-width="1" rx="5" />
+    <text x="400" y="460" font-family="Times New Roman, 宋体" font-size="14" text-anchor="middle">DID WBA 功能</text>
+    <text x="400" y="480" font-family="Times New Roman, 宋体" font-size="12" text-anchor="middle">- start_server() / stop_server()</text>
+    <text x="400" y="500" font-family="Times New Roman, 宋体" font-size="12" text-anchor="middle">- start_client() / stop_client()</text>
+    <text x="400" y="520" font-family="Times New Roman, 宋体" font-size="12" text-anchor="middle">- server_running / client_running</text>
+    <text x="400" y="540" font-family="Times New Roman, 宋体" font-size="12" text-anchor="middle">- client_chat_messages / chat_messages</text>
+    
+    <!-- 交互箭头 -->
+    <!-- 客户端到服务器 -->
+    <path d="M 450,150 L 350,150" stroke="#666666" stroke-width="2" fill="none" marker-end="url(#arrowhead)" />
+    <text x="400" y="140" font-family="Times New Roman, 宋体" font-size="12" text-anchor="middle">请求</text>
+    
+    <!-- 服务器到客户端 -->
+    <path d="M 350,180 L 450,180" stroke="#666666" stroke-width="2" fill="none" marker-end="url(#arrowhead)" />
+    <text x="400" y="200" font-family="Times New Roman, 宋体" font-size="12" text-anchor="middle">响应</text>
+    
+    <!-- 服务器到DID WBA -->
+    <path d="M 200,380 L 300,440" stroke="#666666" stroke-width="2" fill="none" marker-end="url(#arrowhead)" />
+    <text x="230" y="410" font-family="Times New Roman, 宋体" font-size="12" text-anchor="middle">调用</text>
+    
+    <!-- DID WBA到服务器 -->
+    <path d="M 350,440 L 250,380" stroke="#666666" stroke-width="2" fill="none" marker-end="url(#arrowhead)" />
+    <text x="320" y="410" font-family="Times New Roman, 宋体" font-size="12" text-anchor="middle">事件通知</text>
+    
+    <!-- 箭头定义 -->
+    <defs>
+        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#666666" />
+        </marker>
+    </defs>
+    
+  </svg>

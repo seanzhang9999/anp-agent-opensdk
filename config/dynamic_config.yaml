@@ -1,0 +1,27 @@
+# 一个工程中管理统一多个启动程序的配置文件
+# 除了密钥敏感信息存储于env外，其他信息均可存储于该文件中
+# 运行中改变的值可以选择回写到文件中，下次启动时会自动加载
+# 这样方便检查运行情况，也可以作为部分关键信息的log，便于后续分析
+llm:
+  openrouter_api_url: https://openrouter.ai/api/v1/chat/completions
+  default_model: deepseek/deepseek-chat-v3-0324:free
+  max_tokens: 512
+  system_prompt: 你是一个智能助手，请根据用户的提问进行专业、简洁的回复。
+agent:
+  bookmark_dir: anp_core/anp_bookmark
+  default_greeting: ANPbot的问候，请二十字内回复我
+chat:
+  max_history_items: 50
+  max_process_count: 50
+
+web_anp_llmapp:
+  user-did-path: anp_core/anp_users
+  user-did-hostname: localhost
+  user-did-port: 9527
+
+
+web_api:
+  server:
+    generate_new_did_each_time: true
+    webui-host: localhost
+    webui-port: 8080

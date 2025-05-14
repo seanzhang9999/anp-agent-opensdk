@@ -1,0 +1,301 @@
+/* 全局样式 */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+    color: #333;
+    background-color: #f5f5f5;
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* 头部样式 */
+header {
+    background-color: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+header h1 {
+    margin: 0 0 15px 0;
+    color: #2c3e50;
+    font-size: 24px;
+}
+
+.status-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.status-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.status-label {
+    font-weight: 600;
+}
+
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.status-online {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.status-offline {
+    background-color: #F44336;
+    color: white;
+}
+
+/* 主内容区域 */
+main {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 20px;
+}
+
+/* 聊天容器 */
+.chat-container {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    height: 70vh;
+}
+
+.messages-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+.input-container {
+    display: flex;
+    padding: 10px;
+    border-top: 1px solid #eee;
+}
+
+#message-input {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-right: 10px;
+}
+
+/* 消息样式 */
+.message {
+    margin-bottom: 15px;
+    padding: 10px 15px;
+    border-radius: 18px;
+    max-width: 80%;
+    word-wrap: break-word;
+}
+
+.user-message {
+    background-color: #e3f2fd;
+    margin-left: auto;
+    border-bottom-right-radius: 4px;
+}
+
+.assistant-message {
+    background-color: #f1f1f1;
+    margin-right: auto;
+    border-bottom-left-radius: 4px;
+}
+
+.system-message {
+    background-color: #fff3cd;
+    color: #856404;
+    padding: 10px;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+/* 智能体书签区域 */
+.agent-bookmarks {
+    background-color: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.agent-bookmarks h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 18px;
+    color: #2c3e50;
+}
+
+/* 书签样式 */
+.bookmarks-container {
+    margin-top: 20px;
+}
+
+.bookmarks-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.bookmark-form {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.bookmark-form input {
+    flex: 1;
+}
+
+.bookmarks-list {
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 10px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.bookmark-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.bookmark-item:last-child {
+    border-bottom: none;
+}
+
+.bookmark-info {
+    flex: 1;
+}
+
+.bookmark-name {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.bookmark-details {
+    font-size: 0.85em;
+    color: #666;
+    margin-top: 5px;
+    padding-left: 10px;
+    border-left: 2px solid #eee;
+}
+
+.bookmark-did,
+.bookmark-url,
+.bookmark-port {
+    margin-bottom: 2px;
+}
+
+.toggle-details {
+    font-size: 0.75em;
+    padding: 2px 5px;
+    margin-top: 5px;
+    margin-bottom: 5px;
+}
+
+.bookmark-actions {
+    display: flex;
+    gap: 5px;
+    align-items: flex-start;
+}
+
+.no-bookmarks {
+    text-align: center;
+    color: #999;
+    padding: 20px;
+}
+
+.bookmark-form {
+    display: flex;
+    gap: 10px;
+}
+
+.bookmark-form input {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+/* 页脚样式 */
+footer {
+    text-align: center;
+    margin-top: 30px;
+    color: #777;
+    font-size: 14px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    main {
+        grid-template-columns: 1fr;
+    }
+    
+    .chat-container {
+        height: 50vh;
+    }
+}
+
+/* 刷新按钮样式 */
+.refresh-button {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 14px;
+    margin: 4px 2px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.3s;
+}
+
+.refresh-button:hover {
+    background-color: #45a049;
+}
+
+.refresh-button:active {
+    background-color: #3e8e41;
+}
+
+/* 等待消息样式 */
+.waiting-message {
+    background-color: #e6f7ff;
+    color: #1890ff;
+    padding: 10px;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    text-align: center;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 0.6; }
+    50% { opacity: 1; }
+    100% { opacity: 0.6; }
+}
