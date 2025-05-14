@@ -55,7 +55,6 @@ logger.add(f"{user_dir}/anpcore_server.log", rotation="1000 MB", retention="7 da
 # 创建FastAPI应用
 app = create_app()
 
-
 @app.get("/", tags=["status"])
 async def root():
     """

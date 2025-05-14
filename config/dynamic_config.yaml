@@ -14,8 +14,10 @@ chat:
   max_history_items: 50
   max_process_count: 50
 
-web_anp_llmapp:
+
+demo_autorun:
   user-did-path: anp_core/anp_users
+  user-did-key-id: key-1
   user-did-hostname: localhost
   user-did-port: 9527
 
