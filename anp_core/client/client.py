@@ -7,8 +7,10 @@ import logging
 import asyncio
 import secrets
 import httpx
+from anp_core.common import Msg
 import time
 import threading
+
 
 from pathlib import Path
 from typing import Dict, Any, Optional, Tuple
@@ -89,68 +91,50 @@ async def chat_to_did(base_url: str, token: str, msg: str, sender_did: str, targ
     except Exception as ce:
         return False, {"error": str(ce)}
 
-async def ANP_req_chat(base_url: str, token: str, msg: str, from_chat: bool = False, silent: bool = False):
+
+async def ANP_req_chat( token: str, msg: Msg):
     """向聊天接口发送消息并处理响应
     
     Args:
-        base_url: 服务器基础URL
+
         token: 认证令牌
         msg: 要发送的消息
-        from_chat: 是否来自聊天线程调用
-        silent: 是否抑制日志输出
+
         
     Returns:
         Tuple[bool, dict]: 发送状态和响应数据
     """
-    anp_nlp_url = f"{base_url}/wba/anp-nlp"
-    token = os.environ.get('did-token', token)
+
+    anp_nlp_url = f"http://{msg.targeter.host}:{msg.targeter.port}/wba/anp-nlp"
+
     logging.info("发送消息到聊天接口")
     try:
         chat_status, chat_response = await send_request_with_token(
             anp_nlp_url, 
             token, 
+            msg.sender.id,
+            msg.targeter.id,
             method="POST", 
-            json_data={"message": msg}
+            json_data={"message": list(msg.content)}
         )
         if chat_status == 200:
             logging.info(f"消息发送成功! 回复: {chat_response}")
-            if from_chat:
-                # 如果是从聊天线程调用，发送通知而不是打印
-                await ANP_req_notify_chat_thread({
-                    "type": "anp_nlp",
-                    "user_message": msg,
-                    "assistant_message": chat_response.get('answer', '[无回复]'),
-                    "status": "success"
-                })
-            elif not silent:
-                print(f"\nanp消息\"{msg}\"成功发送，服务器回复: {chat_response.get('answer', '[无回复]')}")
+            print(f"\nanp消息\"{msg}\"成功发送，服务器回复: {chat_response.get('answer', '[无回复]')}")
             return True, chat_response
         else:
             logging.error(f"消息发送失败! 状态: {chat_status}")
             logging.error(f"响应: {chat_response}")
-            if from_chat:
-                await ANP_req_notify_chat_thread({
-                    "type": "anp_nlp",
-                    "status": "error",
-                    "message": "消息发送失败"
-                })
-            elif not silent:
-                print("\n消息发送失败，客户端示例完成。")
+            print("\n消息发送失败，客户端示例完成。")
             return False, chat_response
     except Exception as ce:
         logging.error(f"发送消息时出错: {ce}")
-        if from_chat:
-            await ANP_req_notify_chat_thread({
-                "type": "anp_nlp",
-                "status": "error",
-                "message": f"发送消息时出错: {ce}"
-            })
-        elif not silent:
-            print(f"\n发送消息时出错: {ce}")
+
+        
+        print(f"\n发送消息时出错: {ce}")
         return False, {"error": str(ce)}
 
 
-async def ANP_req_auth(unique_id: str = None, silent: bool = False, from_chat: bool = False, msg: str = None):
+async def ANP_req_auth( msg:Msg):
     """执行ANP DID-WBA认证 完成DID认证和Token获取验证 存储Token为环境变量
     Args:
         unique_id: 可选的唯一标识符
@@ -158,84 +142,70 @@ async def ANP_req_auth(unique_id: str = None, silent: bool = False, from_chat: b
         from_chat: 是否来自聊天线程调用
         msg: 可选的初始消息
     """
-    if msg is None:
-        msg = "ANP connector认证测试"
-    try:
-        # 1. 生成或加载DID文档
-        if not unique_id:
-            unique_id = secrets.token_hex(8)
-       
-        logging.info(f"使用唯一ID: {unique_id}")
+    localagent = msg.sender
+    did_document_path = localagent.did_document_path
+    private_key_path = localagent.private_key_path
 
-        did_document, keys, user_dir = await generate_or_load_did(unique_id)
-        os.environ['did-id'] = did_document.get('id')
-        did_document_path = Path(user_dir) / settings.DID_DOCUMENT_FILENAME
-        private_key_path = Path(user_dir) / settings.PRIVATE_KEY_FILENAME
-        
-        logging.info(f"DID文档路径: {did_document_path}")
-        logging.info(f"私钥路径: {private_key_path}")
-        
-        # 2. 目标服务器信息
-        target_host = settings.TARGET_SERVER_HOST
-        target_port = settings.TARGET_SERVER_PORT
-        base_url = f"http://{target_host}:{target_port}"
-        test_url = f"{base_url}/wba/test"
-        
+    remoteagent = msg.targeter
+
+    base_url = f"http://{remoteagent.host}:{remoteagent.port}"
+    test_url = f"{base_url}/wba/test"
+    
         # 3. 创建DIDWbaAuthHeader实例
-        auth_client = DIDWbaAuthHeader(
-            did_document_path=str(did_document_path),
-            private_key_path=str(private_key_path)
-        )
+    auth_client = DIDWbaAuthHeader(
+        did_document_path=str(did_document_path),
+        private_key_path=str(private_key_path)
+    )
         
         # 4. 发送带DID WBA认证的请求
-        logging.info(f"发送认证请求到 {test_url}")
-        status, response, token = await send_authenticated_request(test_url, auth_client)
+    logging.info(f"发送认证请求到 {test_url}")
+    status, response, token = await send_authenticated_request(test_url, auth_client)
+    
+    if status != 200:
+        logging.error(f"认证失败! 状态: {status}")
+        logging.error(f"响应: {response}")
+        return
         
-        if status != 200:
-            logging.error(f"认证失败! 状态: {status}")
-            logging.error(f"响应: {response}")
-            return
+    logging.info(f"认证成功! 响应: {response}")
+        
+    # 验证服务器返回的resp_did_auth_header（如果存在）
+    if 'resp_did_auth_header' in response and response['resp_did_auth_header']:
+        try:
+            logging.info("收到服务器的DID认证头，进行验证...")
+            resp_did_auth_header = response['resp_did_auth_header']
             
-        logging.info(f"认证成功! 响应: {response}")
-        
-        # 验证服务器返回的resp_did_auth_header（如果存在）
-        if 'resp_did_auth_header' in response and response['resp_did_auth_header']:
-            try:
-                logging.info("收到服务器的DID认证头，进行验证...")
-                resp_did_auth_header = response['resp_did_auth_header']
+            # 从响应中获取resp_did
+            resp_did = response.get('resp_did')
+            if not resp_did:
+                logging.warning("响应中缺少resp_did，无法验证服务器身份")
+            else:
+                # 解析服务器DID文档
+                from anp_core.auth.custom_did_resolver import resolve_local_did_document
+                from anp_core.agent_connect.authentication.did_wba import verify_auth_header_signature
                 
-                # 从响应中获取resp_did
-                resp_did = response.get('resp_did')
-                if not resp_did:
-                    logging.warning("响应中缺少resp_did，无法验证服务器身份")
-                else:
-                    # 解析服务器DID文档
-                    from anp_core.auth.custom_did_resolver import resolve_local_did_document
-                    from anp_core.agent_connect.authentication.did_wba import verify_auth_header_signature
+                # 尝试解析服务器的DID文档
+                server_did_document = await resolve_local_did_document(resp_did)
+                
+                if server_did_document:
+                    # 验证服务器的签名
+                    domain = f"{remoteagent.host}:{remoteagent.port}"
+                    is_valid, message = verify_auth_header_signature(
+                        auth_header=resp_did_auth_header,
+                        did_document=server_did_document,
+                        service_domain=domain
+                    )
                     
-                    # 尝试解析服务器的DID文档
-                    server_did_document = await resolve_local_did_document(resp_did)
-                    
-                    if server_did_document:
-                        # 验证服务器的签名
-                        domain = f"{target_host}:{target_port}"
-                        is_valid, message = verify_auth_header_signature(
-                            auth_header=resp_did_auth_header,
-                            did_document=server_did_document,
-                            service_domain=domain
-                        )
-                        
-                        if is_valid:
-                            logging.info(f"服务器身份验证成功: {message}")
-                        else:
-                            logging.warning(f"服务器身份验证失败: {message}")
+                    if is_valid:
+                        logging.info(f"服务器身份验证成功: {message}")
                     else:
-                        logging.warning(f"无法解析服务器DID文档: {resp_did}")
-            except Exception as e:
-                logging.error(f"验证服务器DID认证头时出错: {e}")
-        else:
-            logging.info("服务器未返回DID认证头，跳过服务器身份验证")
-        
+                        logging.warning(f"服务器身份验证失败: {message}")
+                else:
+                    logging.warning(f"无法解析服务器DID文档: {resp_did}")
+        except Exception as e:
+            logging.error(f"验证服务器DID认证头时出错: {e}")
+    else:
+        logging.info("服务器未返回DID认证头，跳过服务器身份验证")
+    
         # 5. 如果收到令牌，验证令牌并存储
         if token:
             logging.info("收到访问令牌，尝试用于下一个请求")
@@ -243,7 +213,7 @@ async def ANP_req_auth(unique_id: str = None, silent: bool = False, from_chat: b
             
             if status == 200:
                 logging.info(f"令牌认证成功! 保存当前令牌！响应: {response}")
-                os.environ['did-token'] = token
+                localagent.add_token(token)
                 
                 """
                 # 发送消息到聊天接口
@@ -254,20 +224,12 @@ async def ANP_req_auth(unique_id: str = None, silent: bool = False, from_chat: b
             else:
                 logging.error(f"令牌认证失败! 状态: {status}")
                 logging.error(f"响应: {response}")
-                if from_chat:
-                    await ANP_req_notify_chat_thread({
-                        "type": "anp_nlp",
-                        "status": "error",
-                        "message": "令牌认证失败"
-                    })
-                elif not silent:
-                    print("\n令牌认证失败，客户端示例完成。")
+                print("\n令牌认证失败，客户端示例完成。")
 
         else:
             logging.warning("未从服务器收到令牌")
             
-    except Exception as e:
-        logging.error(f"客户端示例中出错: {e}")
+
 
 
 def run_connector(unique_id=None, message=None):

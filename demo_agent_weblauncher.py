@@ -33,12 +33,12 @@ os.makedirs(log_dir, exist_ok=True)
 app = FastAPI(title="DID WBA 管理界面")
 
 # 设置静态文件目录
-static_dir = os.path.join(user_dir, "static", "manager")
+static_dir = os.path.join(user_dir, "static", "agent_weblauncher")
 os.makedirs(static_dir, exist_ok=True)
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 # 设置模板目录
-templates_dir = os.path.join(user_dir, "static", "manager","templates")
+templates_dir = os.path.join(user_dir, "static", "agent_weblauncher","templates")
 os.makedirs(templates_dir, exist_ok=True)
 templates = Jinja2Templates(directory=templates_dir)
 
@@ -95,7 +95,7 @@ def start_instance(command: str, instance_id: str, name: Optional[str] = None, p
         if not kill_processes_by_port(port):
             print(f"无法清理端口 {port}，启动实例可能会失败")
     
-    cmd = [sys.executable, os.path.join(user_dir, "anp_llmagent.py"), command]
+    cmd = [sys.executable, os.path.join(user_dir, "demo_agent_run.py"), command]
     
     if command == "agent" and name:
         # 修正：使用-u参数传递智能体名称
@@ -295,7 +295,7 @@ def stop_instance(instance_id: str) -> bool:
 @app.get("/", response_class=HTMLResponse)
 async def get_index(request: Request):
     return templates.TemplateResponse(
-        "manager.html",
+        "agent_weblauncher.html",
         {"request": request}
     )
 

@@ -118,7 +118,49 @@ poetry install
 poetry env info
 ```
 
-如果输出中的 `Path` 显示为项目目录下的 `.venv`（如 `D:\github\did-wba-example\.venv`），则配置成功。
+如果输出中的 `Path` 显示为项目目录下的 `.venv`（如 `D:\github\did-wba-example\.venv`），——则配置成功。
+
+#### **使用 venv 创建虚拟环境 (可选)**
+
+Poetry 会自动管理虚拟环境。但如果你希望手动使用 Python 内置的 `venv`模块创建虚拟环境，可以按照以下步骤操作：
+
+1.  **创建虚拟环境**：
+    在项目根目录下打开 PowerShell 或 CMD，运行以下命令来创建一个名为 `.venv` 的虚拟环境：
+
+    ```powershell
+    python -m venv .venv
+    ```
+
+2.  **激活虚拟环境**：
+    创建完成后，需要激活虚拟环境才能使用。在 PowerShell 中运行：
+
+    ```powershell
+    .venv\Scripts\Activate.ps1
+    ```
+    或者在 CMD 中运行：
+
+    ```cmd
+    .venv\Scripts\activate.bat
+    ```
+    激活成功后，命令行提示符前通常会显示 `(.venv)`。
+
+3.  **安装依赖 (在激活的 venv 环境中)**：
+    如果使用 `venv` 手动创建了环境，并且希望使用 `pip` 管理依赖（而不是 Poetry），可以在激活的环境中安装依赖：
+
+    ```powershell
+    pip install -r requirements.txt 
+    # 或者逐个安装
+    pip install <package_name>
+    ```
+
+4.  **退出虚拟环境**：
+    完成工作后，可以使用以下命令退出虚拟环境：
+
+    ```powershell
+    deactivate
+    ```
+
+**注意**：如果你主要使用 Poetry，通常不需要手动创建和管理 `venv` 环境，Poetry 会在执行 `poetry install` 或 `poetry shell` 时自动处理虚拟环境的创建和使用。
 
 #### 激活环境
 ```sh
