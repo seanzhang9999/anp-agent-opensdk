@@ -4,6 +4,7 @@ This module provides the server functionality for the DID WBA system.
 """
 import os
 import logging
+from config import dynamic_config
 import uvicorn
 import asyncio
 import signal
@@ -18,12 +19,9 @@ from core.app import create_app
 
 # 服务器状态管理类
 class ServerStatus:
-    """封装服务器状态的类，确保所有模块引用同一个状态对象"""
+    """封装服务器状态的类，支持多个服务器实例的管理"""
     def __init__(self):
-        self.running = False
-        self.port = None
-        self.thread = None
-        self.instance = None
+        self.servers = {}  # 使用字典存储不同端口的服务器状态
     
     def set_running(self, status, port=None):
         """设置服务器运行状态
@@ -32,17 +30,80 @@ class ServerStatus:
             status: 运行状态（True/False）
             port: 服务器端口
         """
-        self.running = status
-        if port:
-            self.port = port
+        if port is None:
+            return
+            
+        if port not in self.servers:
+            self.servers[port] = {"running": False, "thread": None, "instance": None}
+        
+        self.servers[port]["running"] = status
     
-    def is_running(self):
+    def is_running(self, port=None):
         """获取服务器运行状态
         
+        Args:
+            port: 服务器端口，如果为None则检查是否有任何服务器在运行
+            
         Returns:
             bool: 服务器是否正在运行
         """
-        return self.running
+        if port is None:
+            # 如果没有指定端口，检查是否有任何服务器在运行
+            return any(server["running"] for server in self.servers.values()) if self.servers else False
+        
+        if port in self.servers:
+            return self.servers[port]["running"]
+        return False
+        
+    def get_instance(self, port):
+        """获取指定端口的服务器实例
+        
+        Args:
+            port: 服务器端口
+            
+        Returns:
+            object: 服务器实例
+        """
+        if port in self.servers:
+            return self.servers[port]["instance"]
+        return None
+        
+    def set_instance(self, port, instance):
+        """设置指定端口的服务器实例
+        
+        Args:
+            port: 服务器端口
+            instance: 服务器实例
+        """
+        if port not in self.servers:
+            self.servers[port] = {"running": False, "thread": None, "instance": None}
+        
+        self.servers[port]["instance"] = instance
+        
+    def get_thread(self, port):
+        """获取指定端口的服务器线程
+        
+        Args:
+            port: 服务器端口
+            
+        Returns:
+            Thread: 服务器线程
+        """
+        if port in self.servers:
+            return self.servers[port]["thread"]
+        return None
+        
+    def set_thread(self, port, thread):
+        """设置指定端口的服务器线程
+        
+        Args:
+            port: 服务器端口
+            thread: 服务器线程
+        """
+        if port not in self.servers:
+            self.servers[port] = {"running": False, "thread": None, "instance": None}
+        
+        self.servers[port]["thread"] = thread
 
 # 创建全局单例
 server_status = ServerStatus()
@@ -83,33 +144,35 @@ def ANP_resp_start(port=None):
     """
     global server_status
     
-    # 检查服务器是否已经在运行
-    if server_status.is_running():
-        logger.warning("服务器已经在运行中")
-        return True
-    
     # 如果指定了端口，更新设置
     if port:
-        settings.PORT = port
-        server_status.port = port
+        current_port = port
+    else:
+        current_port = dynamic_config.get("demo_autorun.user_did_port_1")
+    
+    # 检查该端口的服务器是否已经在运行
+    if server_status.is_running(current_port):
+        logger.warning(f"端口 {current_port} 的服务器已经在运行中")
+        return True
     
     try:
         # 创建uvicorn配置
         config = uvicorn.Config(
             "anp_core.server.server:app",
-            host=settings.HOST,
-            port=settings.PORT,
+            host=dynamic_config.get("demo_autorun.user_did_hostname"),
+            port=current_port,
             reload=settings.DEBUG,
             use_colors=True,
             log_level="error"
         )
         
         # 创建服务器实例
-        server_status.instance = uvicorn.Server(config)
-        server_status.instance.should_exit = False
+        server_instance = uvicorn.Server(config)
+        server_instance.should_exit = False
         
         # 设置服务器状态
-        server_status.set_running(True, settings.PORT)
+        server_status.set_running(True, current_port)
+        server_status.set_instance(current_port, server_instance)
         
         # 创建并启动服务器线程，使用自定义的非阻塞运行方法
         def run_server_nonblocking():
@@ -117,21 +180,24 @@ def ANP_resp_start(port=None):
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             try:
-                loop.run_until_complete(server_status.instance.serve())
+                loop.run_until_complete(server_status.get_instance(current_port).serve())
             except Exception as e:
                 logger.error(f"服务器运行出错: {e}")
-                server_status.set_running(False)
+                server_status.set_running(False, current_port)
             finally:
                 loop.close()
         
-        server_status.thread = threading.Thread(target=run_server_nonblocking)
-        server_status.thread.daemon = True
-        server_status.thread.start()
+        server_thread = threading.Thread(target=run_server_nonblocking)
+        server_thread.daemon = True
+        server_thread.start()
+        
+        # 设置线程
+        server_status.set_thread(current_port, server_thread)
         
         # 等待服务器启动
         for _ in range(10):
-            if server_status.is_running():
-                logger.info(f"服务器已在端口 {settings.PORT} 启动")
+            if server_status.is_running(current_port):
+                logger.info(f"服务器已在端口 {current_port} 启动")
                 return True
             time.sleep(0.5)
         
@@ -139,38 +205,61 @@ def ANP_resp_start(port=None):
         return False
     except Exception as e:
         logger.error(f"启动服务器时出错: {e}")
-        server_status.set_running(False)
+        server_status.set_running(False, current_port)
         return False
 
 
-def ANP_resp_stop():
+def ANP_resp_stop(port=None):
     """停止DID WBA服务器
     
+    Args:
+        port: 可选的服务器端口号，如果不提供则停止所有服务器
+        
     Returns:
         bool: 服务器是否成功停止
     """
     global server_status
     
-    if not server_status.is_running():
-        logger.warning("服务器未运行")
-        return True
-    
-    try:
-        # 发送停止信号给服务器
-        if server_status.instance:
-            server_status.instance.should_exit = True
-            # 确保信号被处理
-            time.sleep(0.5)
+    # 如果指定了端口，只停止该端口的服务器
+    if port:
+        if not server_status.is_running(port):
+            logger.warning(f"端口 {port} 的服务器未运行")
+            return True
         
-        # 标记服务器状态为已停止
-        server_status.set_running(False)
-        
-        # 等待服务器线程结束
-        if server_status.thread and server_status.thread.is_alive():
-            server_status.thread.join(timeout=10.0)  # 设置超时时间，避免无限等待
+        try:
+            # 发送停止信号给服务器
+            server_instance = server_status.get_instance(port)
+            if server_instance:
+                server_instance.should_exit = True
+                # 确保信号被处理
+                time.sleep(0.5)
             
-        logger.info("服务器已停止")
-        return True
-    except Exception as e:
-        logger.error(f"停止服务器时出错: {e}")
-        return False
+            # 标记服务器状态为已停止
+            server_status.set_running(False, port)
+            
+            logger.info(f"端口 {port} 的服务器已停止")
+            return True
+        except Exception as e:
+            logger.error(f"停止端口 {port} 的服务器时出错: {e}")
+            return False
+    else:
+        # 停止所有服务器
+        success = True
+        for port in list(server_status.servers.keys()):
+            try:
+                # 发送停止信号给服务器
+                server_instance = server_status.get_instance(port)
+                if server_instance:
+                    server_instance.should_exit = True
+                    # 确保信号被处理
+                    time.sleep(0.5)
+                
+                # 标记服务器状态为已停止
+                server_status.set_running(False, port)
+                
+                logger.info(f"端口 {port} 的服务器已停止")
+            except Exception as e:
+                logger.error(f"停止端口 {port} 的服务器时出错: {e}")
+                success = False
+        logger.info("全部服务器已停止")
+        return success

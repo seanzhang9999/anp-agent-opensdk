@@ -26,7 +26,7 @@ async def get_did_document(user_id: str) -> Dict:
     """
     # 构建DID文档路径
     current_dir = Path(__file__).parent.parent.absolute()
-    did_path = dynamic_config.get('demo_autorun.user-did-path')
+    did_path = dynamic_config.get('demo_autorun.user_did_path')
     did_path = current_dir.joinpath( did_path,f"user_{user_id}" , "did_document.json" )
 
 

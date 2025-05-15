@@ -16,10 +16,12 @@ chat:
 
 
 demo_autorun:
-  user-did-path: anp_core/anp_users
-  user-did-key-id: key-1
-  user-did-hostname: localhost
-  user-did-port: 9527
+  user_did_path: anp_core/anp_users
+  user_did_key_id: key-1
+  auth_virutaldir: wba/test
+  user_did_hostname: localhost
+  user_did_port_1: 9527
+  user_did_port_2: 9528
 
 
 web_api:
