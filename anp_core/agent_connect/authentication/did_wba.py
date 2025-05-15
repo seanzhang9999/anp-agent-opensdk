@@ -263,7 +263,7 @@ def generate_auth_header(
     Raises:
         ValueError: If the DID document format is invalid.
     """
-    logging.info("Starting to generate DID authentication header.")
+    # logging.info("Starting to generate DID authentication header.")
     
     # Validate DID document
     did = did_document.get('id')
@@ -310,8 +310,8 @@ def generate_auth_header(
         f'signature="{signature}"'
     )
     
-    logging.info("Successfully generated DID authentication header.")
-    logging.debug(f"Generated Authorization header: {auth_header}")
+    #logging.info("Successfully generated DID authentication header.")
+    logging.info(f"生成认证头: {auth_header}")
     
     return auth_header
 

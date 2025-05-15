@@ -5,6 +5,7 @@ JWT configuration module providing functions to get JWT public and private keys.
 import os
 import logging
 from typing import Optional
+from config import dynamic_config
 from core.config import settings
 
 # Ensure key files exist
@@ -24,6 +25,7 @@ def get_jwt_private_key(key_path: str = settings.JWT_PRIVATE_KEY_PATH) -> Option
     Returns:
         Optional[str]: The private key content as a string, or None if the file cannot be read
     """
+
     if not os.path.exists(key_path):
         logging.error(f"Private key file not found: {key_path}")
         return None

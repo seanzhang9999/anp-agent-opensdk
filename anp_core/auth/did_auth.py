@@ -13,6 +13,7 @@ from typing import Dict, Tuple, Optional, Any
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
+
 from fastapi import Request, HTTPException
 from canonicaljson import encode_canonical_json
 from anp_core.agent_connect.authentication import (
@@ -133,7 +134,7 @@ async def handle_did_auth(authorization: str, domain: str , request_url: str ) -
         HTTPException: When authentication fails
     """
     try:
-        logging.info(f"Processing DID WBA authentication - domain: {domain}, Authorization header: {authorization}")
+       # logging.info(f"Processing DID WBA authentication - domain: {domain}, Authorization header: {authorization}")
 
         # Extract header parts
         header_parts = extract_auth_header_parts(authorization)
@@ -144,7 +145,7 @@ async def handle_did_auth(authorization: str, domain: str , request_url: str ) -
         # 解包顺序：(did, nonce, timestamp, verification_method, signature)
         did, nonce, timestamp, resp_did, keyid, signature = header_parts
         
-        logging.info(f"Processing DID WBA authentication - DID: {did}, Key ID: {keyid}")
+    #   # logging.info(f"Processing DID WBA authentication - DID: {did}, Key ID: {keyid}")
         
         # 验证时间戳
         if not verify_timestamp(timestamp):
@@ -160,7 +161,7 @@ async def handle_did_auth(authorization: str, domain: str , request_url: str ) -
         
         # 如果自定义解析器失败，尝试使用标准解析器
         if not did_document:
-            logging.info(f"本地DID解析失败，尝试使用标准解析器 for DID: {did}")
+           # logging.info(f"本地DID解析失败，尝试使用标准解析器 for DID: {did}")
             try:
                 did_document = await resolve_did_wba_document(did)
             except Exception as e:
@@ -170,7 +171,7 @@ async def handle_did_auth(authorization: str, domain: str , request_url: str ) -
         if not did_document:
             raise HTTPException(status_code=401, detail="Failed to resolve DID document")
             
-        logging.info(f"成功解析DID文档: {did}")
+        # logging.info(f"成功解析DID文档: {did}")
         
         # 验证签名
         try:
@@ -184,20 +185,30 @@ async def handle_did_auth(authorization: str, domain: str , request_url: str ) -
                 service_domain=domain
             )
             
-            logging.info(f"签名验证结果: {is_valid}, 消息: {message}")
+            logging.info(f" {did}签名验证结果: {is_valid}, 消息: {message}")
             
             if not is_valid:
                 raise HTTPException(status_code=401, detail=f"Invalid signature: {message}")
         except Exception as e:
             logging.error(f"验证签名时出错: {e}")
             raise HTTPException(status_code=401, detail=f"Error verifying signature: {str(e)}")
-            
+        
+        from demo_autorun import get_user_cfg_list, find_user_cfg_by_did, LocalAgent
+        user_list, name_to_dir = get_user_cfg_list()
+        resp_did_cfg = find_user_cfg_by_did(user_list, name_to_dir,resp_did)
+        
+        resp_did_agent = LocalAgent(
+        id=resp_did_cfg.get('id'),
+        user_dir=resp_did_cfg.get('user_dir')
+        )
+
+       
         # 生成访问令牌
         access_token = create_access_token(
-            data={"req_did": did, "resp_did": resp_did, "comments": "open for req_did"}
-        )
+            resp_did_agent.jwt_private_key_path,
+            data={"req_did": did, "resp_did": resp_did, "comments": "open for req_did"  })
         
-        logging.info(f"认证成功，已生成访问令牌")
+       # logging.info(f"认证成功，已生成访问令牌")
         
         # 如果resp_did存在，加载resp_did的DID文档并组装DID认证头
         resp_did_auth_header = None
@@ -225,9 +236,9 @@ async def handle_did_auth(authorization: str, domain: str , request_url: str ) -
                     resp_did_auth_header = resp_auth_client.get_auth_header(target_url, did)
 
                     # 打印认证头
-                    logging.info(f"Generated resp_did_auth_header: {resp_did_auth_header}")
+                   # logging.info(f"Generated resp_did_auth_header: {resp_did_auth_header}")
 
-                    logging.info(f"成功加载resp_did的DID文档并生成认证头")
+                   # logging.info(f"成功加载resp_did的DID文档并生成认证头")
                 else:
                     logging.warning(f"resp_did的DID文档或私钥不存在: {did_document_path} or {private_key_path}")
             except Exception as e:
@@ -275,7 +286,7 @@ async def generate_or_load_did(unique_id: str = None) -> Tuple[Dict, Dict, str]:
     did_path = user_dir / settings.DID_DOCUMENT_FILENAME
     
     if did_path.exists():
-        logging.info(f"Loading existing DID document from {did_path}")
+       # logging.info(f"Loading existing DID document from {did_path}")
         
         # 加载DID文档
         with open(did_path, 'r', encoding='utf-8') as f:
@@ -287,7 +298,7 @@ async def generate_or_load_did(unique_id: str = None) -> Tuple[Dict, Dict, str]:
         return did_document, keys, str(user_dir)
     
     # 创建DID文档
-    logging.info("Creating new DID document...")
+   # logging.info("Creating new DID document...")
     host = f"localhost"
     port = settings.PORT
     if os.getenv('AGENT_PORT'):
@@ -312,12 +323,12 @@ async def generate_or_load_did(unique_id: str = None) -> Tuple[Dict, Dict, str]:
         private_key_path = user_dir / f"{method_fragment}_private.pem"
         with open(private_key_path, 'wb') as f:
             f.write(private_key_bytes)
-        logging.info(f"Saved private key '{method_fragment}' to {private_key_path}")
+       # logging.info(f"Saved private key '{method_fragment}' to {private_key_path}")
     
     # 保存DID文档
     with open(did_path, 'w', encoding='utf-8') as f:
         json.dump(did_document, f, indent=2)
-    logging.info(f"Saved DID document to {did_path}")
+   # logging.info(f"Saved DID document to {did_path}")
     
     return did_document, keys, str(user_dir)
 
@@ -340,7 +351,7 @@ async def send_authenticated_request(target_url: str, auth_client: DIDWbaAuthHea
         # 获取认证头
         auth_headers = auth_client.get_auth_header(target_url , resp_did)
 
-        logging.info(f"Sending authenticated request to {target_url} with headers: {auth_headers}")
+       # logging.info(f"Sending authenticated request to {target_url} with headers: {auth_headers}")
         
         async with aiohttp.ClientSession() as session:
             if method.upper() == "GET":
@@ -372,7 +383,7 @@ async def send_authenticated_request(target_url: str, auth_client: DIDWbaAuthHea
         return 500, {"error": str(e)}, None
 
 
-async def send_request_with_token(target_url: str, token: str, sender: str, method: str = "GET",
+async def send_request_with_token(target_url: str, token: str, sender_did: str, targeter_did:string, method: str = "GET",
                                   json_data: Optional[Dict] = None) -> Tuple[int, Dict[str, Any]]:
     """
     使用已获取的令牌发送请求
@@ -387,10 +398,10 @@ async def send_request_with_token(target_url: str, token: str, sender: str, meth
         Tuple[int, Dict[str, Any]]: 状态码和响应
     """
     try:
-        did = sender
         headers = {
             "Authorization": f"Bearer {token}",
-            "TokenRequestDID": f"{did}"
+            "req_did": f"{sender_did}",
+            "resp_did": f"{targeter_did}"
         }
 
         async with aiohttp.ClientSession() as session:

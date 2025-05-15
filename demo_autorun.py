@@ -74,7 +74,8 @@ class LocalAgent:
         self.userdid_filepath = os.path.join(self.userdid_filepath, user_dir)
         self.did_document_path = f"{self.userdid_filepath}/did_document.json"
         self.private_key_path = f"{self.userdid_filepath}/{self.key_id}_private.pem"
-
+        self.jwt_private_key_path = f"{self.userdid_filepath}/private_key.pem"
+        self.jwt_public_key_path = f"{self.userdid_filepath}/public_key.pem"
 
     def set_token(self, targeter_did: str, access_token: str):
         """存储 token"""
@@ -290,9 +291,7 @@ def anp_test():
     """
 
     
-    # 设置日志级别
-    logging.basicConfig(level=logging.INFO)
-    logger = logging.getLogger(__name__)
+
     
 
     logger.info("===== 步骤1: 启动服务器 =====")
@@ -300,18 +299,13 @@ def anp_test():
     logger.info(f"服务器启动结果: {server_result_1}")
     server_result_2 = resp_start(dynamic_config.get('demo_autorun.user_did_port_2'))
     logger.info(f"服务器启动结果: {server_result_2}")
-    logger.info("等待服务器完全启动...")
-    time.sleep(3)  # 等待服务器完全启动
 
 
-
-    logger.info("等待服务器完全启动...")
-    time.sleep(3)  # 等待服务器完全启动
         
 
     logger.info("\n===== 步骤2: 读取本地智能体配置 =====")
 
-    user_list, name_to_dir = get_usercfg_list()
+    user_list, name_to_dir = get_user_cfg_list()
     logger.info("\n===== 读取本地智能体配置成功 =====")
 
     status, did_dict, selected_name = get_user_cfg(1,user_list,name_to_dir)
@@ -336,7 +330,7 @@ def anp_test():
 
     logger.info("\n===== 步骤4: 初始化发起方接收方智能体对象 =====")
     sender = LocalAgent(
-        id=sender_cfg.get('id'),
+        id=sender_cfg.get('did_dict')['id'],
         user_dir=sender_cfg.get('user_dir')
         )
 
@@ -382,7 +376,7 @@ def anp_test():
 
     if token:
         logging.info("收到访问令牌，尝试用于下一个请求")
-        status, response = asyncio.run( send_request_with_token(test_url, token, sender.id))
+        status, response = asyncio.run( send_request_with_token(test_url, token, sender.id, targeter.id))
         
         if status == 200:
             logging.info(f"令牌认证成功! 保存当前令牌！响应: {response}")
@@ -401,9 +395,26 @@ def anp_test():
     
 
 
+def find_user_cfg_by_did(user_list, name_to_dir, did):
+    """遍历 user_list，匹配 did_dict 是否等于 resp_id"""
+    
+    user_count = len(user_list)  # 获取数组长度
+    logger.info(f"共有 {user_count} 个用户配置")  # 仅供调试
+    
+    for index in range(user_count):  # 遍历 user_list
+        status, did_dict, selected_name = get_user_cfg(index+1, user_list, name_to_dir)
+        
+        if did_dict['id'] == did:  # 检查 did_dict 是否匹配 resp_id
+            return {  
+                "status": status,
+                "did_dict": did_dict,
+                "name": selected_name,
+                "user_dir": name_to_dir[selected_name]
+            }
+    
+    return None  # 如果没有匹配项，返回 None
 
-
-def get_usercfg_list():
+def get_user_cfg_list():
     """获取用户列表
     
     从anp_core/anp_users目录中读取所有用户的配置文件，提取用户名
@@ -461,14 +472,14 @@ def get_user_cfg(choice, user_list, name_to_dir):
                 try:
                     with open(did_path, 'r', encoding='utf-8') as f:
                         did_dict = json.load(f)
-                    print(f"已加载用户 {selected_name} 的 DID 文档")
-                    print(f"DID: {did_dict['id']}")
+                    logger.info(f"已加载用户 {selected_name} 的 DID 文档")
+                    logger.info(f"DID: {did_dict['id']}")
                     return True, did_dict, selected_name
                 except Exception as e:
-                    print(f"加载 DID 文档出错: {e}")
+                    logger.error(f"加载 DID 文档出错: {e}")
                     return False, None, selected_name
             else:
-                print(f"未找到用户 {selected_name} 的 DID 文档")
+                logger.error(f"未找到用户 {selected_name} 的 DID 文档")
                 return False, None, selected_name
         else:
             print("无效的选择")
@@ -620,6 +631,10 @@ if __name__ == "__main__":
         2. config/dynamic_config.yaml  dynamic_config
     
     """
+
+    # 设置日志级别
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__name__)
     set_log_color_level(logging.INFO)
     
     
@@ -653,7 +668,8 @@ if __name__ == "__main__":
             break
         except Exception as e:
             print(f"错误: {e}")
-    
+            resp_stop()
+            break
     print("程序已退出")
     sys.exit(0)
 

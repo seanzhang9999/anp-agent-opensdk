@@ -43,7 +43,7 @@ class DIDWbaAuthHeader:
         self.auth_headers = {}  # Store DID authentication headers by domain
         self.tokens = {}  # Store tokens by domain
         
-        logging.info("DIDWbaAuthHeader initialized")
+        # logging.info("DIDWbaAuthHeader initialized")
     
     def _get_domain(self, server_url: str) -> str:
         """从URL中提取域名，兼容FastAPI/Starlette的Request对象"""
@@ -74,7 +74,7 @@ class DIDWbaAuthHeader:
                 did_document = json.load(f)
             
             self.did_document = did_document
-            logging.info(f"Loaded DID document: {did_path}")
+            # logging.info(f"Loaded DID document: {did_path}")
             return did_document
         except Exception as e:
             logging.error(f"Error loading DID document: {e}")
@@ -120,7 +120,7 @@ class DIDWbaAuthHeader:
         try:
             did_document = self._load_did_document()
         
-            logging.info("尝试添加DID认证头自")
+            # logging.info("尝试添加DID认证头自")
             
 
             auth_header = generate_auth_header(
@@ -133,7 +133,7 @@ class DIDWbaAuthHeader:
             
 
 
-            logging.info(f"Generated authentication header for domain {domain}: {auth_header[:30]}...")
+            # logging.info(f"Generated authentication header for domain {domain}: {auth_header[:30]}...")
             return auth_header
         except Exception as e:
             logging.error(f"Error generating authentication header: {e}")
@@ -149,14 +149,14 @@ class DIDWbaAuthHeader:
         # If there is a token and not forcing a new authentication header, return the token
         if domain in self.tokens and not force_new:
             token = self.tokens[domain]
-            logging.info(f"Using existing token for domain {domain}")
+            # logging.info(f"Using existing token for domain {domain}")
             return {"Authorization": f"Bearer {token}"}
         
         # Otherwise, generate or use existing DID authentication header
         if domain not in self.auth_headers or force_new:
             self.auth_headers[domain] = self._generate_auth_header(domain , resp_did)
         
-        logging.info(f"Using DID authentication header for domain {domain}")
+        # logging.info(f"Using DID authentication header for domain {domain}")
         return {"Authorization": self.auth_headers[domain]}
     
     def update_token(self, server_url: str, headers: Dict[str, str]) -> Optional[str]:
@@ -179,7 +179,7 @@ class DIDWbaAuthHeader:
         if auth_status and token_type == "bearer":
             token = access_token  # Remove "Bearer " prefix
             self.tokens[domain] = token
-            logging.info(f"Updated token for domain {domain}: {token[:30]}...")
+            # logging.info(f"Updated token for domain {domain}: {token[:30]}...")
             return token
         else:
             logging.debug(f"No valid token found in response headers for domain {domain}")
@@ -195,14 +195,14 @@ class DIDWbaAuthHeader:
         domain = self._get_domain(server_url)
         if domain in self.tokens:
             del self.tokens[domain]
-            logging.info(f"Cleared token for domain {domain}")
+            # logging.info(f"Cleared token for domain {domain}")
         else:
             logging.debug(f"No stored token for domain {domain}")
     
     def clear_all_tokens(self) -> None:
         """Clear all tokens for all domains"""
         self.tokens.clear()
-        logging.info("Cleared all tokens for all domains")
+        # logging.info("Cleared all tokens for all domains")
 
 # # Example usage
 # async def example_usage():

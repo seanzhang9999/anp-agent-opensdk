@@ -11,7 +11,7 @@ from core.config import settings
 from anp_core.auth.jwt_keys import get_jwt_public_key, get_jwt_private_key
 
 
-def create_access_token(data: Dict, expires_delta: Optional[timedelta] = None) -> str:
+def create_access_token( private_key_path, data: Dict, expires_delta: Optional[timedelta] = None) -> str:
     """
     Create a new JWT access token.
     
@@ -27,7 +27,7 @@ def create_access_token(data: Dict, expires_delta: Optional[timedelta] = None) -
     to_encode.update({"exp": expires})
     
     # Get private key for signing
-    private_key = get_jwt_private_key()
+    private_key = get_jwt_private_key(private_key_path)
     if not private_key:
         logging.error("Failed to load JWT private key")
         raise HTTPException(status_code=500, detail="Internal server error during token generation")
@@ -41,7 +41,7 @@ def create_access_token(data: Dict, expires_delta: Optional[timedelta] = None) -
     return encoded_jwt
 
 
-async def handle_bearer_auth(token: str) -> Dict:
+async def handle_bearer_auth(token: str, req_did,resp_did) -> Dict:
     """
     Handle Bearer token authentication.
     
@@ -60,7 +60,19 @@ async def handle_bearer_auth(token: str) -> Dict:
             token_body = token[7:]
         
         # Get public key for verification
-        public_key = get_jwt_public_key()
+
+        from demo_autorun import get_user_cfg_list, find_user_cfg_by_did, LocalAgent
+        user_list, name_to_dir = get_user_cfg_list()
+        resp_did_cfg = find_user_cfg_by_did(user_list, name_to_dir,resp_did)
+        
+        resp_did_agent = LocalAgent(
+        id=resp_did_cfg.get('id'),
+        user_dir=resp_did_cfg.get('user_dir')
+        )
+  
+
+        
+        public_key = get_jwt_public_key(resp_did_agent.jwt_public_key_path)
         if not public_key:
             logging.error("Failed to load JWT public key")
             raise HTTPException(status_code=500, detail="Internal server error during token verification")
