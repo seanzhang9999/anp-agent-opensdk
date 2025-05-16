@@ -454,13 +454,16 @@ async def run_chat():
         
         # 检查OpenRouter API密钥是否配置
         openrouter_api_key = os.getenv("OPENROUTER_API_KEY", "")
+        openrouter_api_url = os.getenv("OPENROUTER_API_BASE_URL", "")
+        OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "")
+
         if not openrouter_api_key:
             print("[错误] 未配置OpenRouter API密钥，请在环境变量中设置OPENROUTER_API_KEY")
             chat_running = False
             return
             
         # OpenRouter API配置
-        openrouter_api_url = "https://openrouter.ai/api/v1/chat/completions"
+        openrouter_api_url = openrouter_api_url
         headers = {
             "Authorization": f"Bearer {openrouter_api_key}",
             "Content-Type": "application/json"
@@ -521,7 +524,7 @@ async def run_chat():
                 try:
                     # 准备请求数据
                     payload = {
-                        "model": "deepseek/deepseek-chat-v3-0324:free",  # 免费模型
+                        "model": OPENROUTER_MODEL,  # 免费模型
                         "messages": [{"role": "user", "content": user_msg}],
                         "max_tokens": 512
                     }

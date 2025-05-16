@@ -89,9 +89,8 @@ def get_and_validate_port(request) -> str:
             return host.split(":")[1]
         return "80"  # 默认HTTP端口
 
-@router.post("/anp-nlp/{user_id}/", summary="ANP的NLP接口，Chat with OpenRouter LLM")
+@router.post("/anp-nlp/", summary="ANP的NLP接口，Chat with OpenRouter LLM")
 async def anp_nlp_service(
-    user_id: str,
     request: Request,
     chat_req: ChatRequest,
     authorization: Optional[str] = Header(None)
@@ -104,8 +103,8 @@ async def anp_nlp_service(
     if not chat_req.message:
         raise HTTPException(status_code=400, detail="Empty message")
         
-    resp_did = user_id
-    req_did = request.headers.get("DID")
+    resp_did = request.headers.get("resp_did")
+    req_did = request.headers.get("req_did")
     requestport = get_and_validate_port(request)
     
     # 调用封装的OpenRouter请求函数
@@ -126,6 +125,7 @@ async def sse_event_generator(message: str, req_did: str, resp_did: str, request
     try:
         # 发送初始事件
         yield f"data: {json.dumps({'type': 'start', 'message': '开始处理请求'})}\n\n"
+        
         
         # 调用封装的OpenRouter请求函数
         status_code, response_data = await resp_handle_request(message, req_did, resp_did, requestport)
@@ -179,7 +179,7 @@ async def anp_nlp_sse_service(
         media_type="text/event-stream"
     )
 
-@router.websocket("/ws/{client_id}")
+@router.websocket("/anp_nlp/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: str):
     """
     WebSocket端点，支持多人接入和消息转发

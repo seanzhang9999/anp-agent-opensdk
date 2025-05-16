@@ -105,9 +105,9 @@ async def ANP_req_chat( token: str, msg: Msg):
         Tuple[bool, dict]: 发送状态和响应数据
     """
 
-    anp_nlp_url = f"http://{msg.targeter.host}:{msg.targeter.port}/wba/anp-nlp"
+    anp_nlp_url = f"http://{msg.targeter.host}:{msg.targeter.port}/anp-nlp/"
 
-    logging.info("发送消息到聊天接口")
+    logging.info(f"发送消息到聊天接口{anp_nlp_url}")
     try:
         chat_status, chat_response = await send_request_with_token(
             anp_nlp_url, 
@@ -115,7 +115,7 @@ async def ANP_req_chat( token: str, msg: Msg):
             msg.sender.id,
             msg.targeter.id,
             method="POST", 
-            json_data={"message": list(msg.content)}
+            json_data={"message": msg.content}
         )
         if chat_status == 200:
             logging.info(f"消息发送成功! 回复: {chat_response}")

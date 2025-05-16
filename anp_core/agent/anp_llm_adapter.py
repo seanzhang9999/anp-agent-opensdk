@@ -44,8 +44,9 @@ async def openrouter_handler(message: str, req_did: str = None, resp_did: str = 
     """
     默认OpenRouter LLM处理函数，开发者可参考此实现自定义handler。
     """
-    OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
     OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
+    OPENROUTER_API_URL = os.getenv("OPENROUTER_API_BASE_URL", "")
+    OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "")
     if not OPENROUTER_API_KEY:
         error_msg = "OpenRouter API key not configured"
         message_data = {
@@ -66,7 +67,7 @@ async def openrouter_handler(message: str, req_did: str = None, resp_did: str = 
         "Content-Type": "application/json"
     }
     payload = {
-        "model": "deepseek/deepseek-chat-v3-0324:free",
+        "model": OPENROUTER_MODEL,
         "messages": [
             {"role": "system", "content": prompt},
             {"role": "user", "content": message}

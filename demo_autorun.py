@@ -444,8 +444,6 @@ async def msg_send_http(msg: Msg):
 
             await ANP_req_auth(msg=msg)
 
-            token = os.environ.get('did-token', None)
-
         logger.info(f"使用token...\n发送消息: {msg}")
 
         status, response = await ANP_req_chat( msg=msg, token=token)
@@ -500,6 +498,8 @@ def anp_test(step_mode: bool = False):
     server_result_1 = resp_start(dynamic_config.get('demo_autorun.user_did_port_1'))
 
     logger.info(f"服务器启动结果: {server_result_1}")
+
+    time.sleep(2)  # 等待第一个服务器完全启动 避免多线程mac下的冲突
 
     server_result_2 = resp_start(dynamic_config.get('demo_autorun.user_did_port_2'))
 

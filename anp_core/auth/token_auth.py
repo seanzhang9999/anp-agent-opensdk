@@ -22,6 +22,7 @@ def create_access_token( private_key_path, data: Dict, expires_delta: Optional[t
     Returns:
         str: Encoded JWT token
     """
+    
     to_encode = data.copy()
     expires = datetime.utcnow() + (expires_delta or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expires})
@@ -88,7 +89,15 @@ async def handle_bearer_auth(token: str, req_did,resp_did) -> Dict:
         if "req_did" not in payload:
             raise HTTPException(status_code=401, detail="Invalid token payload")
             
-        return token
+        return  [
+            {   
+                "access_token": token,
+                "token_type": "bearer",
+                "req_did": req_did,
+                "resp_did": resp_did,
+            } 
+
+        ] 
     
         
     except jwt.PyJWTError as e:

@@ -176,7 +176,13 @@ def ANP_resp_start(port=None):
         
         # 创建并启动服务器线程，使用自定义的非阻塞运行方法
         def run_server_nonblocking():
-            # 使用底层的serve方法而不是run方法
+            import sys
+            # 在Mac环境下使用不同的事件循环策略
+            # if sys.platform == 'darwin':  # 检测是否为Mac
+            # 使用uvloop或其他更适合Mac的事件循环实现
+            #     import uvloop
+            #    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+            #     # 使用底层的serve方法而不是run方法
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             try:

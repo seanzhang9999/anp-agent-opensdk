@@ -10,9 +10,10 @@ from anp_core.auth.token_auth import handle_bearer_auth
 import json
 
 # Define exempt paths that don't require authentication
+import fnmatch
 EXEMPT_PATHS = [
     "/docs",
-    "/ws-client/",
+    "/anp-nlp/",
     "/ws/",
     "/redoc", 
     "/openapi.json",
