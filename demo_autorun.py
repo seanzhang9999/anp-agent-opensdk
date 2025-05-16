@@ -105,6 +105,8 @@ class LocalAgent:
 
         self.token_dict = {}  # 存储 targeter_did -> access_token 映射
 
+        self.token_info_dict = {}  # 存储 req_did -> token_info 映射，包含token、创建时间、过期时间和撤销状态
+
         self.key_id = dynamic_config.get('demo_autorun.user_did_key_id')
 
         self.userdid_filepath = dynamic_config.get('demo_autorun.user_did_path')
@@ -132,7 +134,42 @@ class LocalAgent:
         """获取 token"""
 
         return self.token_dict.get(targeter_did)
-
+    
+    def store_token_info(self, req_did: str, token_info: Dict):
+        """存储token详细信息
+        
+        Args:
+            req_did: 请求方DID
+            token_info: token信息字典，包含token、创建时间、过期时间和撤销状态
+        """
+        self.token_info_dict[req_did] = token_info
+        logging.info(f"Token info for {req_did} stored in LocalAgent {self.id}")
+    
+    def get_token_info(self, req_did: str):
+        """获取token详细信息
+        
+        Args:
+            req_did: 请求方DID
+            
+        Returns:
+            Dict: token信息字典，如果不存在则返回None
+        """
+        return self.token_info_dict.get(req_did)
+    
+    def revoke_token(self, req_did: str):
+        """撤销token
+        
+        Args:
+            req_did: 请求方DID
+            
+        Returns:
+            bool: 是否成功撤销
+        """
+        if req_did in self.token_info_dict:
+            self.token_info_dict[req_did]["is_revoked"] = True
+            logging.info(f"Token for {req_did} has been revoked by LocalAgent {self.id}")
+            return True
+        return False
 
 
 class RemoteAgent:
