@@ -5,6 +5,7 @@
     "version": "0.2.0",
     "configurations": [
 
+
         {
             "name": "win-demo_autorun",
             "type": "debugpy",
@@ -15,10 +16,28 @@
             "justMyCode": true,
       },
         {
-            "name": "mac-demo_autoru",
+            "name": "mac-demo_autorun",
             "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/demo_autorun.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "python": "${workspaceFolder}/.venv/bin/python"
+        },
+        {
+            "name": "mac-anp_sdk_demo",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/anp_sdk_demo.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "python": "${workspaceFolder}/.venv/bin/python"
+        },
+        {
+            "name": "mac-anp_sdk_test",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/anp_sdk_test.py",
             "console": "integratedTerminal",
             "justMyCode": true,
             "python": "${workspaceFolder}/.venv/bin/python"

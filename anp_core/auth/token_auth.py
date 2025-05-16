@@ -126,7 +126,7 @@ async def handle_bearer_auth(token: str, req_did, resp_did) -> Dict:
             logging.info(f"Token for {req_did} verified successfully from LocalAgent storage")
         else:
             # 如果LocalAgent中没有存储token信息，则使用公钥验证
-            logging.warning(f"No token info found in LocalAgent for {req_did}, falling back to public key verification")
+            logging.info(f"No token info found in LocalAgent for {req_did}, falling back to public key verification")
             
             public_key = get_jwt_public_key(resp_did_agent.jwt_public_key_path)
             if not public_key:

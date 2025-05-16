@@ -10,6 +10,7 @@ from api import auth_router, did_router, ad_router, anp_nlp_router
 from anp_core.auth.auth_middleware import auth_middleware
 
 
+
 def create_app() -> FastAPI:
     """
     Create and configure the FastAPI application.

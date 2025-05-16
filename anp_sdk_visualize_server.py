@@ -15,7 +15,7 @@ from fastapi import Request
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 
 # 创建ANPSDK实例
-sdk = ANPSDK(port=9528)
+sdk = ANPSDK(port=9527)
 
 # 注册一些API路由
 @sdk.expose_api("weather/current", methods=["GET"])
@@ -123,7 +123,7 @@ def home(request: Request):
 def main():
     """主函数"""
     print("启动ANP SDK可视化服务器...")
-    print("服务器启动后，可以通过浏览器访问 http://localhost:9528 查看可视化界面")
+    print("服务器启动后，可以通过浏览器访问 http://localhost:9527 查看可视化界面")
     
     # 启动服务器
     with sdk:

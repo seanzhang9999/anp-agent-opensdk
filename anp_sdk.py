@@ -11,15 +11,16 @@ from enum import Enum
 
 # 导入ANP核心组件
 from anp_core.server.server import ANP_resp_start, ANP_resp_stop
-from anp_core.auth.did_auth import get_did_url_from_did
 from config.dynamic_config import dynamic_config
 from anp_core.client.client import ANP_req_auth
-from core.app import app
-from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect, Response
+from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect, Response, FastAPI
 from fastapi.responses import StreamingResponse
 
+# 导入代理组件
+from anp_core.proxy.ws_proxy_client import WSProxyClient
+
 # 配置日志
-from utils.log_base import logger
+from loguru import logger
 
 
 # 定义消息传输模式枚举
@@ -27,147 +28,6 @@ class MessageMode(Enum):
     HTTP_POST = "http_post"  # 传统HTTP POST请求
     WEBSOCKET = "websocket"  # WebSocket长连接
     HTTP_SSE = "http_sse"    # HTTP Server-Sent Events
-
-
-class LocalAgent:
-    """本地智能体，代表当前用户的DID身份"""
-    
-    def __init__(self, id: str, user_dir: str):
-        """初始化本地智能体
-        
-        Args:
-            id: DID标识符
-            user_dir: 用户目录
-        """
-        self.id = id
-        self.user_dir = user_dir
-        self.logger = logger
-        self._ws_connections = {}
-        self._sse_clients = set()
-        
-    def send_message(self, target_agent, message: Dict[str, Any], mode: MessageMode = MessageMode.HTTP_POST):
-        """向目标智能体发送消息
-        
-        Args:
-            target_agent: 目标智能体对象
-            message: 消息内容
-            mode: 消息传输模式，默认为HTTP_POST
-            
-        Returns:
-            响应结果
-        """
-        try:
-            # 构建基础URL
-            target_url = get_did_url_from_did(target_agent.id)
-            
-            # 根据不同的传输模式选择不同的发送方法
-            if mode == MessageMode.HTTP_POST:
-                return self._send_http_post(target_agent.id, target_url, message)
-            elif mode == MessageMode.WEBSOCKET:
-                return asyncio.run(self._send_websocket(target_agent.id, target_url, message))
-            elif mode == MessageMode.HTTP_SSE:
-                return asyncio.run(self._send_http_sse(target_agent.id, target_url, message))
-            else:
-                raise ValueError(f"不支持的消息传输模式: {mode}")
-                
-        except Exception as e:
-            self.logger.error(f"发送消息时出错: {e}")
-            return None
-    
-    def _send_http_post(self, target_did: str, target_url: str, message: Dict[str, Any]):
-        """通过HTTP POST发送消息"""
-        url = f"http://{target_url}/api/message"
-        
-        # 发送认证请求
-        response = ANP_req_auth(
-            self.id,
-            target_did,
-            url,
-            self.user_dir,
-            dynamic_config.get("demo_autorun.user_did_key_id"),
-            message
-        )
-        
-        return response
-    
-    async def _send_websocket(self, target_did: str, target_url: str, message: Dict[str, Any]):
-        """通过WebSocket发送消息"""
-        ws_url = f"ws://{target_url}/ws/message"
-        
-        try:
-            # 创建WebSocket连接
-            async with aiohttp.ClientSession() as session:
-                # 添加认证头
-                headers = await self._get_auth_headers(target_did, ws_url)
-                
-                async with session.ws_connect(ws_url, headers=headers) as ws:
-                    # 发送消息
-                    await ws.send_json(message)
-                    
-                    # 接收响应
-                    response = await ws.receive_json()
-                    return response
-        except Exception as e:
-            self.logger.error(f"WebSocket消息发送失败: {e}")
-            return {"status": "error", "message": str(e)}
-    
-    async def _send_http_sse(self, target_did: str, target_url: str, message: Dict[str, Any]):
-        """通过HTTP SSE发送消息"""
-        sse_url = f"http://{target_url}/sse/message"
-        
-        try:
-            # 创建HTTP会话
-            async with aiohttp.ClientSession() as session:
-                # 添加认证头
-                headers = await self._get_auth_headers(target_did, sse_url)
-                
-                # 发送POST请求到SSE端点
-                async with session.post(sse_url, json=message, headers=headers) as response:
-                    return await response.json()
-        except Exception as e:
-            self.logger.error(f"SSE消息发送失败: {e}")
-            return {"status": "error", "message": str(e)}
-    
-    async def _get_auth_headers(self, target_did: str, url: str):
-        """获取认证头信息"""
-        # 这里简化处理，实际应该调用ANP_req_auth的底层方法获取认证头
-        # 返回一个示例头信息
-        return {
-            "Authorization": f"Bearer {self.id}_{target_did}",
-            "Content-Type": "application/json"
-        }
-    
-    def call_api(self, url: str, params: Dict[str, Any] = None, method: str = "GET"):
-        """调用API
-        
-        Args:
-            url: API URL
-            params: 请求参数
-            method: 请求方法
-            
-        Returns:
-            API响应
-        """
-        try:
-            # 从URL中提取目标DID
-            target_url = url.split("//")[1].split("/")[0]
-            target_did = f"did:wba:{target_url}"
-            
-            # 发送认证请求
-            response = ANP_req_auth(
-                self.id,
-                target_did,
-                url,
-                self.user_dir,
-                dynamic_config.get("demo_autorun.user_did_key_id"),
-                params or {},
-                method=method
-            )
-            
-            return response
-        except Exception as e:
-            self.logger.error(f"调用API时出错: {e}")
-            return None
 
 
 class RemoteAgent:
@@ -181,11 +41,292 @@ class RemoteAgent:
         """
         self.id = id
 
+        host, port = get_did_host_port_from_did(id)
+
+        self.host = host
+        self.port = port
+
+ 
+   
+
+
+
+class LocalAgent:
+    """本地智能体，代表当前用户的DID身份"""
+    
+    def __init__(self, id: str, user_dir: str, name:str = "未命名", agent_type: str = "personal"):
+        """初始化本地智能体
+        
+        Args:
+            id: DID标识符
+            user_dir: 用户目录
+            agent_type: 智能体类型，"personal"或"service"
+        """
+        if name == "未命名":
+            self.name = f"未命名智能体{id}"
+        self.id = id
+        self.name = name
+        self.user_dir = user_dir
+        self.agent_type = agent_type
+        self.logger = logger
+        self._ws_connections = {}
+        self._sse_clients = set()
+        self.token_info_dict = {}  # 存储token信息
+        import requests
+        self.requests = requests
+        # 新增: API与消息handler注册表
+        self.api_routes = {}  # path -> handler
+        self.message_handlers = {}  # type -> handler
+    
+    # 支持装饰器和函数式注册API
+    def expose_api(self, path: str, func: Callable = None):
+        if func is None:
+            def decorator(f):
+                self.api_routes[path] = f
+                return f
+            return decorator
+        else:
+            self.api_routes[path] = func
+            return func
+    
+    # 支持装饰器和函数式注册消息handler
+    def register_message_handler(self, msg_type: str, func: Callable = None):
+        if func is None:
+            def decorator(f):
+                self.message_handlers[msg_type] = f
+                return f
+            return decorator
+        else:
+            self.message_handlers[msg_type] = func
+            return func
+
+    def handle_request(self, req_did: str, request_data: Dict[str, Any]):
+        """处理来自req_did的请求
+        
+        Args:
+            req_did: 请求方DID
+            request_data: 请求数据
+            
+        Returns:
+            处理结果
+        """
+        req_type = request_data.get("type")
+        if req_type == "api_call":
+            api_path = request_data.get("api_path")
+            handler = self.api_routes.get(api_path)
+            if handler:
+                try:
+                    result = handler(request_data)
+                    if isinstance(result, dict) and "anp_result" in result:
+                        return result
+                    return {"anp_result": result}
+                except Exception as e:
+                    self.logger.error(f"API调用错误: {e}")
+                    return {"anp_result": {"status": "error", "message": str(e)}}
+            else:
+                return {"anp_result": {"status": "error", "message": f"未找到API: {api_path}"}}
+        elif req_type == "message":
+            msg_type = request_data.get("message_type", "*")
+            handler = self.message_handlers.get(msg_type) or self.message_handlers.get("*")
+            if handler:
+                try:
+                    result = handler(request_data)
+                    if isinstance(result, dict) and "anp_result" in result:
+                        return result
+                    return {"anp_result": result}
+                except Exception as e:
+                    self.logger.error(f"消息处理错误: {e}")
+                    return {"anp_result": {"status": "error", "message": str(e)}}
+            else:
+                return {"anp_result": {"status": "error", "message": f"未找到消息处理器: {msg_type}"}}
+        else:
+            return {"anp_result": {"status": "error", "message": "未知的请求类型"}}
+    
+    def store_token_info(self, req_did: str, token: str, expires_delta: int):
+        """存储token信息
+        
+        Args:
+            req_did: 请求方DID
+            token: 生成的token
+            expires_delta: 过期时间（秒）
+        """
+        now = datetime.now()
+        expires_at = now + timedelta(seconds=expires_delta)
+        
+        self.token_info_dict[req_did] = {
+            "token": token,
+            "created_at": now.isoformat(),
+            "expires_at": expires_at.isoformat(),
+            "is_revoked": False,
+            "req_did": req_did
+        }
+    
+    def get_token_info(self, req_did: str):
+        """获取token信息
+        
+        Args:
+            req_did: 请求方DID
+            
+        Returns:
+            token信息字典，如果不存在则返回None
+        """
+        return self.token_info_dict.get(req_did)
+    
+    def revoke_token(self, req_did: str):
+        """撤销token
+        
+        Args:
+            req_did: 请求方DID
+            
+        Returns:
+            是否成功撤销
+        """
+        if req_did in self.token_info_dict:
+            self.token_info_dict[req_did]["is_revoked"] = True
+            return True
+        return False
+
+    def call_api(self, url: str, params: dict = None, method: str = "GET"):
+        """
+        调用远程API
+        Args:
+            url: 目标API完整URL
+            params: 请求参数
+            method: 请求方法，默认为GET
+        Returns:
+            响应内容
+        """
+        import requests
+        try:
+            if method.upper() == "GET":
+                resp = requests.get(url, params=params, timeout=10)
+            else:
+                resp = requests.post(url, json=params, timeout=10)
+            if resp.status_code == 200:
+                return resp.json()
+            else:
+                self.logger.error(f"API调用失败，状态码: {resp.status_code}")
+                return {"status": "error", "message": f"API调用失败，状态码: {resp.status_code}"}
+        except Exception as e:
+            self.logger.error(f"API调用异常: {e}")
+            return {"status": "error", "message": str(e)}
+
+    async def _send_http_post(self, target_did: str, target_url: str, message: Dict[str, Any]):
+        """通过HTTP POST发送消息
+        
+        Args:
+            target_did: 目标DID
+            target_url: 目标URL
+            message: 消息内容
+            
+        Returns:
+            响应结果
+        """
+        try:
+            # 构建POST消息URL
+            post_url = f"http://{target_url}/api/message"
+            
+            # 构建请求数据
+            request_data = {
+                "req_did": self.id,
+                "resp_did": target_did,
+                "message": message
+            }
+            
+            # 发送POST请求到消息端点
+            async with aiohttp.ClientSession() as session:
+                async with session.post(post_url, json=request_data) as response:
+                    if response.status == 200:
+                        return await response.json()
+                    else:
+                        self.logger.error(f"HTTP POST请求失败，状态码: {response.status}")
+                        return {"status": "error", "message": f"HTTP POST请求失败，状态码: {response.status}"}
+                        
+        except Exception as e:
+            self.logger.error(f"发送HTTP POST消息时出错: {e}")
+            return {"status": "error", "message": str(e)}
+
+    async def _send_http_sse(self, target_did: str, target_url: str, message: Dict[str, Any]):
+        """通过HTTP SSE发送消息
+        
+        Args:
+            target_did: 目标DID
+            target_url: 目标URL
+            message: 消息内容
+            
+        Returns:
+            响应结果
+        """
+        try:
+            # 构建SSE消息URL
+            sse_url = f"http://{target_url}/sse/message"
+            
+            # 构建请求数据
+            request_data = {
+                "req_did": self.id,
+                "resp_did": target_did,
+                "message": message
+            }
+            
+            # 发送SSE请求到消息端点
+            async with aiohttp.ClientSession() as session:
+                async with session.post(sse_url, json=request_data) as response:
+                    if response.status == 200:
+                        return await response.json()
+                    else:
+                        self.logger.error(f"HTTP SSE请求失败，状态码: {response.status}")
+                        return {"status": "error", "message": f"HTTP SSE请求失败，状态码: {response.status}"}
+                        
+        except Exception as e:
+            self.logger.error(f"发送HTTP SSE消息时出错: {e}")
+            return {"status": "error", "message": str(e)}
+
+
+    def header_req_auth(Request):
+        """
+        验证请求头是否包含Authorization
+        DID请求头，走DID验证
+        Token请求头，走Token验证
+        函数返回
+            req_did和resp_did  方便路由使用
+            检验结果 确认放行
+            返回头 方便后续加入header
+                返回认证头时一律走 "access_token","token_type","req_did","resp_did"方式返回
+                因为请求方无法解析bearer token,所以后两个明文返回，未来可以考虑did公钥加密
+                在有双向认证请求时，附加DID认证头，resp_did_auth_header
+        """
+        auth_header = Request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("ANP "):
+            return auth_header.split(" ")[1]
+        return None
+
+    def header_resp_auth(Response):
+        """
+        验证响应头是否包含Authorization
+        校验DID响应头，完成双向认证后，存储Token和双向认证结果
+        返回req_did和resp_did 检验结果
+        """
+        auth_header = Request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("ANP "):
+            return auth_header.split(" ")[1]
+        return None
+    
+    def header_req_generate(req_did: str, resp_did: str):
+        """
+        生成请求头，
+        如果有Token，直接用Token请求头
+        如果本地Agent没有远方Agent的Token，生成DID请求头
+        如果本地Agent没有远方Agent的双向认证结果或双向认证结果过期，附加双向认证请求
+        """
+        return f"ANP {req_did}"
+
+
+
 
 class ANPSDK:
     """ANP SDK主类，提供简单易用的接口"""
     
-    def __init__(self, did: str = None, user_dir: str = None, port: int = None):
+    def __init__(self,  port: int = None):
         """初始化ANP SDK
         
         Args:
@@ -201,55 +342,66 @@ class ANPSDK:
         self.ws_connections = {}
         self.sse_clients = set()
         
-        # 初始化路由器
-        self.router = APIRouter()
+        # 创建FastAPI应用实例
+        self.app = FastAPI(title="ANP SDK API", description="ANP SDK API服务")
+        
+        # 创建路由器实例
+        from anp_core.agent.agent_router import AgentRouter
+        self.router = AgentRouter()
         
         # 初始化日志
         self.logger = logger
         
-        # 如果指定了DID，直接使用
-        if did and user_dir:
-            self.agent = LocalAgent(id=did, user_dir=user_dir)
-            self.logger.info(f"已初始化智能体 DID: {did}")
-        else:
-            # 否则提供选择功能
-            self._initialize_agent()
+        # 公网代理客户端
+        self.proxy_client = None
+        self.proxy_mode = False
+        self.proxy_task = None
+        
+            
+    def register_agent(self, agent: LocalAgent):
+        """注册智能体到路由器
+        
+        Args:
+            agent: LocalAgent实例
+        """
+        self.router.register_agent(agent)
+        self.logger.info(f"已注册智能体到路由器: {agent.id}")
             
         # 注册默认路由
         self._register_default_routes()
     
-    def _initialize_agent(self):
-        """初始化智能体，提供DID选择或创建功能"""
-        from demo_autorun import get_user_cfg_list, get_user_cfg
-        
-        user_list, name_to_dir = get_user_cfg_list()
-        
-        if not user_list:
-            self.logger.error("未找到可用的DID配置")
-            return
-        
-        # 提供选择界面或自动选择第一个
-        status, did_dict, selected_name = get_user_cfg(1, user_list, name_to_dir)
-        
-        if status:
-            self.agent = LocalAgent(
-                id=did_dict['id'],
-                user_dir=name_to_dir[selected_name]
-            )
-            self.logger.info(f"已选择智能体: {selected_name} DID: {did_dict['id']}")
-        else:
-            self.logger.error("初始化智能体失败")
+
     
     def _register_default_routes(self):
         """注册默认路由"""
+        # 注册智能体 API 路由
+        @self.app.post("/agent/{did}/api")
+        async def api_entry(did: str, request: Request):
+            data = await request.json()
+            req_did = data.get("req_did", "demo_caller")
+            resp_did = did
+            data["type"] = "api_call"
+            result = self.router.route_request(req_did, resp_did, data)
+            return result
+
+        # 注册智能体消息路由
+        @self.app.post("/agent/{did}/message")
+        async def message_entry(did: str, request: Request):
+            data = await request.json()
+            req_did = data.get("req_did", "demo_caller")
+            resp_did = did
+            data["type"] = "message"
+            result = self.router.route_request(req_did, resp_did, data)
+            return result
+
         # 注册HTTP POST消息接收路由
-        @app.post("/api/message")
+        @self.app.post("/api/message")
         async def receive_message(request: Request):
             data = await request.json()
             return await self._handle_message(data)
         
         # 注册WebSocket消息接收路由
-        @app.websocket("/ws/message")
+        @self.app.websocket("/ws/message")
         async def websocket_endpoint(websocket: WebSocket):
             await websocket.accept()
             client_id = id(websocket)
@@ -270,22 +422,21 @@ class ANPSDK:
                     del self.ws_connections[client_id]
         
         # 注册SSE消息接收路由
-        @app.post("/sse/message")
+        @self.app.post("/sse/message")
         async def sse_message(request: Request):
             data = await request.json()
             response = await self._handle_message(data)
             return response
         
         # 注册SSE连接端点
-        @app.get("/sse/connect")
+        @self.app.get("/sse/connect")
         async def sse_connect(request: Request):
             async def event_generator():
                 client_id = id(request)
                 self.sse_clients.add(client_id)
-                
                 try:
                     # 发送初始连接成功消息
-                    yield f"data: {json.dumps({'status': 'connected'})\n\n"
+                    yield f"data: {json.dumps({'status': 'connected'})}\n\n"
                     
                     # 保持连接打开
                     while True:
@@ -301,8 +452,15 @@ class ANPSDK:
     
     async def _handle_message(self, message: Dict[str, Any]):
         """处理接收到的消息"""
+        logger.info(f"准备处理接收到的消息内容: {message}")
+
+        # 如果收到的是带有 message 字段的包裹，自动解包
+        if "message" in message:
+            message = message["message"]
+
         message_type = message.get("type", "*")
-        
+       
+
         # 查找对应的消息处理器
         handler = self.message_handlers.get(message_type) or self.message_handlers.get("*")
         
@@ -333,15 +491,27 @@ class ANPSDK:
         if os.name == 'posix' and 'darwin' in os.uname().sysname.lower():
             self.logger.info("检测到Mac环境，使用特殊启动方式")
         
-        result = ANP_resp_start(port=self.port)
+        # 注册通过 expose_api 装饰器收集的API路由
+        for route_path, route_info in self.api_routes.items():
+            func = route_info['func']
+            methods = route_info['methods']
+            self.app.add_api_route(f"/{route_path}", func, methods=methods)
         
-        if result:
-            self.server_running = True
-            self.logger.info(f"服务器已在端口 {self.port} 启动")
-        else:
-            self.logger.error(f"服务器启动失败，端口: {self.port}")
+        # 启动服务器
+        import uvicorn
+        import threading
         
-        return result
+        def run_server():
+            uvicorn.run(self.app, host="0.0.0.0", port=self.port)
+        
+        # 在新线程中启动服务器
+        self.server_thread = threading.Thread(target=run_server, daemon=True)
+        self.server_thread.start()
+        
+        self.server_running = True
+        self.logger.info(f"服务器已在端口 {self.port} 启动")
+        
+        return True
     
     def stop_server(self):
         """停止服务器
@@ -360,17 +530,15 @@ class ANPSDK:
         # 清空SSE客户端
         self.sse_clients.clear()
         
-        result = ANP_resp_stop(port=self.port)
+        # 由于服务器在独立线程中运行，这里我们不需要显式停止它
+        # 线程会在主程序退出时自动终止（因为是daemon线程）
         
-        if result:
-            self.server_running = False
-            self.logger.info("服务器已停止")
-        else:
-            self.logger.error("服务器停止失败")
+        self.server_running = False
+        self.logger.info("服务器已停止")
         
-        return result
+        return True
     
-    def send_message(self, target_did: str, message: Union[str, Dict], message_type: str = "text", mode: MessageMode = MessageMode.HTTP_POST):
+    async def send_message(self, target_did: str, message: Union[str, Dict], message_type: str = "text", mode: MessageMode = MessageMode.HTTP_POST):
         """向目标DID发送消息
         
         Args:
@@ -404,7 +572,8 @@ class ANPSDK:
                 msg["type"] = message_type
         
         # 发送消息
-        return self.agent.send_message(target_agent, msg, mode)
+        response = await self.agent.send_message(target_agent, msg, mode)
+        return response
     
     def call_api(self, target_did: str, api_path: str, params: Dict[str, Any] = None, method: str = "GET"):
         """调用目标DID的API
@@ -444,18 +613,11 @@ class ANPSDK:
             
         def decorator(func):
             # 注册API路由
-            self.api_routes[route_path] = func
+            self.api_routes[route_path] = {'func': func, 'methods': methods}
             
-            # 将函数注册到FastAPI
-            for method in methods:
-                if method.upper() == "GET":
-                    app.get(f"/{route_path}", response_model=None)(func)
-                elif method.upper() == "POST":
-                    app.post(f"/{route_path}", response_model=None)(func)
-                elif method.upper() == "PUT":
-                    app.put(f"/{route_path}", response_model=None)(func)
-                elif method.upper() == "DELETE":
-                    app.delete(f"/{route_path}", response_model=None)(func)
+            # 如果服务器已经运行，直接注册到FastAPI应用
+            if self.server_running:
+                self.app.add_api_route(f"/{route_path}", func, methods=methods)
             
             return func
         return decorator
@@ -708,3 +870,142 @@ class ANPSDK:
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """异步上下文管理器退出"""
         self.stop_server()
+
+    async def start_proxy_mode(self, proxy_url: str):
+        """启动公网代理模式
+        
+        Args:
+            proxy_url: 公网WebSocket代理服务器URL
+            
+        Returns:
+            是否成功启动代理模式
+        """
+        if not self.agent:
+            self.logger.error("未初始化智能体，无法启动代理模式")
+            return False
+        
+        if self.proxy_mode:
+            self.logger.warning("代理模式已经启动")
+            return True
+        
+        try:
+            # 创建代理客户端
+            self.proxy_client = WSProxyClient(self, proxy_url, self.agent.id)
+            
+            # 启动代理客户端
+            self.proxy_task = asyncio.create_task(self.proxy_client.start())
+            self.proxy_mode = True
+            
+            self.logger.info(f"已启动公网代理模式，连接到: {proxy_url}")
+            return True
+        
+        except Exception as e:
+            self.logger.error(f"启动代理模式时出错: {e}")
+            return False
+    
+    async def stop_proxy_mode(self):
+        """停止公网代理模式
+        
+        Returns:
+            是否成功停止代理模式
+        """
+        if not self.proxy_mode or not self.proxy_client:
+            return True
+        
+        try:
+            # 断开代理客户端连接
+            await self.proxy_client.disconnect()
+            
+            # 取消代理任务
+            if self.proxy_task and not self.proxy_task.done():
+                self.proxy_task.cancel()
+                try:
+                    await self.proxy_task
+                except asyncio.CancelledError:
+                    pass
+            
+            self.proxy_client = None
+            self.proxy_mode = False
+            self.proxy_task = None
+            
+            self.logger.info("已停止公网代理模式")
+            return True
+        
+        except Exception as e:
+            self.logger.error(f"停止代理模式时出错: {e}")
+            return False
+    
+    async def _handle_api_call(self, req_did: str, resp_did: str, api_path: str, method: str, params: Dict[str, Any]):
+        """处理API调用请求
+        
+        Args:
+            req_did: 请求方DID
+            resp_did: 响应方DID
+            api_path: API路径
+            method: 请求方法
+            params: 请求参数
+            
+        Returns:
+            API调用结果
+        """
+        # 检查是否是本地智能体
+        if resp_did != self.agent.id:
+            return {"status": "error", "message": f"未找到智能体: {resp_did}"}
+        
+        # 查找对应的API处理器
+        api_key = f"{method.lower()}:{api_path}"
+        if api_key in self.api_routes:
+            handler = self.api_routes[api_key]
+            try:
+                # 调用API处理器
+                result = await handler(req_did=req_did, **params)
+                return result
+            except Exception as e:
+                self.logger.error(f"API调用错误: {e}")
+                return {"status": "error", "message": str(e)}
+        else:
+            return {"status": "error", "message": f"未找到API: {api_path} [{method}]"}
+
+
+
+def get_did_url_from_did(did):
+    """根据DID返回 http://host:port 形式的URL"""
+    host , port = get_did_host_port_from_did(did)
+    return f"{host}:{port}"
+
+
+
+def get_did_host_port_from_did(did):
+
+    """从DID中解析出主机和端口"""
+
+    host, port = None, None
+
+    if did.startswith('did:wba:'):
+
+        try:
+
+            # 例：did:wba:localhost%3A9527:wba:user:7c15257e086afeba
+
+            did_parts = did.split(':')
+
+            if len(did_parts) > 2:
+
+                host_port = did_parts[2]
+
+                if '%3A' in host_port:
+
+                    host, port = host_port.split('%3A')
+                else:
+                    host = did_parts[2]
+                    port = did_parts[3]
+
+        except Exception as e:
+
+            print(f"解析did失败: {did}, 错误: {e}")
+
+    if not host or not port:
+
+        raise ValueError(f"未能从did解析出host和port，did: {did}")
+
+    return host, port

@@ -126,7 +126,7 @@ async def root():
     """
     return {
         "status": "running",
-        "service": "DID WBA Example",
+        "service": "DID WBA Example !!!",
         "version": "0.1.0",
         "mode": "Server",
         "documentation": "/docs"

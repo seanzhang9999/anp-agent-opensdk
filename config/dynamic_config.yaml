@@ -21,7 +21,7 @@ demo_autorun:
   auth_virutaldir: wba/test
   user_did_hostname: localhost
   user_did_port_1: 9527
-  user_did_port_2: 9528
+  user_did_port_2: 9527
 
 
 web_api:

@@ -12,7 +12,7 @@ import asyncio
 from anp_sdk import ANPSDK, MessageMode
 
 # 创建ANPSDK实例
-sdk = ANPSDK(port=9528)
+sdk = ANPSDK(port=9527)
 
 # 注册一些API路由
 @sdk.expose_api("weather/current", methods=["GET"])

@@ -14,7 +14,7 @@ ANP SDK 示例程序
 import asyncio
 import json
 from anp_sdk import ANPSDK, MessageMode
-from utils.log_base import logger
+from loguru import logger
 from fastapi import Request, Depends, Body
 from typing import Dict, Any, Optional, List
 
@@ -186,7 +186,7 @@ async def main():
     
     try:
         # 获取目标DID (这里使用示例DID，实际使用时需要替换为真实DID)
-        target_did = "did:wba:localhost:9528:wba:user:7c15257e086afeba"
+        target_did = "did:wba:localhost:9527:wba:user:7c15257e086afeba"
         
         # 演示HTTP POST消息发送
         await http_post_example(anp, target_did)
@@ -226,7 +226,7 @@ async def async_context_manager_example():
             return {"message": "这是一个异步API"}
         
         # 发送消息
-        target_did = "did:wba:localhost:9528:wba:user:7c15257e086afeba"
+        target_did = "did:wba:localhost:9527:wba:user:7c15257e086afeba"
         response = anp.send_message(target_did, "使用异步上下文管理器发送的消息")
         logger.info(f"消息发送响应: {response}")
         

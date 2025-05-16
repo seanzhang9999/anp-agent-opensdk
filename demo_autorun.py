@@ -23,6 +23,7 @@ import sys
 import threading
 import time
 
+from anp_sdk import get_did_host_port_from_did
 from typing import Any, Dict
 
 from click.core import F
@@ -177,7 +178,7 @@ class RemoteAgent:
     def __init__(self, id: str):
         self.id = id
 
-        host, port = get_did_url_from_did(id)
+        host, port = get_did_host_port_from_did(id)
 
         self.host = host
         self.port = port
@@ -253,37 +254,6 @@ def resp_stop(port=None):
 
 
 
-def get_did_url_from_did(did):
-
-    """从DID中解析出主机和端口"""
-
-    host, port = None, None
-
-    if did.startswith('did:wba:'):
-
-        try:
-
-            # 例：did:wba:localhost%3A9528:wba:user:7c15257e086afeba
-
-            did_parts = did.split(':')
-
-            if len(did_parts) > 2:
-
-                host_port = did_parts[2]
-
-                if '%3A' in host_port:
-
-                    host, port = host_port.split('%3A')
-
-        except Exception as e:
-
-            print(f"解析did失败: {did}, 错误: {e}")
-
-    if not host or not port:
-
-        raise ValueError(f"未能从did解析出host和port，did: {did}")
-
-    return host, port
 
 
 
@@ -469,7 +439,7 @@ async def msg_send_http(msg: Msg):
 
     try:
 
-        target_host, target_port = get_did_url_from_did(msg.targeter.id)
+        target_host, target_port = get_did_host_port_from_did(msg.targeter.id)
 
         base_url = f"http://{target_host}:{target_port}"
 
