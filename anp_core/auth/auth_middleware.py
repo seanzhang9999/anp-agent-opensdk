@@ -8,13 +8,15 @@ from fastapi.responses import JSONResponse
 from anp_core.auth.did_auth import handle_did_auth, get_and_validate_domain
 from anp_core.auth.token_auth import handle_bearer_auth
 import json
+import fnmatch
 
 # Define exempt paths that don't require authentication
-import fnmatch
+
 EXEMPT_PATHS = [
     "/docs",
     "/anp-nlp/",
     "/ws/",
+    "/group/*",
     "/redoc", 
     "/openapi.json",
     "/wba/user/",  # Allow access to DID documents
@@ -54,6 +56,8 @@ async def verify_auth_header(request: Request) -> dict:
     
     return await handle_bearer_auth(auth_header,req_did,resp_did)
 
+def is_exempt(path):
+    return any(fnmatch.fnmatch(path, pattern) for pattern in EXEMPT_PATHS)
 
 async def authenticate_request(request: Request) -> Optional[dict]:
     """
@@ -71,27 +75,26 @@ async def authenticate_request(request: Request) -> Optional[dict]:
     # Log request path and headers for debugging
 
     
-    # Check if path is exempt from authentication
-    for exempt_path in EXEMPT_PATHS:
-        # logging.info(f"Checking if {request.url.path} matches exempt path {exempt_path}")
-        # 特殊处理根路径"/"，它只应该精确匹配
-        if exempt_path == "/":
-            if request.url.path == "/":
-        #        logging.info(f"Path {request.url.path} is exempt from authentication (matched root path)")
-                return None
-        # 其他路径的匹配逻辑
-        elif request.url.path == exempt_path or (exempt_path.endswith('/') and request.url.path.startswith(exempt_path)):
-        #    logging.info(f"Path {request.url.path} is exempt from authentication (matched {exempt_path})")
-            return None
-    
     # 特别检查 /wba/test 路径，确保它不被视为免认证
-    # if request.url.path == "/wba/test":
-    #    logging.info("Path /wba/test requires authentication (special check)")
+    if request.url.path == "/wba/test":
+        result = await verify_auth_header(request)
+        return result
+    else:
+        for exempt_path in EXEMPT_PATHS:
+            # logging.info(f"Checking if {request.url.path} matches exempt path {exempt_path}")
+            # 特殊处理根路径"/"，它只应该精确匹配
+            if exempt_path == "/":
+                if request.url.path == "/":
+            #        logging.info(f"Path {request.url.path} is exempt from authentication (matched root path)")
+                    return None
+            # 其他路径的匹配逻辑
+            elif request.url.path == exempt_path or (exempt_path.endswith('/') and request.url.path.startswith(exempt_path)):
+                return None
+            elif is_exempt(request.url.path):
+            #    logging.info(f"Path {request.url.path} is exempt from authentication (matched {exempt_path})")
+                return None
     
     logging.info(f"Path {request.url} requires authentication,will check the Request headers: {request.headers}")
-    
-    # Verify authentication
-
     result = await verify_auth_header(request)
     return result
 

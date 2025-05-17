@@ -14,11 +14,19 @@ chat:
   max_history_items: 50
   max_process_count: 50
 
+anp_sdk:
+  debugmode: True
+  auth_virtual_dir: wba/test
+  user_did_path: anp_core/anp_users
+  user_did_key_id: key-1
+  token_expire_time: 3600
+
+
 
 demo_autorun:
   user_did_path: anp_core/anp_users
   user_did_key_id: key-1
-  auth_virutaldir: wba/test
+  auth_virtual_dir: wba/test
   user_did_hostname: localhost
   user_did_port_1: 9527
   user_did_port_2: 9527

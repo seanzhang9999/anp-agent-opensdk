@@ -8,7 +8,7 @@ def get_user_cfg_list():
     """获取用户列表和目录映射"""
     user_list = []
     name_to_dir = {}
-    user_dirs = dynamic_config.get('demo_autorun.user_did_path')
+    user_dirs = dynamic_config.get('anp_sdk.user_did_path')
     for user_dir in os.listdir(user_dirs):
         cfg_path = os.path.join(user_dirs, user_dir, "agent_cfg.yaml")
         if os.path.exists(cfg_path):

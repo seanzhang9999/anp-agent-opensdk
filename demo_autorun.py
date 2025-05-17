@@ -603,7 +603,7 @@ def anp_test(step_mode: bool = False):
 
     base_url = f"http://{targeter.host}:{targeter.port}"
 
-    test_url = f"{base_url}/{dynamic_config.get('demo_autorun.auth_virutaldir')}"
+    test_url = f"{base_url}/{dynamic_config.get('demo_autorun.auth_virtual_dir')}"
 
     logging.info(f"发送认证请求到 {test_url}")
 

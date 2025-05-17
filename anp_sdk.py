@@ -8,6 +8,15 @@ import aiohttp
 from datetime import datetime
 from typing import Dict, Any, Callable, Optional, Union, List, Type
 from enum import Enum
+from fastapi.middleware.cors import CORSMiddleware
+
+
+# 安全中间件
+from anp_core.auth.auth_middleware import auth_middleware
+
+# 四个路由
+from api import auth_router, did_router, ad_router, anp_nlp_router
+
 
 # 导入ANP核心组件
 from anp_core.server.server import ANP_resp_start, ANP_resp_stop
@@ -69,10 +78,25 @@ class LocalAgent:
         self.name = name
         self.user_dir = user_dir
         self.agent_type = agent_type
+        self.key_id = dynamic_config.get('anp_sdk.user_did_key_id')
+        self.userdid_filepath = dynamic_config.get('anp_sdk.user_did_path')
+
+        self.userdid_filepath = os.path.join(self.userdid_filepath, user_dir)
+
+        self.did_document_path = f"{self.userdid_filepath}/did_document.json"
+
+        self.private_key_path = f"{self.userdid_filepath}/{self.key_id}_private.pem"
+
+        self.jwt_private_key_path = f"{self.userdid_filepath}/private_key.pem"
+
+        self.jwt_public_key_path = f"{self.userdid_filepath}/public_key.pem"
+
+
         self.logger = logger
         self._ws_connections = {}
         self._sse_clients = set()
-        self.token_info_dict = {}  # 存储token信息
+        self.token_to_remote_dict = {}  # 存储颁发的token信息
+        self.token_from_remote_dict = {}  # 存储领取的token信息
         import requests
         self.requests = requests
         # 新增: API与消息handler注册表
@@ -143,7 +167,7 @@ class LocalAgent:
         else:
             return {"anp_result": {"status": "error", "message": "未知的请求类型"}}
     
-    def store_token_info(self, req_did: str, token: str, expires_delta: int):
+    def store_token_to_remote(self, req_did: str, token: str, expires_delta: int):
         """存储token信息
         
         Args:
@@ -154,7 +178,7 @@ class LocalAgent:
         now = datetime.now()
         expires_at = now + timedelta(seconds=expires_delta)
         
-        self.token_info_dict[req_did] = {
+        self.token_to_remote_dict[req_did] = {
             "token": token,
             "created_at": now.isoformat(),
             "expires_at": expires_at.isoformat(),
@@ -162,7 +186,7 @@ class LocalAgent:
             "req_did": req_did
         }
     
-    def get_token_info(self, req_did: str):
+    def get_token_from_remote(self, req_did: str):
         """获取token信息
         
         Args:
@@ -171,9 +195,36 @@ class LocalAgent:
         Returns:
             token信息字典，如果不存在则返回None
         """
-        return self.token_info_dict.get(req_did)
+        return self.token_from_remote_dict.get(req_did)
     
-    def revoke_token(self, req_did: str):
+
+    def store_token_from_remote(self, req_did: str, token: str, expires_delta: int):
+        """存储token信息
+        
+        Args:
+            req_did: 请求方DID
+            token: 生成的token
+            expires_delta: 过期时间（秒）
+        """
+        now = datetime.now()
+        self.token_from_remote_dict[req_did] = {
+            "token": token,
+            "created_at": now.isoformat(),
+            "req_did": req_did
+        }
+    
+    def get_token_to_remote(self, req_did: str):
+        """获取token信息
+        
+        Args:
+            req_did: 请求方DID
+            
+        Returns:
+            token信息字典，如果不存在则返回None
+        """
+        return self.token_to_remote_dict.get(req_did)
+    
+    def revoke_token_to_remote(self, req_did: str):
         """撤销token
         
         Args:
@@ -182,8 +233,8 @@ class LocalAgent:
         Returns:
             是否成功撤销
         """
-        if req_did in self.token_info_dict:
-            self.token_info_dict[req_did]["is_revoked"] = True
+        if req_did in self.token_to_remote_dict:
+            self.token_to_remote_dict[req_did]["is_revoked"] = True
             return True
         return False
 
@@ -351,9 +402,43 @@ class ANPSDK:
         self.ws_connections = {}
         self.sse_clients = set()
         
-        # 创建FastAPI应用实例
-        self.app = FastAPI(title="ANP SDK API", description="ANP SDK API服务")
-        
+        debugmode = dynamic_config.get("anp_sdk.debugmode")
+
+        if debugmode:
+            self.app= FastAPI(
+                title="ANP SDK Server in DebugMode", 
+                description="ANP SDK Server in DebugMode",
+                version="0.1.0",
+                reload= True,
+                docs_url="/docs" ,
+                redoc_url="/redoc"
+            )
+        else:
+            self.app= FastAPI(
+                title="ANP SDK Server",
+                description="ANP SDK Server",
+                version="0.1.0",
+                reload= False,
+                docs_url=None,
+                redoc_url=None
+            )
+
+
+            # Add CORS middleware
+        self.app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["*"],  # In production, specify exact origins
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )   
+
+        # Add authentication middleware
+        @self.app.middleware("http")
+        async def auth_middleware_wrapper(request, call_next):
+            return await auth_middleware(request, call_next)
+
+
         # 创建路由器实例
         from anp_core.agent.agent_router import AgentRouter
         self.router = AgentRouter()
@@ -402,6 +487,13 @@ class ANPSDK:
         return self.router.get_agent(did)
     
     def _register_default_routes(self):
+
+           # Include routers
+        self.app.include_router(auth_router.router)
+        self.app.include_router(did_router.router)
+        self.app.include_router(ad_router.router)
+        self.app.include_router(anp_nlp_router.router)
+
         """注册默认路由"""
         # 注册智能体 API 路由
         @self.app.get("/agent/api/{did}/{subpath:path}")
