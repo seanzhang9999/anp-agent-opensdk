@@ -23,7 +23,7 @@ import sys
 import threading
 import time
 
-from anp_sdk import get_did_host_port_from_did
+from anp_sdk import ANPSDK
 from typing import Any, Dict
 
 from click.core import F

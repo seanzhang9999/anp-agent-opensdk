@@ -9,6 +9,7 @@
 3. 启动服务器
 4. 演示智能体之间的消息和API调用
 """
+import aiofiles
 import json
 import asyncio
 import threading
@@ -73,11 +74,7 @@ def register_handlers(agents):
     return agents, agent1, agent2, agent3
 
 
-# 演示智能体之间的消息和API调用
-async def demo(sdk, agent1, agent2, agent3):
-    if not all([agent1, agent2, agent3]):
-        logger.error("智能体不足，无法执行演示")
-        return
+
     
 async def agent_api_call_post(sdk, caller_agent:str, target_agent:str, api_path: str, params: dict = None):
     """通过 POST 方式调用智能体的 API
@@ -100,9 +97,9 @@ async def agent_api_call_post(sdk, caller_agent:str, target_agent:str, api_path:
         "req_did": caller_agent_obj.id,
    }
     url_params = urlencode(url_params)
-
+    target_agent_path = quote(target_agent)
     async with aiohttp.ClientSession() as session:
-        url = f"http://{target_agent_obj.host}:{target_agent_obj.port}/agent/api/{target_agent_obj.id}{api_path}?{url_params}"
+        url = f"http://{target_agent_obj.host}:{target_agent_obj.port}/agent/api/{target_agent_path}{api_path}?{url_params}"
         async with session.post(url, json=req) as response:
             resp = await response.json()
             return resp
@@ -124,14 +121,117 @@ async def agent_api_call_get(sdk, caller_agent:str, target_agent:str, api_path: 
             "req_did": caller_agent_obj.id,
             "params": json.dumps(params) if params else ""
         }
+        target_agent_path =  quote(target_agent)
 
         async with aiohttp.ClientSession() as session:
-            url = f"http://{target_agent_obj.host}:{target_agent_obj.port}/agent/api/{target_agent_obj.id}{api_path}"
-            async with session.get(url, params=url_params) as response:
+            url = f"http://{target_agent_obj.host}:{target_agent_obj.port}/agent/api/{target_agent_path}{api_path}?{url_params}"
+            async with session.get(url) as response:
                 resp = await response.json()
                 return resp
 
+async def agent_msg_post(sdk, caller_agent:str , target_agent :str, content: str, message_type: str = "text"):
+    """通过 POST 方式发送消息
+    
+    Args:
+        sdk: ANPSDK 实例
+        sender_agent: 发送方智能体
+        target_agent: 目标智能体
+        content: 消息内容
+        message_type: 消息类型，默认为text
+    """
+
+    caller_agent_obj = sdk.get_agent(caller_agent)
+    target_agent_obj = RemoteAgent(target_agent)
+
+
+    url_params = {
+        "req_did": caller_agent_obj.id,
+    }
+    url_params = urlencode(url_params)
+    
+    target_agent_path =  quote(target_agent)
+
+    msg = {
+        "req_did": caller_agent_obj.id,
+        "message_type": message_type,
+        "content": content
+    }
+    async with aiohttp.ClientSession() as session:
+        url = f"http://{target_agent_obj.host}:{target_agent_obj.port}/agent/message/post/{target_agent_path}?{url_params}"
+        async with session.post(url, json=msg) as response:
+            return await response.json()
+
+
+async def agent_msg_group_post(sdk, caller_agent:str, group_url ,group_id: str, message: str):
+
+    caller_agent_obj = sdk.get_agent(caller_agent)
+    message = {
+        "content": message or {}
+    }
+    url_params = {
+        "req_did": caller_agent_obj.id,
+    }
+    url_params = urlencode(url_params)
+    async with aiohttp.ClientSession() as session:
+        url = f"http://{group_url}/group/{group_id}/message?{url_params}"
+        async with session.post(url, json=message) as response:
+            resp = await response.json()
+    return resp
+async def agent_msg_group_members(sdk, caller_agent:str, group_url, group_id: str , action):
+    caller_agent_obj = sdk.get_agent(caller_agent)
+    url_params = {
+        "req_did": caller_agent_obj.id,
+    }
+    url_params = urlencode(url_params)
+    async with aiohttp.ClientSession() as session:
+        url = f"http://{group_url}/group/{group_id}/members?{url_params}"
+        async with session.post(url, json=action) as response:
+            resp = await response.json()
+    return resp
+async def listen_group_messages(sdk, caller_agent:str, group_id, message_file):
+    """监听群聊消息并保存到文件
+    
+    Args:
+        agent: 智能体实例
+        group_id: 群组ID
+        message_file: 消息保存的文件路径
+    """
+
+
+    caller_agent_obj = sdk.get_agent(caller_agent)
+    url_params = {
+        "req_did": caller_agent_obj.id,
+    }
+    url_params = urlencode(url_params)
+
+    host , port = ANPSDK.get_did_host_port_from_did(caller_agent_obj.id)
+    try:
+        async with aiohttp.ClientSession() as session:
+            url = f"http://{host}:{port}/group/{group_id}/connect?{url_params}"
+            async with session.get(url) as response:
+                async for line in response.content:
+                    if line:
+                        try:
+                            decoded_line = line.decode("utf-8").strip()  # 确保 UTF-8 解码
+                            if not decoded_line:  # 额外检查是否为空
+                                continue  # 跳过空数据
+                            # 确保数据格式正确
+                            if decoded_line.startswith("data:"):
+                                decoded_line = decoded_line.replace("data:", "", 1).strip()  # 去掉 "data:"
+                            message = json.loads(decoded_line)  # 解析 JSON
+                            async with aiofiles.open(message_file, 'a', encoding="utf-8") as f:
+                                await f.write(json.dumps(message,ensure_ascii=False) + '\n')  # 异步写入
+                        except json.JSONDecodeError:
+                            logger.info("JSON 解析错误:", line.decode("utf-8"))  # 记录错误数据
+    except asyncio.CancelledError:
+        logger.info(f"{caller_agent} 的群聊监听已停止")
+    except Exception as e:
+        logger.error(f"{caller_agent} 的群聊监听发生错误: {e}")
+
 async def demo(sdk, agent1, agent2, agent3):
+    if not all([agent1, agent2, agent3]):
+        logger.error("智能体不足，无法执行演示")
+        return
     """演示智能体之间的消息和API调用"""
     # 演示API调用
     logger.info(f"演示：\nagent1:{agent1.name}post调用\nagent2:{agent2.name}的API /info ...")
@@ -154,30 +254,78 @@ async def demo(sdk, agent1, agent2, agent3):
     logger.info(f"演示：\nagent3:{agent3.name}向\nagent1:{agent1.name}发送消息 ...")
     resp = await agent_msg_post(sdk, agent3.id, agent1.id, f"你好，我是{agent3.name}")
     logger.info(f"\n{agent3.name}向{agent1.name}发送消息后收到响应: {resp}")
-
-async def agent_msg_post(sdk, caller_agent:str , target_agent :str, content: str, message_type: str = "text"):
-    """通过 POST 方式发送消息
     
-    Args:
-        sdk: ANPSDK 实例
-        sender_agent: 发送方智能体
-        target_agent: 目标智能体
-        content: 消息内容
-        message_type: 消息类型，默认为text
-    """
+    # 演示群聊功能
+    group_id = "demo_group"
+    group_url = f"localhost:{sdk.port}"  # Replace with your group URL and port numbe
+    message_file = "group_messages.json"
+    logger.info(f"\n演示：创建群聊并添加成员...")
+    
+    # 清空消息文件
+    with open(message_file, 'w') as f:
+        f.write('')
+    
+    # 创建群组并添加 agent1（创建者自动成为成员）
+    action = {"action": "add", "did": agent1.id}
+    resp = await agent_msg_group_members(sdk, agent1.id, group_url, group_id, action)
+    logger.info(f"创建群组并添加{agent1.name}的响应: {resp}")
+    
+    # 添加 agent2 到群组
+    action = {"action": "add", "did": agent2.id}
+    resp = await agent_msg_group_members(sdk, agent1.id, group_url, group_id, action)
+    logger.info(f"{agent1.name}邀请{agent2.name}的响应: {resp}")
+    
+    # 添加 agent3 到群组
+    action = {"action": "add", "did": agent3.id}
+    resp = await agent_msg_group_members(sdk, agent2.id, group_url, group_id, action)
+    logger.info(f"{agent2.name}邀请{agent3.name}的响应: {resp}")
+    
+    # 创建 agent1 的群聊监听任务
+    logger.info(f"{agent1.name} 开始监听群聊 {group_id} 的消息")
+    listen_task = asyncio.create_task(listen_group_messages(sdk, agent1.id, group_id, message_file))
+    
+    # 等待一会儿确保监听任务启动
+    await asyncio.sleep(1)
+    
+    # agent1 发送群聊消息
+    logger.info(f"\n演示：{agent1.name}发送群聊消息...")
+    message = f"大家好，我是{agent1.name}，欢迎来到群聊！"
+    resp = await agent_msg_group_post(sdk, agent1.id, group_url, group_id, message)
+    logger.info(f"{agent1.name}发送群聊消息的响应: {resp}")
 
-    caller_agent_obj = sdk.get_agent(caller_agent)
-    target_agent_obj = RemoteAgent(target_agent)
+    
+    # agent2 发送群聊消息
+    logger.info(f"\n演示：{agent2.name}发送群聊消息...")
+    message = f"大家好，我是{agent2.name}，欢迎来到群聊！"
+    resp = await agent_msg_group_post(sdk, agent2.id, group_url, group_id, message)
+    logger.info(f"{agent2.name}发送群聊消息的响应: {resp}")
+    
+    # 等待一会儿确保消息被接收
+    await asyncio.sleep(2)
+    
+    # 取消监听任务
+    listen_task.cancel()
+    try:
+        await listen_task
+    except asyncio.CancelledError:
+        pass
+    
+    # 读取并显示接收到的消息
+    logger.info(f"\n{agent1.name}接收到的群聊消息:")
+    try:
+        messages = []  # 存储所有消息
+        with open(message_file, 'r', encoding='utf-8') as f:
+            for line in f:
+                messages.append(json.loads(line))  # 先收集所有消息
+        logger.info(f"批量收到消息:\n{json.dumps(messages, ensure_ascii=False, indent=2)}")  # 一次性输出
+    except Exception as e:
+        logger.error(f"读取消息文件失败: {e}")
 
-    msg = {
-        "req_did": caller_agent_obj.id,
-        "message_type": message_type,
-        "content": content
-    }
-    async with aiohttp.ClientSession() as session:
-        url = f"http://{target_agent_obj.host}:{target_agent_obj.port}/agent/message/{target_agent_obj.id}"
-        async with session.post(url, json=msg) as response:
-            return await response.json()
+    
+    # 注意：实际接收消息需要通过 SSE 连接，这里只演示了发送消息
+    # 可以使用 examples/group_chat.html 页面来测试完整的群聊功能
+    
+
 
 # 主函数
 def main():

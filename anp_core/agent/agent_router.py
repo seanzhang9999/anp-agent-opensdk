@@ -4,7 +4,7 @@ from datetime import datetime
 import time
 import json
 
-from anp_sdk import get_did_host_port_from_did
+from anp_sdk import ANPSDK
 from loguru import logger
 
 
@@ -150,14 +150,13 @@ class AgentRouter:
         """路由请求到对应的本地智能体"""
         resp_did = str(resp_did)
         req_did = str(req_did)
-        for id, agent in self.local_agents.items():
-            normalized_resp_id = id.replace("%3A", ":")
-            normalized_resp_did = resp_did.replace("%3A", ":")
-            if normalized_resp_id == normalized_resp_did:  # 把%3A替换成:比对
-                return agent.handle_request(id, request_data)
-      
-        self.logger.error(f"未找到本地智能体: {resp_did}")
-        raise ValueError(f"未找到本地智能体: {resp_did}")
+        if resp_did in self.local_agents:
+            return self.local_agents[resp_did].handle_request(req_did, request_data)
+        else:
+            self.logger.error(f"未找到本地智能体: {resp_did}")
+            raise ValueError(f"未找到本地智能体: {resp_did}")
+
+
     
     def get_all_agents(self):
         """获取所有本地智能体"""

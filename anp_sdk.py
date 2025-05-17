@@ -41,7 +41,7 @@ class RemoteAgent:
         """
         self.id = id
 
-        host, port = get_did_host_port_from_did(id)
+        host, port = ANPSDK.get_did_host_port_from_did(id)
 
         self.host = host
         self.port = port
@@ -333,6 +333,7 @@ class LocalAgent:
 
 class ANPSDK:
     """ANP SDK主类，提供简单易用的接口"""
+
     
     def __init__(self,  port: int = None):
         """初始化ANP SDK
@@ -365,7 +366,10 @@ class ANPSDK:
         self.proxy_mode = False
         self.proxy_task = None
         
-            
+        # 群组相关属性
+        self.group_queues = {}  # 群组消息队列: {group_id: {client_id: Queue}}
+        self.group_members = {}  # 群组成员列表: {group_id: set(did)}
+        
     def register_agent(self, agent: LocalAgent):
         """注册智能体到路由器
         
@@ -421,14 +425,16 @@ class ANPSDK:
             return result
 
         # 注册智能体消息路由
-        @self.app.post("/agent/message/{did}")
-        async def message_entry(did: str, request: Request):
+        @self.app.post("/agent/message/post/{did}")
+        async def message_entry_post(did: str, request: Request):
             data = await request.json()
-            req_did = data.get("req_did", "demo_caller")
+            req_did = request.query_params.get("req_did", "demo_caller")
             resp_did = did
             data["type"] = "message"
             result = self.router.route_request(req_did, resp_did, data)
             return result
+
+
 
         # 注册HTTP POST消息接收路由
         @self.app.post("/api/message")
@@ -457,32 +463,130 @@ class ANPSDK:
                 if client_id in self.ws_connections:
                     del self.ws_connections[client_id]
         
-        # 注册SSE消息接收路由
-        @self.app.post("/sse/message")
-        async def sse_message(request: Request):
-            data = await request.json()
-            response = await self._handle_message(data)
-            return response
+        # 群组消息队列
+        self.group_queues = {}
+        # 群组成员列表
+        self.group_members = {}
         
-        # 注册SSE连接端点
-        @self.app.get("/sse/connect")
-        async def sse_connect(request: Request):
+        # 注册群聊消息发送路由
+        @self.app.post("/group/{group_id}/message")
+        async def group_message(group_id: str, request: Request):
+            data = await request.json()
+            req_did = request.query_params.get("req_did")
+            if not req_did:
+                return {"error": "未提供发送者 DID"}
+            
+            # 验证发送者权限
+            if group_id not in self.group_members or req_did not in self.group_members[group_id]:
+                return {"error": "无权在此群组发送消息"}
+            
+            # 构造消息
+            message = {
+                "sender": req_did,
+                "content": data.get("content", ""),
+                "timestamp": time.time(),
+                "type": "group_message"
+            }
+            
+            # 将消息发送到群组队列
+            if group_id in self.group_queues:
+                for queue in self.group_queues[group_id].values():
+                    await queue.put(message)
+            
+            return {"status": "success"}
+        
+        # 注册群聊SSE连接端点
+        @self.app.get("/group/{group_id}/connect")
+        async def group_connect(group_id: str, request: Request):
+            req_did = request.query_params.get("req_did")
+            if req_did.find("%3A") == -1:
+                parts = req_did.split(":", 4)  # 分割 4 份 把第三个冒号替换成%3A
+                req_did = ":".join(parts[:3]) + "%3A" + ":".join(parts[3:])
+            if not req_did:
+                return {"error": "未提供订阅者 DID"}
+
+            # 验证订阅者权限
+            if group_id not in self.group_members or req_did not in self.group_members[group_id]:
+                return {"error": "无权订阅此群组消息"}
+            
             async def event_generator():
-                client_id = id(request)
-                self.sse_clients.add(client_id)
+                # 初始化群组
+                if group_id not in self.group_queues:
+                    self.group_queues[group_id] = {}
+                
+                # 为该客户端创建消息队列
+                client_id = f"{group_id}_{req_did}_{id(request)}"
+                self.group_queues[group_id][client_id] = asyncio.Queue()
+                
                 try:
                     # 发送初始连接成功消息
-                    yield f"data: {json.dumps({'status': 'connected'})}\n\n"
+                    yield f"data: {json.dumps({'status': 'connected', 'group_id': group_id})}\n\n"
                     
-                    # 保持连接打开
+                    # 保持连接打开并等待消息
                     while True:
-                        await asyncio.sleep(1)
-                        # 实际应用中，这里会有一个消息队列，当有新消息时发送给客户端
+                        try:
+                            message = await asyncio.wait_for(
+                                self.group_queues[group_id][client_id].get(),
+                                timeout=30
+                            )
+                            yield f"data: {json.dumps(message)}\n\n"
+                        except asyncio.TimeoutError:
+                            # 发送心跳包
+                            yield f"data: {json.dumps({'type': 'heartbeat'})}\n\n"
                 except Exception as e:
-                    self.logger.error(f"SSE连接错误: {e}")
+                    self.logger.error(f"群组 {group_id} SSE连接错误: {e}")
                 finally:
-                    if client_id in self.sse_clients:
-                        self.sse_clients.remove(client_id)
+                    # 清理资源
+                    if group_id in self.group_queues and client_id in self.group_queues[group_id]:
+                        del self.group_queues[group_id][client_id]
+                        if not self.group_queues[group_id]:
+                            del self.group_queues[group_id]
+            
+            return StreamingResponse(event_generator(), media_type="text/event-stream")
+        
+        # 注册群组成员管理路由
+        @self.app.post("/group/{group_id}/members")
+        async def manage_group_members(group_id: str, request: Request):
+            data = await request.json()
+            action = data.get("action")
+            target_did = data.get("did")
+            req_did = request.query_params.get("req_did")
+            if req_did.find("%3A") == -1:
+                parts = req_did.split(":", 3)  # 只分割前 3 个
+                req_did = ":".join(parts[:2]) + "%3A" + ":".join(parts[2:])
+                
+            
+            if not all([action, target_did, req_did]):
+                return {"error": "缺少必要参数"}
+            
+            # 初始化群组成员列表
+            if group_id not in self.group_members:
+                self.group_members[group_id] = set()
+            
+            # 如果是空群组，第一个加入的人自动成为成员
+            if not self.group_members[group_id]:
+                if action == "add":
+                    self.group_members[group_id].add(req_did) # 添加请求者为首个成员
+                    if target_did != req_did:  # 如果目标不是请求者自己，也添加目标
+                        self.group_members[group_id].add(target_did)
+                        return {"status": "success", "message": "成功创建群组并添加了创建者和创建者邀请的成员"}
+                    return {"status": "success", "message": "成功创建群组并添加创建者为首个成员"}
+                return {"error": "群组不存在"}
+            
+            # 验证请求者是否是群组成员
+            if req_did not in self.group_members[group_id]:
+                return {"error": "无权管理群组成员"}
+            
+            if action == "add":
+                self.group_members[group_id].add(target_did)
+                return {"status": "success", "message": "成功添加成员"}
+            elif action == "remove":
+                if target_did in self.group_members[group_id]:
+                    self.group_members[group_id].remove(target_did)
+                    return {"status": "success", "message": "成功移除成员"}
+                return {"error": "成员不存在"}
+            else:
+                return {"error": "不支持的操作"}
             
             return StreamingResponse(event_generator(), media_type="text/event-stream")
     
@@ -539,7 +643,7 @@ class ANPSDK:
 
         agent1 = list(self.get_agents())[0]
 
-        host, port = get_did_host_port_from_did(agent1.id)   
+        host, port = self.get_did_host_port_from_did(agent1.id)   
 
         def run_server():
             uvicorn.run(self.app, host=host, port=int(port))
@@ -892,43 +996,25 @@ class ANPSDK:
         else:
             return {"status": "error", "message": f"未找到API: {api_path} [{method}]"}
 
-    def get_did_url_from_did(did):
-        """根据DID返回 http://host:port 形式的URL"""
-        host , port = get_did_host_port_from_did(did)
-        return f"{host}:{port}"
 
-    def get_did_host_port_from_did(did):
-
+    @staticmethod
+    def get_did_host_port_from_did(did: str) -> tuple[str, int]:
         """从DID中解析出主机和端口"""
-
         host, port = None, None
-
         if did.startswith('did:wba:'):
-
             try:
-
                 # 例：did:wba:localhost%3A9527:wba:user:7c15257e086afeba
-
                 did_parts = did.split(':')
-
                 if len(did_parts) > 2:
-
                     host_port = did_parts[2]
-
                     if '%3A' in host_port:
-
                         host, port = host_port.split('%3A')
                     else:
                         host = did_parts[2]
                         port = did_parts[3]
-
             except Exception as e:
-
                 print(f"解析did失败: {did}, 错误: {e}")
-
         if not host or not port:
-
-            raise ValueError(f"未能从did解析出host和port，did: {did}")
-
-        return host, port
+            return "localhost", 9527
+        return host, int(port)
 
