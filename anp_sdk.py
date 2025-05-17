@@ -14,14 +14,13 @@ from fastapi.middleware.cors import CORSMiddleware
 # 安全中间件
 from anp_core.auth.auth_middleware import auth_middleware
 
-# 四个路由
-from api import auth_router, did_router, ad_router, anp_nlp_router
+# 两个历史遗留路由 用于认证 和 did发布 
+from api import auth_router, did_router
 
 
 # 导入ANP核心组件
-from anp_core.server.server import ANP_resp_start, ANP_resp_stop
+
 from config.dynamic_config import dynamic_config
-from anp_core.client.client import ANP_req_auth
 from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect, Response, FastAPI
 from fastapi.responses import StreamingResponse
 
@@ -492,8 +491,22 @@ class ANPSDK:
            # Include routers
         self.app.include_router(auth_router.router)
         self.app.include_router(did_router.router)
-        self.app.include_router(ad_router.router)
-        self.app.include_router(anp_nlp_router.router)
+        @self.app.get("/", tags=["status"])
+        async def root():
+            """
+            Root endpoint for server status check.
+            
+            Returns:
+                dict: Server status information
+            """
+            return {
+                "status": "running",
+                "service": "ANP SDK Server",
+                "version": "0.1.0",
+                "mode": "Server and client",
+                "documentation": "/docs"
+            }
+
 
         """注册默认路由"""
         # 注册智能体 API 路由
