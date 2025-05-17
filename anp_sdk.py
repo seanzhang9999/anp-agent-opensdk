@@ -46,6 +46,7 @@ class RemoteAgent:
         self.host = host
         self.port = port
 
+
  
    
 
@@ -377,7 +378,24 @@ class ANPSDK:
         # 注册默认路由
         self._register_default_routes()
     
+    def get_agents(self):
+        """获取所有已注册的智能体
 
+        Returns:
+            智能体列表
+        """
+        return self.router.local_agents.values()
+
+    def get_agent(self, did: str):
+        """获取指定DID的智能体
+
+        Args:
+            did: DID字符串
+
+        Returns:
+            LocalAgent实例，如果未找到则返回None
+        """
+        return self.router.get_agent(did)
     
     def _register_default_routes(self):
         """注册默认路由"""
@@ -396,7 +414,6 @@ class ANPSDK:
         async def api_entry_post(did: str, subpath:str, request: Request):
             data = await request.json()
             req_did = request.query_params.get("req_did", "demo_caller")
-            req_did = data.get("req_did", "demo_caller")
             resp_did = did
             data["type"] = "api_call"
             data["path"] = f"/{subpath}"
@@ -519,9 +536,13 @@ class ANPSDK:
         # 启动服务器
         import uvicorn
         import threading
-        
+
+        agent1 = list(self.get_agents())[0]
+
+        host, port = get_did_host_port_from_did(agent1.id)   
+
         def run_server():
-            uvicorn.run(self.app, host="0.0.0.0", port=self.port)
+            uvicorn.run(self.app, host=host, port=int(port))
         
         # 在新线程中启动服务器
         self.server_thread = threading.Thread(target=run_server, daemon=True)
@@ -741,122 +762,8 @@ class ANPSDK:
                 result += f"{i}. {route['path']} [{route['method']}] - {route['description']}\n"
         
         else:  # HTML格式
-            result = f"""
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>ANP SDK 路由和处理器可视化</title>
-    <style>
-        body {{ font-family: Arial, sans-serif; margin: 20px; }}
-        h1 {{ color: #333; }}
-        h2 {{ color: #555; margin-top: 30px; }}
-        .container {{ display: flex; flex-wrap: wrap; }}
-        .section {{ flex: 1; min-width: 300px; margin-right: 20px; }}
-        .card {{ border: 1px solid #ddd; border-radius: 5px; padding: 15px; margin-bottom: 15px; background-color: #f9f9f9; }}
-        .card h3 {{ margin-top: 0; color: #333; }}
-        .card p {{ margin: 5px 0; color: #666; }}
-        .card .path {{ font-weight: bold; color: #0066cc; }}
-        .card .method {{ display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 12px; margin-right: 5px; }}
-        .card .get {{ background-color: #61affe; color: white; }}
-        .card .post {{ background-color: #49cc90; color: white; }}
-        .card .put {{ background-color: #fca130; color: white; }}
-        .card .delete {{ background-color: #f93e3e; color: white; }}
-        .card .ws {{ background-color: #9012fe; color: white; }}
-        .card .async {{ font-style: italic; color: #0066cc; }}
-        .card .doc {{ font-style: italic; color: #666; margin-top: 5px; }}
-        .flow-diagram {{ margin-top: 30px; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }}
-        .flow-diagram svg {{ width: 100%; height: auto; }}
-    </style>
-</head>
-<body>
-    <h1>ANP SDK 路由和处理器可视化</h1>
-    
-    <div class="container">
-        <div class="section">
-            <h2>API路由</h2>
-            {''.join([f'''
-            <div class="card">
-                <h3 class="path">{route['path']}</h3>
-                <p><span class="method get">GET</span> <span class="method post">POST</span> {route['name']}() {'<span class="async">[异步]</span>' if route['is_async'] else ''}</p>
-                {f'<p class="doc">{route["doc"]}</p>' if route['doc'] else ''}
-            </div>''' for route in api_routes_info])}
-        </div>
-        
-        <div class="section">
-            <h2>消息处理器</h2>
-            {''.join([f'''
-            <div class="card">
-                <h3>类型: {handler['type']}</h3>
-                <p>{handler['name']}() {'<span class="async">[异步]</span>' if handler['is_async'] else ''}</p>
-                {f'<p class="doc">{handler["doc"]}</p>' if handler['doc'] else ''}
-            </div>''' for handler in message_handlers_info])}
-        </div>
-        
-        <div class="section">
-            <h2>默认路由</h2>
-            {''.join([f'''
-            <div class="card">
-                <h3 class="path">{route['path']}</h3>
-                <p><span class="method {'get' if route['method'] == 'GET' else 'post' if route['method'] == 'POST' else 'ws'}">{route['method']}</span> {route['description']}</p>
-            </div>''' for route in default_routes_info])}
-        </div>
-    </div>
-    
-    <div class="flow-diagram">
-        <h2>消息流程图</h2>
-        <svg viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg">
-            <!-- 简单的流程图 -->
-            <defs>
-                <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-                    <polygon points="0 0, 10 3.5, 0 7" fill="#333" />
-                </marker>
-            </defs>
-            
-            <!-- 客户端 -->
-            <rect x="50" y="50" width="120" height="60" rx="5" fill="#f5f5f5" stroke="#333" />
-            <text x="110" y="85" text-anchor="middle">客户端</text>
-            
-            <!-- 服务器 -->
-            <rect x="350" y="50" width="120" height="60" rx="5" fill="#f5f5f5" stroke="#333" />
-            <text x="410" y="85" text-anchor="middle">服务器</text>
-            
-            <!-- 消息处理器 -->
-            <rect x="650" y="50" width="120" height="60" rx="5" fill="#f5f5f5" stroke="#333" />
-            <text x="710" y="85" text-anchor="middle">消息处理器</text>
-            
-            <!-- HTTP路径 -->
-            <rect x="350" y="170" width="120" height="40" rx="5" fill="#61affe" stroke="#333" />
-            <text x="410" y="195" text-anchor="middle" fill="white">/api/message</text>
-            
-            <!-- WebSocket路径 -->
-            <rect x="350" y="230" width="120" height="40" rx="5" fill="#9012fe" stroke="#333" />
-            <text x="410" y="255" text-anchor="middle" fill="white">/ws/message</text>
-            
-            <!-- SSE路径 -->
-            <rect x="350" y="290" width="120" height="40" rx="5" fill="#49cc90" stroke="#333" />
-            <text x="410" y="315" text-anchor="middle" fill="white">/sse/message</text>
-            
-            <!-- 连接线 -->
-            <line x1="170" y1="80" x2="350" y2="80" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)" />
-            <line x1="470" y1="80" x2="650" y2="80" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)" />
-            
-            <line x1="410" y1="110" x2="410" y2="170" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)" />
-            <line x1="410" y1="210" x2="410" y2="230" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)" />
-            <line x1="410" y1="270" x2="410" y2="290" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)" />
-            
-            <line x1="470" y1="190" x2="650" y2="90" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)" />
-            <line x1="470" y1="250" x2="650" y2="90" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)" />
-            <line x1="470" y1="310" x2="650" y2="90" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)" />
-            
-            <!-- 文本标签 -->
-            <text x="260" y="65" text-anchor="middle">发送消息</text>
-            <text x="560" y="65" text-anchor="middle">处理消息</text>
-        </svg>
-    </div>
-</body>
-</html>
-"""
+            from templates.template_generator import generate_visualization_html
+            result = generate_visualization_html(api_routes_info, message_handlers_info, default_routes_info)
         
         # 如果指定了输出路径，则写入文件
         if output_path:
@@ -985,46 +892,43 @@ class ANPSDK:
         else:
             return {"status": "error", "message": f"未找到API: {api_path} [{method}]"}
 
+    def get_did_url_from_did(did):
+        """根据DID返回 http://host:port 形式的URL"""
+        host , port = get_did_host_port_from_did(did)
+        return f"{host}:{port}"
 
+    def get_did_host_port_from_did(did):
 
-def get_did_url_from_did(did):
-    """根据DID返回 http://host:port 形式的URL"""
-    host , port = get_did_host_port_from_did(did)
-    return f"{host}:{port}"
+        """从DID中解析出主机和端口"""
 
+        host, port = None, None
 
+        if did.startswith('did:wba:'):
 
-def get_did_host_port_from_did(did):
+            try:
 
-    """从DID中解析出主机和端口"""
+                # 例：did:wba:localhost%3A9527:wba:user:7c15257e086afeba
 
-    host, port = None, None
+                did_parts = did.split(':')
 
-    if did.startswith('did:wba:'):
+                if len(did_parts) > 2:
 
-        try:
+                    host_port = did_parts[2]
 
-            # 例：did:wba:localhost%3A9527:wba:user:7c15257e086afeba
+                    if '%3A' in host_port:
 
-            did_parts = did.split(':')
+                        host, port = host_port.split('%3A')
+                    else:
+                        host = did_parts[2]
+                        port = did_parts[3]
 
-            if len(did_parts) > 2:
+            except Exception as e:
 
-                host_port = did_parts[2]
+                print(f"解析did失败: {did}, 错误: {e}")
 
-                if '%3A' in host_port:
+        if not host or not port:
 
-                    host, port = host_port.split('%3A')
-                else:
-                    host = did_parts[2]
-                    port = did_parts[3]
+            raise ValueError(f"未能从did解析出host和port，did: {did}")
 
-        except Exception as e:
+        return host, port
 
-            print(f"解析did失败: {did}, 错误: {e}")
-
-    if not host or not port:
-
-        raise ValueError(f"未能从did解析出host和port，did: {did}")
-
-    return host, port

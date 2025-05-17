@@ -16,7 +16,7 @@ import aiohttp
 from loguru import logger
 from urllib.parse import urlencode, quote
 
-from anp_sdk import LocalAgent
+from anp_sdk import ANPSDK, LocalAgent, RemoteAgent
 from anp_sdk_utils import get_user_cfg_list, get_user_cfg
 
 # 批量加载本地DID用户并实例化LocalAgent
@@ -73,82 +73,117 @@ def register_handlers(agents):
     return agents, agent1, agent2, agent3
 
 
-
 # 演示智能体之间的消息和API调用
 async def demo(sdk, agent1, agent2, agent3):
     if not all([agent1, agent2, agent3]):
         logger.error("智能体不足，无法执行演示")
         return
     
-    await asyncio.sleep(1)
+async def agent_api_call_post(sdk, caller_agent:str, target_agent:str, api_path: str, params: dict = None):
+    """通过 POST 方式调用智能体的 API
     
-    # 演示API调用
-    logger.info(f"演示：\nagent1:{agent1.name}调用\nagent2:{agent2.name}的API /info ...")
-    req = {
-        "req_did": agent1.id,
-        "path_to": "/info",
-        "method": "GET",
-        "params": {"from":f"{agent1.name}"}
-    }
+    Args:
+        sdk: ANPSDK 实例
+        caller_agent: 调用方智能体
+        target_agent: 目标智能体
+        api_path: API 路径
+        params: API 参数
+    """
 
-    url_params = f"from:{agent1.name}"
-    url_params = json.dumps(url_params)
-    url_params = {
-        "req_did": agent1.id,
-        "params": url_params
+    caller_agent_obj = sdk.get_agent(caller_agent)
+    target_agent_obj = RemoteAgent(target_agent)
+    req = {
+        "params": params or {}
     }
+    
+    url_params = {
+        "req_did": caller_agent_obj.id,
+   }
     url_params = urlencode(url_params)
+
     async with aiohttp.ClientSession() as session:
-        url = f"http://localhost:{sdk.port}/agent/api/{agent2.id}/info?{url_params}"
+        url = f"http://{target_agent_obj.host}:{target_agent_obj.port}/agent/api/{target_agent_obj.id}{api_path}?{url_params}"
         async with session.post(url, json=req) as response:
             resp = await response.json()
-            logger.info(f"\n{agent1.name}调用{agent2.name}的/info接口后收到响应: {resp}")
+            return resp
 
+async def agent_api_call_get(sdk, caller_agent:str, target_agent:str, api_path: str, params: dict = None):
+        """通过 GET 方式调用智能体的 API
+        
+        Args:
+            sdk: ANPSDK 实例
+            caller_agent: 调用方智能体
+            target_agent: 目标智能体
+            api_path: API 路径
+            params: API 参数
+        """
 
-    logger.info(f"演示：\nagent1:{agent1.name}用get调用\nagent2:{agent2.name}的API /info ...")
-    params = f"from:{agent1.name}"
-    params = json.dumps(params)
-    req = {
-        "req_did": agent1.id,
-        "params": params
-    }
-    from urllib.parse import quote
-    async with aiohttp.ClientSession() as session:
-        url = f"http://localhost:{sdk.port}/agent/api/{agent2.id}/info"
-        async with session.get(url, params=req) as response:
-            resp = await response.json()
-            logger.info(f"\n{agent1.name}调用{agent2.name}的/info接口后收到响应: {resp}")
-    
+        caller_agent_obj = sdk.get_agent(caller_agent)
+        target_agent_obj = RemoteAgent(target_agent)
+        url_params = {
+            "req_did": caller_agent_obj.id,
+            "params": json.dumps(params) if params else ""
+        }
+
+        async with aiohttp.ClientSession() as session:
+            url = f"http://{target_agent_obj.host}:{target_agent_obj.port}/agent/api/{target_agent_obj.id}{api_path}"
+            async with session.get(url, params=url_params) as response:
+                resp = await response.json()
+                return resp
+
+async def demo(sdk, agent1, agent2, agent3):
+    """演示智能体之间的消息和API调用"""
+    # 演示API调用
+    logger.info(f"演示：\nagent1:{agent1.name}post调用\nagent2:{agent2.name}的API /info ...")
+    resp = await agent_api_call_post(sdk, agent1.id, agent2.id, "/info", {"from": f"{agent1.name}"})
+    logger.info(f"\n{agent1.name}get调用{agent2.name}的/info接口后收到响应: {resp}")
+           
+
+    logger.info(f"演示：\nagent1:{agent1.name}get调用\nagent2:{agent2.name}的API /info ...")
+    resp = await agent_api_call_get(sdk, agent1.id, agent2.id, "/info", {"from": f"{agent1.name}"})
+    logger.info(f"\n{agent1.name}get调用{agent2.name}的/info接口后收到响应: {resp}")
    
-
+ 
     # 演示消息发送
     logger.info(f"演示：\nagent2:{agent2.name}向\nagent3:{agent3.name}发送消息 ...")
-    msg = {
-        "req_did": agent2.id,
-        "message_type": "text",
-        "content": f"你好，我是{agent2.name}"
-    }
-    async with aiohttp.ClientSession() as session:
-        async with session.post(f"http://localhost:{sdk.port}/agent/message/{agent3.id}", json=msg) as response:
-            resp = await response.json()
-            logger.info(f"\n{agent2.name}向{agent3.name}发送消息后收到响应: {resp}")
+    # agent2 向 agent3 发送消息
+    resp = await agent_msg_post(sdk, agent2.id, agent3.id, f"你好，我是{agent2.name}")
+    logger.info(f"\n{agent2.name}向{agent3.name}发送消息后收到响应: {resp}")
     
+    # agent3 向 agent1 发送消息
     logger.info(f"演示：\nagent3:{agent3.name}向\nagent1:{agent1.name}发送消息 ...")
+    resp = await agent_msg_post(sdk, agent3.id, agent1.id, f"你好，我是{agent3.name}")
+    logger.info(f"\n{agent3.name}向{agent1.name}发送消息后收到响应: {resp}")
+
+async def agent_msg_post(sdk, caller_agent:str , target_agent :str, content: str, message_type: str = "text"):
+    """通过 POST 方式发送消息
+    
+    Args:
+        sdk: ANPSDK 实例
+        sender_agent: 发送方智能体
+        target_agent: 目标智能体
+        content: 消息内容
+        message_type: 消息类型，默认为text
+    """
+
+    caller_agent_obj = sdk.get_agent(caller_agent)
+    target_agent_obj = RemoteAgent(target_agent)
+
     msg = {
-        "req_did": agent3.id,
-        "message_type": "text",
-        "content": f"你好，我是{agent3.name}"
+        "req_did": caller_agent_obj.id,
+        "message_type": message_type,
+        "content": content
     }
     async with aiohttp.ClientSession() as session:
-        async with session.post(f"http://localhost:{sdk.port}/agent/message/{agent1.id}", json=msg) as response:
-            resp = await response.json()
-            logger.info(f"\n{agent3.name}向{agent1.name}发送消息后收到响应: {resp}")
+        url = f"http://{target_agent_obj.host}:{target_agent_obj.port}/agent/message/{target_agent_obj.id}"
+        async with session.post(url, json=msg) as response:
+            return await response.json()
 
 # 主函数
 def main():
     # 1. 初始化 SDK
     from anp_sdk import ANPSDK
-    sdk = ANPSDK(port=9001)
+    sdk = ANPSDK()
     
     # 2. 加载智能体
     agents = load_agents()
@@ -159,15 +194,11 @@ def main():
     # 4. 注册智能体到 SDK
     for agent in agents:
         sdk.register_agent(agent)
-    
-    
+        
     # 5. 启动服务器
-    sdk.start_server()
     import threading
-
     def start_server():
         sdk.start_server()
-
     server_thread = threading.Thread(target=start_server)
     server_thread.start()
     import time
