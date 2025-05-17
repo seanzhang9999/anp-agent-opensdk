@@ -44,40 +44,6 @@ async def get_did_document(user_id: str) -> Dict:
         raise HTTPException(status_code=500, detail="Error loading DID document")
 
 
-@router.put("/wba/user/{user_id}/did.json", summary="Store DID document")
-async def store_did_document(user_id: str, did_document: Dict) -> Dict:
-    """
-    Store a DID document for a user.
-    
-    Args:
-        user_id: User identifier
-        did_document: DID document to store
-        
-    Returns:
-        Dict: Operation result
-    """
-    # 构建存储路径
-    current_dir = Path(__file__).parent.parent.absolute()
-    user_dir = current_dir / settings.DID_DOCUMENTS_PATH / f"user_{user_id}"
-    did_path = user_dir / settings.DID_DOCUMENT_FILENAME
-    
-    # 创建目录（如果不存在）
-    user_dir.mkdir(parents=True, exist_ok=True)
-    
-    # 保存DID文档
-    try:
-        with open(did_path, 'w', encoding='utf-8') as f:
-            json.dump(did_document, f, indent=2)
-        
-        return {
-            "status": "success",
-            "message": f"DID document stored for user {user_id}",
-            "path": str(did_path)
-        }
-    except Exception as e:
-        logging.error(f"Error storing DID document: {e}")
-        raise HTTPException(status_code=500, detail="Error storing DID document")
-
 
 @router.get("/agents/example/ad.json", summary="Get agent description")
 async def get_agent_description() -> Dict:

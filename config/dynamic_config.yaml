@@ -16,10 +16,10 @@ chat:
 
 anp_sdk:
   debugmode: True
-  auth_virtual_dir: wba/test
+  auth_virtual_dir: wba/auth
   user_did_path: anp_core/anp_users
   user_did_key_id: key-1
-  token_expire_time: 3600 # 单位分钟
+  token_expire_time: 3600 # 单位秒
 
 
 

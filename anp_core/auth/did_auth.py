@@ -193,20 +193,11 @@ async def handle_did_auth(authorization: str, domain: str , request: Request , s
             logging.error(f"验证签名时出错: {e}")
             raise HTTPException(status_code=401, detail=f"Error verifying signature: {str(e)}")
         
-        if sdk is None:
-            from demo_autorun import get_user_cfg_list, find_user_cfg_by_did, LocalAgent
-            user_list, name_to_dir = get_user_cfg_list()
-            resp_did_cfg = find_user_cfg_by_did(user_list, name_to_dir,resp_did)
-            
-            resp_did_agent = LocalAgent(
-            id=resp_did_cfg.get('id'),
-            user_dir=resp_did_cfg.get('user_dir')
-            )
-        else:
-            from typing import cast
-            from anp_sdk import ANPSDK
-            sdk = cast(ANPSDK, sdk)
-            resp_did_agent = sdk.get_agent(resp_did)
+
+        from typing import cast
+        from anp_sdk import ANPSDK
+        sdk = cast(ANPSDK, sdk)
+        resp_did_agent = sdk.get_agent(resp_did)
 
        
         # 生成访问令牌
@@ -219,10 +210,7 @@ async def handle_did_auth(authorization: str, domain: str , request: Request , s
             expires_delta = expiration_time
             )
             
-        if sdk is None:
-            resp_did_agent.add_token_info(did, access_token,  expiration_time)
-        else:
-            resp_did_agent.store_token_to_remote(did, access_token,  expiration_time)
+        resp_did_agent.store_token_to_remote(did, access_token,  expiration_time)
        
         
        # logging.info(f"认证成功，已生成访问令牌")

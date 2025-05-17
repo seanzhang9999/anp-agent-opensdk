@@ -40,34 +40,7 @@ def create_access_token(private_key_path, data: Dict, expires_delta: int = None)
         algorithm=settings.JWT_ALGORITHM
     )
     
-    # 将token存储到LocalAgent中
-    if "resp_did" in data and "req_did" in data:
-        
-
-        from demo_autorun import get_user_cfg_list, find_user_cfg_by_did, LocalAgent
-        user_list, name_to_dir = get_user_cfg_list()
-        resp_did = data["resp_did"]
-        req_did = data["req_did"]
-        
-        resp_did_cfg = find_user_cfg_by_did(user_list, name_to_dir, resp_did)
-        if resp_did_cfg:
-            resp_did_agent = LocalAgent(
-                id=resp_did_cfg.get('id'),
-                user_dir=resp_did_cfg.get('user_dir')
-            )
-            
-            # 存储token信息到LocalAgent中
-            token_info = {
-                "token": encoded_jwt,
-                "created_at": datetime.now(timezone.utc).isoformat(),
-                "expires_at": expires.isoformat(),
-                "is_revoked": False,
-                "req_did": req_did
-            }
-            
-            # 存储token信息到LocalAgent中
-            resp_did_agent.store_token_info(req_did, token_info)
-            logging.info(f"Token for {req_did} stored in LocalAgent {resp_did}")
+   
     
     return encoded_jwt
 
