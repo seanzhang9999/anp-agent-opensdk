@@ -112,7 +112,7 @@ class LocalAgent:
         """
         req_type = request_data.get("type")
         if req_type == "api_call":
-            api_path = request_data.get("api_path")
+            api_path = request_data.get("path")
             handler = self.api_routes.get(api_path)
             if handler:
                 try:
@@ -318,6 +318,13 @@ class LocalAgent:
         如果本地Agent没有远方Agent的Token，生成DID请求头
         如果本地Agent没有远方Agent的双向认证结果或双向认证结果过期，附加双向认证请求
         """
+        req_did = LocalAgent(req_did)
+        resp_did = RemoteAgent(resp_did)
+        token = req_did.get_token(resp_did)
+        if token:
+            return f"ANP {token}"
+
+
         return f"ANP {req_did}"
 
 
@@ -375,17 +382,29 @@ class ANPSDK:
     def _register_default_routes(self):
         """注册默认路由"""
         # 注册智能体 API 路由
-        @self.app.post("/agent/{did}/api")
-        async def api_entry(did: str, request: Request):
+        @self.app.get("/agent/api/{did}/{subpath:path}")
+        async def api_entry_get(did: str, subpath:str, request: Request):
+            data =dict(request.query_params)
+            req_did = request.query_params.get("req_did", "demo_caller")
+            resp_did = did
+            data["type"] = "api_call"
+            data["path"] = f"/{subpath}"
+            result = self.router.route_request(req_did, resp_did, data)
+            return result
+
+        @self.app.post("/agent/api/{did}/{subpath:path}")
+        async def api_entry_post(did: str, subpath:str, request: Request):
             data = await request.json()
+            req_did = request.query_params.get("req_did", "demo_caller")
             req_did = data.get("req_did", "demo_caller")
             resp_did = did
             data["type"] = "api_call"
+            data["path"] = f"/{subpath}"
             result = self.router.route_request(req_did, resp_did, data)
             return result
 
         # 注册智能体消息路由
-        @self.app.post("/agent/{did}/message")
+        @self.app.post("/agent/message/{did}")
         async def message_entry(did: str, request: Request):
             data = await request.json()
             req_did = data.get("req_did", "demo_caller")

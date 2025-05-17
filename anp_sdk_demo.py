@@ -9,11 +9,12 @@
 3. 启动服务器
 4. 演示智能体之间的消息和API调用
 """
-
+import json
 import asyncio
 import threading
-from timeit import Timer
+import aiohttp
 from loguru import logger
+from urllib.parse import urlencode, quote
 
 from anp_sdk import LocalAgent
 from anp_sdk_utils import get_user_cfg_list, get_user_cfg
@@ -74,7 +75,7 @@ def register_handlers(agents):
 
 
 # 演示智能体之间的消息和API调用
-async def demo(router, agent1, agent2, agent3):
+async def demo(sdk, agent1, agent2, agent3):
     if not all([agent1, agent2, agent3]):
         logger.error("智能体不足，无法执行演示")
         return
@@ -83,21 +84,65 @@ async def demo(router, agent1, agent2, agent3):
     
     # 演示API调用
     logger.info(f"演示：\nagent1:{agent1.name}调用\nagent2:{agent2.name}的API /info ...")
-    req = {"req_did": agent1.id, "api_path": "/info", "params": {"from": f"{agent1.name}"}}
+    req = {
+        "req_did": agent1.id,
+        "path_to": "/info",
+        "method": "GET",
+        "params": {"from":f"{agent1.name}"}
+    }
+
+    url_params = f"from:{agent1.name}"
+    url_params = json.dumps(url_params)
+    url_params = {
+        "req_did": agent1.id,
+        "params": url_params
+    }
+    url_params = urlencode(url_params)
+    async with aiohttp.ClientSession() as session:
+        url = f"http://localhost:{sdk.port}/agent/api/{agent2.id}/info?{url_params}"
+        async with session.post(url, json=req) as response:
+            resp = await response.json()
+            logger.info(f"\n{agent1.name}调用{agent2.name}的/info接口后收到响应: {resp}")
+
+
+    logger.info(f"演示：\nagent1:{agent1.name}用get调用\nagent2:{agent2.name}的API /info ...")
+    params = f"from:{agent1.name}"
+    params = json.dumps(params)
+    req = {
+        "req_did": agent1.id,
+        "params": params
+    }
+    from urllib.parse import quote
+    async with aiohttp.ClientSession() as session:
+        url = f"http://localhost:{sdk.port}/agent/api/{agent2.id}/info"
+        async with session.get(url, params=req) as response:
+            resp = await response.json()
+            logger.info(f"\n{agent1.name}调用{agent2.name}的/info接口后收到响应: {resp}")
     
-    resp = router.route_request(agent1.id, agent2.id, {"type": "api_call", **req})
-    logger.info(f"\n{agent1.name}调用{agent2.name}的/info接口后收到响应: {resp}")
-    
+   
+
     # 演示消息发送
-    logger.info(f"演示：\nagent2:{agent2.name}向\nagent3:{agent3.name}发送text消息 ...")
-    msg = {"req_did": agent2.id, "message_type": "text", "content": "hello agent3!"}
-    resp2 = router.route_request(agent2.id, agent3.id, {"type": "message", **msg})
-    logger.info(f"\n{agent2.name}发给{agent3.name}后{agent2.name}收到回复: {resp2}")
+    logger.info(f"演示：\nagent2:{agent2.name}向\nagent3:{agent3.name}发送消息 ...")
+    msg = {
+        "req_did": agent2.id,
+        "message_type": "text",
+        "content": f"你好，我是{agent2.name}"
+    }
+    async with aiohttp.ClientSession() as session:
+        async with session.post(f"http://localhost:{sdk.port}/agent/message/{agent3.id}", json=msg) as response:
+            resp = await response.json()
+            logger.info(f"\n{agent2.name}向{agent3.name}发送消息后收到响应: {resp}")
     
-    logger.info(f"演示：\nagent3:{agent3.name}向\nagent1:{agent1.name}发送text消息 ...")
-    msg2 = {"req_did": agent3.id, "message_type": "text", "content": "hi agent1!"}
-    resp3 = router.route_request(agent3.id, agent1.id, {"type": "message", **msg2})
-    logger.info(f"\n{agent3.name}发给{agent1.name}后{agent3.name}收到回复: {resp3}")
+    logger.info(f"演示：\nagent3:{agent3.name}向\nagent1:{agent1.name}发送消息 ...")
+    msg = {
+        "req_did": agent3.id,
+        "message_type": "text",
+        "content": f"你好，我是{agent3.name}"
+    }
+    async with aiohttp.ClientSession() as session:
+        async with session.post(f"http://localhost:{sdk.port}/agent/message/{agent1.id}", json=msg) as response:
+            resp = await response.json()
+            logger.info(f"\n{agent3.name}向{agent1.name}发送消息后收到响应: {resp}")
 
 # 主函数
 def main():
@@ -128,14 +173,13 @@ def main():
     import time
     time.sleep(0.5)
 
-    print("服务器已启动，按回车继续....")
-    input("按回车继续....")
+    input("服务器已启动，按回车继续....")
 
     # 6. 启动演示任务和服务器
     if all([agent1, agent2, agent3]):
         import threading
         def run_demo():
-            asyncio.run(demo(sdk.router, agent1, agent2, agent3))
+            asyncio.run(demo(sdk, agent1, agent2, agent3))
         thread = threading.Thread(target=run_demo)
         thread.start()
         thread.join()  # 等待线程完成

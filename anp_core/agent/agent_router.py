@@ -138,21 +138,26 @@ class AgentRouter:
     
     def register_agent(self, agent):
         """注册一个本地智能体"""
-        self.local_agents[agent.id] = agent
+        self.local_agents[str(agent.id)] = agent
         self.logger.info(f"已注册智能体: {agent.id}")
         return agent
         
     def get_agent(self, did: str):
         """获取指定DID的本地智能体"""
-        return self.local_agents.get(did)
-    
+        return self.local_agents.get(str(did))
+    from urllib.parse import unquote
     def route_request(self, req_did: str, resp_did: str, request_data: Dict):
         """路由请求到对应的本地智能体"""
-        if resp_did in self.local_agents:
-            return self.local_agents[resp_did].handle_request(req_did, request_data)
-        else:
-            self.logger.error(f"未找到本地智能体: {resp_did}")
-            raise ValueError(f"未找到本地智能体: {resp_did}")
+        resp_did = str(resp_did)
+        req_did = str(req_did)
+        for id, agent in self.local_agents.items():
+            normalized_resp_id = id.replace("%3A", ":")
+            normalized_resp_did = resp_did.replace("%3A", ":")
+            if normalized_resp_id == normalized_resp_did:  # 把%3A替换成:比对
+                return agent.handle_request(id, request_data)
+      
+        self.logger.error(f"未找到本地智能体: {resp_did}")
+        raise ValueError(f"未找到本地智能体: {resp_did}")
     
     def get_all_agents(self):
         """获取所有本地智能体"""
