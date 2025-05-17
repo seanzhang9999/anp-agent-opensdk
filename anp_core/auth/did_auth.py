@@ -12,7 +12,7 @@ import aiohttp
 from typing import Dict, Tuple, Optional, Any
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
-
+# from anp_sdk import ANPSDK  # 延迟导入，避免循环依赖
 
 from fastapi import Request, HTTPException
 from canonicaljson import encode_canonical_json
@@ -27,7 +27,7 @@ from anp_core.agent_connect.authentication import (
 from anp_core.auth.custom_did_resolver import resolve_local_did_document
 
 from core.config import settings
-from anp_core.auth.token_auth import create_access_token
+# from anp_core.auth.token_auth import create_access_token  # 延迟导入，避免循环依赖
 
 # 存储服务端生成的nonce
 VALID_SERVER_NONCES: Dict[str, datetime] = {}
@@ -118,8 +118,7 @@ def get_and_validate_domain(request: Request) -> str:
     domain = host.split(":")[0]
     return domain
 
-
-async def handle_did_auth(authorization: str, domain: str , request_url: str ) -> Dict:
+async def handle_did_auth(authorization: str, domain: str , request: Request , sdk = None) -> Dict:
     """
     Handle DID WBA authentication and return token.
     
@@ -137,6 +136,7 @@ async def handle_did_auth(authorization: str, domain: str , request_url: str ) -
        # logging.info(f"Processing DID WBA authentication - domain: {domain}, Authorization header: {authorization}")
 
         # Extract header parts
+        from anp_sdk import ANPSDK
         header_parts = extract_auth_header_parts(authorization)
         
         if not header_parts:
@@ -193,20 +193,37 @@ async def handle_did_auth(authorization: str, domain: str , request_url: str ) -
             logging.error(f"验证签名时出错: {e}")
             raise HTTPException(status_code=401, detail=f"Error verifying signature: {str(e)}")
         
-        from demo_autorun import get_user_cfg_list, find_user_cfg_by_did, LocalAgent
-        user_list, name_to_dir = get_user_cfg_list()
-        resp_did_cfg = find_user_cfg_by_did(user_list, name_to_dir,resp_did)
-        
-        resp_did_agent = LocalAgent(
-        id=resp_did_cfg.get('id'),
-        user_dir=resp_did_cfg.get('user_dir')
-        )
+        if sdk is None:
+            from demo_autorun import get_user_cfg_list, find_user_cfg_by_did, LocalAgent
+            user_list, name_to_dir = get_user_cfg_list()
+            resp_did_cfg = find_user_cfg_by_did(user_list, name_to_dir,resp_did)
+            
+            resp_did_agent = LocalAgent(
+            id=resp_did_cfg.get('id'),
+            user_dir=resp_did_cfg.get('user_dir')
+            )
+        else:
+            from typing import cast
+            from anp_sdk import ANPSDK
+            sdk = cast(ANPSDK, sdk)
+            resp_did_agent = sdk.get_agent(resp_did)
 
        
         # 生成访问令牌
+        from  config import dynamic_config
+        from anp_core.auth.token_auth import create_access_token
+        expiration_time = dynamic_config.get('anp_sdk.token_expire_time')
         access_token = create_access_token(
             resp_did_agent.jwt_private_key_path,
-            data={"req_did": did, "resp_did": resp_did, "comments": "open for req_did"  })
+            data={"req_did": did, "resp_did": resp_did, "comments": "open for req_did" },
+            expires_delta = expiration_time
+            )
+            
+        if sdk is None:
+            resp_did_agent.add_token_info(did, access_token,  expiration_time)
+        else:
+            resp_did_agent.store_token_to_remote(did, access_token,  expiration_time)
+       
         
        # logging.info(f"认证成功，已生成访问令牌")
         

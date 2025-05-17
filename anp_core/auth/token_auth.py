@@ -5,11 +5,12 @@ from datetime import datetime, timedelta
 import jwt
 from fastapi import HTTPException
 
+from datetime import datetime, timezone, timedelta
 from core.config import settings
 from anp_core.auth.jwt_keys import get_jwt_public_key, get_jwt_private_key
 
 
-def create_access_token(private_key_path, data: Dict, expires_delta: Optional[timedelta] = None) -> str:
+def create_access_token(private_key_path, data: Dict, expires_delta: int = None) -> str:
     """
     Create a new JWT access token.
     
@@ -23,7 +24,7 @@ def create_access_token(private_key_path, data: Dict, expires_delta: Optional[ti
     """
     
     to_encode = data.copy()
-    expires = datetime.utcnow() + (expires_delta or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES))
+    expires = datetime.now(timezone.utc) + (timedelta(minutes= expires_delta) or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expires})
     
     # Get private key for signing
@@ -41,6 +42,8 @@ def create_access_token(private_key_path, data: Dict, expires_delta: Optional[ti
     
     # 将token存储到LocalAgent中
     if "resp_did" in data and "req_did" in data:
+        
+
         from demo_autorun import get_user_cfg_list, find_user_cfg_by_did, LocalAgent
         user_list, name_to_dir = get_user_cfg_list()
         resp_did = data["resp_did"]
@@ -56,20 +59,21 @@ def create_access_token(private_key_path, data: Dict, expires_delta: Optional[ti
             # 存储token信息到LocalAgent中
             token_info = {
                 "token": encoded_jwt,
-                "created_at": datetime.utcnow(),
-                "expires_at": expires,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "expires_at": expires.isoformat(),
                 "is_revoked": False,
                 "req_did": req_did
             }
             
-            # 使用LocalAgent的store_token_info方法存储token信息
+            # 存储token信息到LocalAgent中
             resp_did_agent.store_token_info(req_did, token_info)
             logging.info(f"Token for {req_did} stored in LocalAgent {resp_did}")
     
     return encoded_jwt
 
 
-async def handle_bearer_auth(token: str, req_did, resp_did) -> Dict:
+
+async def handle_bearer_auth(token: str, req_did, resp_did, sdk= None) -> Dict:
     """
     Handle Bearer token authentication.
     
@@ -91,30 +95,57 @@ async def handle_bearer_auth(token: str, req_did, resp_did) -> Dict:
         else:
             token_body = token
         
+
+        
         # 从LocalAgent中获取token信息
-        from demo_autorun import get_user_cfg_list, find_user_cfg_by_did, LocalAgent
-        user_list, name_to_dir = get_user_cfg_list()
-        resp_did_cfg = find_user_cfg_by_did(user_list, name_to_dir, resp_did)
-        
-        if not resp_did_cfg:
-            logging.error(f"Cannot find configuration for resp_did: {resp_did}")
-            raise HTTPException(status_code=401, detail="Invalid response DID")
-        
-        resp_did_agent = LocalAgent(
-            id=resp_did_cfg.get('id'),
-            user_dir=resp_did_cfg.get('user_dir')
-        )
+
+        if sdk is None:
+            from demo_autorun import get_user_cfg_list, find_user_cfg_by_did, LocalAgent
+            user_list, name_to_dir = get_user_cfg_list()
+            resp_did_cfg = find_user_cfg_by_did(user_list, name_to_dir, resp_did)
+            
+            if not resp_did_cfg:
+                logging.error(f"Cannot find configuration for resp_did: {resp_did}")
+                raise HTTPException(status_code=401, detail="Invalid response DID")
+            
+            resp_did_agent = LocalAgent(
+                id=resp_did_cfg.get('id'),
+                user_dir=resp_did_cfg.get('user_dir')
+            )
+            token_info = resp_did_agent.get_token_from_remote(req_did)
+
+        else:
+            from anp_sdk import ANPSDK
+            sdk: ANPSDK
+            resp_did_agent = sdk.get_agent(resp_did)
+            token_info = resp_did_agent.get_token_to_remote(req_did)
+
         
         # 检查LocalAgent中是否存储了该req_did的token信息
-        token_info = resp_did_agent.get_token_info(req_did)
+
         if token_info:
+            # Convert expires_at string to datetime object and ensure it's timezone-aware
+            try:
+                if isinstance(token_info["expires_at"], str):
+                    expires_at_dt = datetime.fromisoformat(token_info["expires_at"])
+                else:
+                    expires_at_dt = token_info["expires_at"]  # Assuming it's already a datetime object from
+                # Ensure the datetime is timezone-aware (assume UTC if naive)
+                if expires_at_dt.tzinfo is None:
+                    logging.warning(f"Stored expires_at for {req_did} is timezone-naive. Assuming UTC.")
+                    expires_at_dt = expires_at_dt.replace(tzinfo=timezone.utc)
+                token_info["expires_at"] = expires_at_dt
+            except ValueError as e:
+                 logging.error(f"Failed to parse expires_at string '{token_info['expires_at']}': {e}")
+                 raise HTTPException(status_code=401, detail="Invalid token expiration format")
+
             # 检查token是否被撤销
             if token_info["is_revoked"]:
                 logging.error(f"Token for {req_did} has been revoked")
                 raise HTTPException(status_code=401, detail="Token has been revoked")
             
             # 检查token是否过期（使用存储的过期时间，而不是token中的时间）
-            if datetime.utcnow() > token_info["expires_at"]:
+            if datetime.now(timezone.utc) > token_info["expires_at"]:
                 logging.error(f"Token for {req_did} has expired")
                 raise HTTPException(status_code=401, detail="Token has expired")
             

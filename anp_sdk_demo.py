@@ -91,9 +91,15 @@ async def agent_auth(sdk, caller_agent:str, target_agent:str):
         private_key_path=str(caller_agent_obj.private_key_path),
         )
 
+    url_params = {
+        "req_did": caller_agent_obj.id,
+        "resp_did" : target_agent_obj.id
+    }
+    url_params = urlencode(url_params)
+
     base_url = f"http://{target_agent_obj.host}:{target_agent_obj.port}"
 
-    test_url = f"{base_url}/{dynamic_config.get('anp_sdk.auth_virtual_dir')}"
+    test_url = f"{base_url}/{dynamic_config.get('anp_sdk.auth_virtual_dir')}?{url_params}"
 
     status, response, response_header ,token = await send_authenticated_request(test_url, auth_client , str(target_agent_obj.id))
     
@@ -113,7 +119,7 @@ async def agent_auth(sdk, caller_agent:str, target_agent:str):
         status, response = await send_request_with_token(test_url, token, caller_agent_obj.id, target_agent_obj.id)
         
         if status == 200:
-            caller_agent_obj.store_token_from_remote(target_agent_obj.id,token, dynamic_config.get('anp_sdk.token_expire_time'))
+            caller_agent_obj.store_token_from_remote(target_agent_obj.id,token)
             error = f"\nDID认证成功! {caller_agent_obj.id} 已保存 {target_agent_obj.id}颁发的token:{token}"
             return True, error
         else:
@@ -149,6 +155,7 @@ async def agent_api_call_post(sdk, caller_agent:str, target_agent:str, api_path:
     
     url_params = {
         "req_did": caller_agent_obj.id,
+        "resp_did" : target_agent_obj.id
     }
     url_params = urlencode(url_params)
     target_agent_path = quote(target_agent)
@@ -157,6 +164,14 @@ async def agent_api_call_post(sdk, caller_agent:str, target_agent:str, api_path:
     token = caller_agent_obj.get_token_from_remote(target_agent_obj.id)['token']
 
     status,response = await send_request_with_token(url, token, caller_agent_obj.id, target_agent_obj.id, method="POST" ,  json_data=req)
+    if status == 401:
+        status, error = await agent_auth(sdk, caller_agent, target_agent)
+        if status is False:
+            return error
+        else:
+            token = caller_agent_obj.get_token_from_remote(target_agent_obj.id)['token']
+            status,response = await send_request_with_token(url, token, caller_agent_obj.id, target_agent_obj.id, method="POST",  json_data=req)
+
     response = await handle_response(response)
     return response
 
@@ -204,7 +219,7 @@ async def send_request_with_token(target_url: str, token: str, sender_did: str, 
                 logging.error(f"Unsupported HTTP method: {method}")
                 return 400, {"error": "Unsupported HTTP method"}
     except Exception as e:
-        logging.error(f"Error sending request with token: {e}")
+        logger.error(f"Error sending request with token: {e}")
         return 500, {"error": str(e)}
 
 async def agent_api_call_get(sdk, caller_agent:str, target_agent:str, api_path: str, params: dict = None):
@@ -228,6 +243,7 @@ async def agent_api_call_get(sdk, caller_agent:str, target_agent:str, api_path: 
 
         url_params = {
             "req_did": caller_agent_obj.id,
+            "resp_did" : target_agent_obj.id,
             "params": json.dumps(params) if params else ""
         }
         target_agent_path =  quote(target_agent)
@@ -236,6 +252,13 @@ async def agent_api_call_get(sdk, caller_agent:str, target_agent:str, api_path: 
         token = caller_agent_obj.get_token_from_remote(target_agent_obj.id)['token']
 
         status,response = await send_request_with_token(url, token, caller_agent_obj.id, target_agent_obj.id, method="GET")
+        if status == 401:
+            status, error = await agent_auth(sdk, caller_agent, target_agent)
+            if status is False:
+                return error
+            else:
+                token = caller_agent_obj.get_token_from_remote(target_agent_obj.id)['token']
+                status,response = await send_request_with_token(url, token, caller_agent_obj.id, target_agent_obj.id, method="POST",  json_data=req)
         response = await handle_response(response)
         return response
 
@@ -261,6 +284,7 @@ async def agent_msg_post(sdk, caller_agent:str , target_agent :str, content: str
 
     url_params = {
         "req_did": caller_agent_obj.id,
+        "resp_did" : target_agent_obj.id
     }
     url_params = urlencode(url_params)
     
@@ -276,6 +300,14 @@ async def agent_msg_post(sdk, caller_agent:str , target_agent :str, content: str
     token = caller_agent_obj.get_token_from_remote(target_agent_obj.id)['token']
 
     status,response = await send_request_with_token(url, token, caller_agent_obj.id, target_agent_obj.id, method="POST" ,  json_data=msg)
+    if status == 401:
+        status, error = await agent_auth(sdk, caller_agent, target_agent)
+        if status is False:
+            return error
+        else:
+            token = caller_agent_obj.get_token_from_remote(target_agent_obj.id)['token']
+            status,response = await send_request_with_token(url, token, caller_agent_obj.id, target_agent_obj.id, method="POST",  json_data=req)
+   
     response = await handle_response(response)
     return response
 

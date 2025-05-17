@@ -5,10 +5,12 @@ import logging
 from typing import List, Optional, Callable
 from fastapi import Request, HTTPException, Response
 from fastapi.responses import JSONResponse
+from pydantic_core.core_schema import none_schema
 from anp_core.auth.did_auth import handle_did_auth, get_and_validate_domain
 from anp_core.auth.token_auth import handle_bearer_auth
 import json
 import fnmatch
+# from anp_sdk import ANPSDK
 
 # Define exempt paths that don't require authentication
 
@@ -25,7 +27,7 @@ EXEMPT_PATHS = [
 ]  # "/wba/test" path removed from exempt list, now requires authentication
 
 
-async def verify_auth_header(request: Request) -> dict:
+async def verify_auth_header(request: Request , sdk = None) -> dict:
     """
     Verify authentication header and return authenticated user data.
     
@@ -38,10 +40,19 @@ async def verify_auth_header(request: Request) -> dict:
     Raises:
         HTTPException: When authentication fails
     """
+    from anp_sdk import ANPSDK
+    from anp_core.auth.did_auth import handle_did_auth, get_and_validate_domain
     # Get authorization header
     auth_header = request.headers.get("Authorization")
+
     req_did = request.headers.get("req_did")
     resp_did = request.headers.get("resp_did")
+    if not req_did or not resp_did:
+        req_did = request.query_params.get("req_did", "demo_caller")
+        resp_did = request.query_params.get("resp_did", "demo_responser")
+        if not req_did or not resp_did:
+            raise HTTPException(status_code=401, detail="Missing req_did or resp_did in headers or query parameters")
+    # Check if authorization header is present
 
     if not auth_header:
         raise HTTPException(status_code=401, detail="Missing authorization header")
@@ -49,17 +60,17 @@ async def verify_auth_header(request: Request) -> dict:
     # Handle DID WBA authentication
     if not auth_header.startswith("Bearer "):
         domain = get_and_validate_domain(request)
-        result = await handle_did_auth(auth_header, domain,request)
+        result = await handle_did_auth(auth_header, domain,request , sdk)
         return result
     
     # Handle Bearer token authentication
     
-    return await handle_bearer_auth(auth_header,req_did,resp_did)
+    return await handle_bearer_auth(auth_header,req_did,resp_did , sdk)
 
 def is_exempt(path):
     return any(fnmatch.fnmatch(path, pattern) for pattern in EXEMPT_PATHS)
 
-async def authenticate_request(request: Request) -> Optional[dict]:
+async def authenticate_request(request: Request , sdk= None) -> Optional[dict]:
     """
     Authenticate a request and return user data if successful.
     
@@ -77,7 +88,7 @@ async def authenticate_request(request: Request) -> Optional[dict]:
     
     # 特别检查 /wba/test 路径，确保它不被视为免认证
     if request.url.path == "/wba/test":
-        result = await verify_auth_header(request)
+        result = await verify_auth_header(request,sdk)
         return result
     else:
         for exempt_path in EXEMPT_PATHS:
@@ -95,11 +106,11 @@ async def authenticate_request(request: Request) -> Optional[dict]:
                 return None
     
     logging.info(f"Path {request.url} requires authentication,will check the Request headers: {request.headers}")
-    result = await verify_auth_header(request)
+    result = await verify_auth_header(request , sdk)
     return result
 
 
-async def auth_middleware(request: Request, call_next: Callable) -> Response:
+async def auth_middleware(request: Request, call_next: Callable, sdk = None) -> Response:
     """
     Authentication middleware for FastAPI.
     
@@ -112,7 +123,7 @@ async def auth_middleware(request: Request, call_next: Callable) -> Response:
     """
     try:
         # Add user data to request state if authenticated
-        response_auth = await authenticate_request(request)
+        response_auth = await authenticate_request(request,sdk)
 
         headers = dict(request.headers) # 读取请求头
         request.state.headers = headers  # 存储在 request.state

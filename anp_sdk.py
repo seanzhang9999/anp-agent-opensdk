@@ -5,7 +5,7 @@ import threading
 import asyncio
 import json
 import aiohttp
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, Any, Callable, Optional, Union, List, Type
 from enum import Enum
 from fastapi.middleware.cors import CORSMiddleware
@@ -175,8 +175,9 @@ class LocalAgent:
             token: 生成的token
             expires_delta: 过期时间（秒）
         """
-        now = datetime.now()
-        expires_at = now + timedelta(seconds=expires_delta)
+        from datetime import datetime, timedelta, timezone
+        now = datetime.now(timezone.utc)
+        expires_at = datetime.now(timezone.utc) + timedelta(seconds=expires_delta)
         
         self.token_to_remote_dict[req_did] = {
             "token": token,
@@ -198,7 +199,7 @@ class LocalAgent:
         return self.token_from_remote_dict.get(req_did)
     
 
-    def store_token_from_remote(self, req_did: str, token: str, expires_delta: int):
+    def store_token_from_remote(self, req_did: str, token: str):
         """存储token信息
         
         Args:
@@ -436,7 +437,7 @@ class ANPSDK:
         # Add authentication middleware
         @self.app.middleware("http")
         async def auth_middleware_wrapper(request, call_next):
-            return await auth_middleware(request, call_next)
+            return await auth_middleware(request, call_next, self)
 
 
         # 创建路由器实例
