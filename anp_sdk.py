@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, Callable, Optional, Union, List, Type
 from enum import Enum
 from fastapi.middleware.cors import CORSMiddleware
-
+import inspect
 
 # 安全中间件
 from anp_open_sdk.auth.auth_middleware import auth_middleware
@@ -87,6 +87,12 @@ class LocalAgent:
         # 新增: API与消息handler注册表
         self.api_routes = {}  # path -> handler
         self.message_handlers = {}  # type -> handler
+        # 新增: 群事件handler注册表
+        # {(group_id, event_type): [handlers]}
+        self._group_event_handlers = {}
+        # [(event_type, handler)] 全局handler
+        self._group_global_handlers = []
+
     
     # 支持装饰器和函数式注册API
     def expose_api(self, path: str, func: Callable = None):
@@ -101,6 +107,7 @@ class LocalAgent:
     
     # 支持装饰器和函数式注册消息handler
     def register_message_handler(self, msg_type: str, func: Callable = None):
+        # 保持原有实现
         if func is None:
             def decorator(f):
                 self.message_handlers[msg_type] = f
@@ -109,6 +116,73 @@ class LocalAgent:
         else:
             self.message_handlers[msg_type] = func
             return func
+
+    def register_group_event_handler(self, handler: Callable, group_id: str = None, event_type: str = None):
+        """
+        注册群事件处理器
+        - group_id=None 表示全局
+        - event_type=None 表示所有类型
+        handler: (group_id, event_type, event_data) -> None/awaitable
+        """
+        if group_id is None and event_type is None:
+            self._group_global_handlers.append((None, handler))
+        elif group_id is None:
+            self._group_global_handlers.append((event_type, handler))
+        else:
+            key = (group_id, event_type)
+            self._group_event_handlers.setdefault(key, []).append(handler)
+
+    def _get_group_event_handlers(self, group_id: str, event_type: str):
+        """
+        获取所有应该处理该事件的handler，顺序为：
+        1. 全局handler（event_type=None或匹配）
+        2. 指定群/类型handler
+        """
+        handlers = []
+        for et, h in self._group_global_handlers:
+            if et is None or et == event_type:
+                handlers.append(h)
+        for (gid, et), hs in self._group_event_handlers.items():
+            if gid == group_id and (et is None or et == event_type):
+                handlers.extend(hs)
+        return handlers
+
+    async def _dispatch_group_event(self, group_id: str, event_type: str, event_data: dict):
+        """
+        分发群事件到所有已注册的handler，支持awaitable和普通函数
+        """
+        handlers = self._get_group_event_handlers(group_id, event_type)
+        for handler in handlers:
+            try:
+                ret = handler(group_id, event_type, event_data)
+                if inspect.isawaitable(ret):
+                    await ret  # 处理异步任务
+            except Exception as e:
+                self.logger.error(f"群事件处理器出错: {e}")
+                
+    async def start_group_listening(self, sdk, group_url: str, group_id: str):
+        """
+        启动对指定群组的消息监听
+        
+        Args:
+            sdk: ANPSDK 实例
+            group_url: 群组URL
+            group_id: 群组ID
+            
+        Returns:
+            asyncio.Task: 监听任务对象，可用于后续取消
+        """
+        from anp_open_sdk.service.agent_message_group import listen_group_messages
+        import asyncio
+        
+        # 创建监听任务
+        task = asyncio.create_task(
+            listen_group_messages(sdk, self.id, group_url, group_id)
+        )
+        
+        self.logger.info(f"已启动群组 {group_id} 的消息监听")
+        return task
+       
 
     def handle_request(self, req_did: str, request_data: Dict[str, Any]):
         """处理来自req_did的请求

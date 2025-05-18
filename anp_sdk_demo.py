@@ -49,6 +49,7 @@ from urllib.parse import urlencode, quote
 from anp_sdk import ANPSDK, LocalAgent, RemoteAgent
 from anp_open_sdk.anp_sdk_utils import get_user_cfg_list, get_user_cfg
 
+
 # 批量加载本地DID用户并实例化LocalAgent
 def load_agents():
     user_list, name_to_dir = get_user_cfg_list()
@@ -100,7 +101,23 @@ def register_handlers(agents):
         logger.info(f"{agent3.name}收到*类型消息: {msg}")
         return {"reply": f"{agent3.name}回复:确认收到{msg.get('type')}类型{msg.get('message_type')}格式的消息:{msg.get('content')}"}
     
-    return agents, agent1, agent2, agent3
+    # 为agent1 注册群聊消息监听处理 函数注册方式
+    async def my_handler(group_id, event_type, event_data):
+        print(f"收到群{group_id}的{event_type}事件，内容：{event_data}")
+        message_file = dynamic_config.get("anp_sdk.group_msg_path")
+        message_file = path_resolver.resolve_path(message_file)
+        message_file = os.path.join(message_file, "group_messages.json")
+        try:
+            async with aiofiles.open(message_file, 'a') as f:
+                await f.write(json.dumps(event_data, ensure_ascii=False) + '\n')
+                return
+        except Exception as e:
+            logger.error(f"保存消息到文件时出错: {e}")
+            return
+    agent1.register_group_event_handler(my_handler, group_id=None, event_type=None)
+
+    
+    return agents, agent1, agent2, agent3,
 
 
 
@@ -183,33 +200,36 @@ async def demo(sdk, agent1, agent2, agent3, step_mode: bool = False):
     message_file = dynamic_config.get("anp_sdk.group_msg_path")
     message_file = path_resolver.resolve_path(message_file)
     message_file = os.path.join(message_file, "group_messages.json")
-
     async with aiofiles.open(message_file, 'w') as f:
         await f.write("")
 
 
-    # 创建消息处理函数
-    async def save_message_to_file(message):
-        try:
-        
-            # 确保数据格式正确
-            
-            async with aiofiles.open(message_file, 'a') as f:
-                await f.write(json.dumps(message, ensure_ascii=False) + '\n')  # 异步写入
 
-            # 返回处理结果
-            return
-        except Exception as e:
-            logger.error(f"保存消息到文件时出错: {e}")
-            return
+
+
+
+    task = await agent1.start_group_listening(sdk, group_url, group_id)
+
+
+    """
+        # 为agent1注册群聊监听存盘处理器 事件注册
+    def get_group_event_handlers(message_file):
+        async def save_message_to_file(message):
+            try:
+                async with aiofiles.open(message_file, 'a') as f:
+                    await f.write(json.dumps(message, ensure_ascii=False) + '\n')
+                return
+            except Exception as e:
+                logger.error(f"保存消息到文件时出错: {e}")
+                return
+        return {"*": save_message_to_file}
     
+    # 注册群聊事件处理器
+    event_handlers = get_group_event_handlers(message_file)
     # 创建 agent1 的群聊监听任务
-    # 注册事件类型到处理函数的映射，提升可读性和扩展性
-    event_handlers = {
-        "*":save_message_to_file
-    }
     listen_task = asyncio.create_task(listen_group_messages(sdk, agent1.id, group_url, group_id, event_handlers=event_handlers))
-    # 等待一会儿确保监听任务启动
+    """
+
     await asyncio.sleep(1)
         
     _pause_if_step_mode(f"建群拉人结束，{agent1.name} 开始启动子线程，用于监听群聊 {group_id} 存储消息到json记录文件")
@@ -242,9 +262,9 @@ async def demo(sdk, agent1, agent2, agent3, step_mode: bool = False):
 
     
     # 取消监听任务
-    listen_task.cancel()
+    task.cancel()
     try:
-        await listen_task
+        await task
     except asyncio.CancelledError:
         pass
     

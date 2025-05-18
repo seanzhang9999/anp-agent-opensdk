@@ -11,7 +11,7 @@ from loguru import logger
 from anp_open_sdk.auth.custom_did_resolver import resolve_local_did_document
 from anp_core.agent_connect.authentication.did_wba import resolve_did_wba_document
 from anp_core.agent_connect.authentication.did_wba import verify_auth_header_signature
-from anp_open_sdk.auth.did_auth import extract_auth_header_parts, verify_timestamp, is_valid_server_nonce
+from anp_open_sdk.auth.did_auth import extract_auth_header_parts, verify_timestamp
 from anp_sdk import RemoteAgent
 async def check_response_DIDAtuhHeader(auth_value: str) -> bool:
 

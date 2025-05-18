@@ -81,18 +81,14 @@ async def agent_msg_group_members(sdk, caller_agent:str, group_url, group_id: st
 
 async def listen_group_messages(sdk, caller_agent: str, group_url, group_id, event_handlers=None):
     """
-    监听群聊消息并通过事件类型分发给对应的处理函数。
-    
+    监听群聊消息并通过事件类型分发给 LocalAgent 的群事件服务。
     Args:
         sdk: SDK实例
         caller_agent: 调用方智能体ID
         group_url: 群组URL
         group_id: 群组ID
-        event_handlers: 事件类型到处理函数的映射（dict），如 {"group_message": handler_func}
+        event_handlers: 兼容旧接口，优先使用 LocalAgent 注册的事件处理机制
     """
-    if event_handlers is None:
-        event_handlers = {}
-    
     caller_agent_obj = sdk.get_agent(caller_agent)
     url_params = {
         "req_did": caller_agent_obj.id,
@@ -110,15 +106,21 @@ async def listen_group_messages(sdk, caller_agent: str, group_url, group_id, eve
                                 continue
                             # 移除 "data:" 前缀
                             if decoded_line.startswith("data:"):
-                                decoded_line = decoded_line[5:].strip()  # 去掉 "data:"
+                                decoded_line = decoded_line[5:].strip()
                             try:
                                 import json
                                 msg_obj = json.loads(decoded_line)
-                                handler = event_handlers.get("*")
-                                if handler:
-                                    await handler(msg_obj)
+                                event_type = msg_obj.get("event_type") or msg_obj.get("type") or "*"
+                                # 优先走 LocalAgent 的注册机制
+                                if hasattr(caller_agent_obj, "_dispatch_group_event"):
+                                    await caller_agent_obj._dispatch_group_event(group_id, event_type, msg_obj)
+                                # 兼容旧接口
+                                elif event_handlers and event_type in event_handlers:
+                                    await event_handlers[event_type](msg_obj)
+                                elif event_handlers and "*" in event_handlers:
+                                    await event_handlers["*"](msg_obj)
                                 else:
-                                    logger.debug(f"未注册处理函数")
+                                    logger.debug(f"未注册群事件处理函数")
                             except Exception as e:
                                 logger.error(f"消息解析或分发出错: {e}")
                         except Exception as e:
