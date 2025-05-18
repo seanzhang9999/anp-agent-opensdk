@@ -201,7 +201,7 @@ async def handle_did_auth(authorization: str, domain: str , request: Request , s
 
        
         # 生成访问令牌
-        from  config import dynamic_config
+        from anp_open_sdk.config.dynamic_config import dynamic_config
         from anp_core.auth.token_auth import create_access_token
         expiration_time = dynamic_config.get('anp_sdk.token_expire_time')
         access_token = create_access_token(
@@ -219,7 +219,7 @@ async def handle_did_auth(authorization: str, domain: str , request: Request , s
         resp_did_auth_header = None
         if resp_did and resp_did != "没收到":
             try:
-                import config.dynamic_config as dynamic_config
+                from anp_open_sdk.config.dynamic_config import dynamic_config
                 # 获取resp_did用户目录
                 key_id = "key-1"
                 userdid_filepath = dynamic_config.get('demo_autorun.user_did_path')

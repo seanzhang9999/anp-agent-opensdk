@@ -21,7 +21,7 @@ EXEMPT_PATHS = [
     "/group/*",
     "/redoc", 
     "/openapi.json",
-    "/wba/user/",  # Allow access to DID documents
+    "/wba/user/*",  # Allow access to DID documents
     "/",           # Allow access to root endpoint
     "/agents/example/ad.json"  # Allow access to agent description
 ]  # "/wba/test" path removed from exempt list, now requires authentication
@@ -87,7 +87,8 @@ async def authenticate_request(request: Request , sdk= None) -> Optional[dict]:
 
     
     # 特别检查 /wba/test 路径，确保它不被视为免认证
-    if request.url.path == "/wba/test":
+    if request.url.path == "/wba/auth":
+        logging.info(f"安全中间件拦截/wba/auth进行did认证兼token颁发或token校验")
         result = await verify_auth_header(request,sdk)
         return result
     else:
@@ -105,7 +106,7 @@ async def authenticate_request(request: Request , sdk= None) -> Optional[dict]:
             #    logging.info(f"Path {request.url.path} is exempt from authentication (matched {exempt_path})")
                 return None
     
-    logging.info(f"Path {request.url} requires authentication,will check the Request headers: {request.headers}")
+    logging.info(f"安全中间件拦截检查url:\n{request.url}")
     result = await verify_auth_header(request , sdk)
     return result
 

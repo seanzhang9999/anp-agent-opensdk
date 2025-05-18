@@ -15,12 +15,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from anp_core.auth.auth_middleware import auth_middleware
 
 # 两个历史遗留路由 用于认证 和 did发布 
-from api import auth_router, did_router
+from anp_open_sdk import auth_router, did_router
 
 
 # 导入ANP核心组件
 
-from config.dynamic_config import dynamic_config
+from anp_open_sdk.config.dynamic_config import dynamic_config
 from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect, Response, FastAPI
 from fastapi.responses import StreamingResponse
 
@@ -489,6 +489,7 @@ class ANPSDK:
     def _register_default_routes(self):
 
            # Include routers
+
         self.app.include_router(auth_router.router)
         self.app.include_router(did_router.router)
         @self.app.get("/", tags=["status"])
@@ -586,11 +587,13 @@ class ANPSDK:
             if group_id not in self.group_members or req_did not in self.group_members[group_id]:
                 return {"error": "无权在此群组发送消息"}
             
+            time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
             # 构造消息
             message = {
                 "sender": req_did,
                 "content": data.get("content", ""),
-                "timestamp": time.time(),
+                "timestamp": time,
                 "type": "group_message"
             }
             
@@ -606,7 +609,7 @@ class ANPSDK:
         async def group_connect(group_id: str, request: Request):
             req_did = request.query_params.get("req_did")
             if req_did.find("%3A") == -1:
-                parts = req_did.split(":", 4)  # 分割 4 份 把第三个冒号替换成%3A
+                parts = req_did.split(":", 4)  # 分割 4 份 把第三个冒号替换成%3A 现在都上了urlencode 这个代码应该无用了
                 req_did = ":".join(parts[:3]) + "%3A" + ":".join(parts[3:])
             if not req_did:
                 return {"error": "未提供订阅者 DID"}

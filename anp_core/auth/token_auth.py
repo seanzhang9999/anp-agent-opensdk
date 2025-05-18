@@ -89,7 +89,8 @@ async def handle_bearer_auth(token: str, req_did, resp_did, sdk= None) -> Dict:
 
         else:
             from anp_sdk import ANPSDK
-            sdk: ANPSDK
+            from typing import cast
+            sdk= cast(ANPSDK, sdk)
             resp_did_agent = sdk.get_agent(resp_did)
             token_info = resp_did_agent.get_token_to_remote(req_did)
 
@@ -127,11 +128,10 @@ async def handle_bearer_auth(token: str, req_did, resp_did, sdk= None) -> Dict:
                 logging.error(f"Token mismatch for {req_did}")
                 raise HTTPException(status_code=401, detail="Invalid token")
             
-            logging.info(f"Token for {req_did} verified successfully from LocalAgent storage")
+            logging.info(f" {req_did}提交的token在LocalAgent存储中未过期,快速通过!")
         else:
             # 如果LocalAgent中没有存储token信息，则使用公钥验证
-            logging.info(f"No token info found in LocalAgent for {req_did}, falling back to public key verification")
-            
+             
             public_key = get_jwt_public_key(resp_did_agent.jwt_public_key_path)
             if not public_key:
                 logging.error("Failed to load JWT public key")
@@ -147,7 +147,8 @@ async def handle_bearer_auth(token: str, req_did, resp_did, sdk= None) -> Dict:
             # Check if token contains required fields
             if "req_did" not in payload:
                 raise HTTPException(status_code=401, detail="Invalid token payload")
-        
+            
+            logging.info(f"LocalAgent存储中未找到{req_did}提交的token,公钥验证通过")
         return [{
             "access_token": token,
             "token_type": "bearer",

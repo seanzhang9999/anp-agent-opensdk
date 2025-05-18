@@ -26,26 +26,27 @@ async def test_endpoint(request: Request) -> Dict:
     """
     # Try to get JSON data if available
     user = None
-
-    RequestDID = request.state.headers.get("tokenrequestdid", "")
-
+    req_did = request.query_params.get("req_did", "demo_caller")
+    resp_did = request.query_params.get("resp_did", "demo_responser")
+    if not req_did or not resp_did:
+        raise HTTPException(status_code=401, detail="Missing req_did or resp_did in headers or query parameters")
 
     try:
-        if RequestDID != "": # token 用户
-            user = RequestDID
+        if req_did != "": # token 用户
+            user = req_did
         else: # did 用户   
             auth_data = request.state.headers.get("authorization", "")
                 # 检查auth_data是否为字符串
             if isinstance(auth_data, str) and " " in auth_data:
                 auth_data = auth_data.split(" ", 1)[1]
                 auth_dict =parse_auth_str_to_dict(auth_data)
-                user = auth_dict.get("did")
+                user = auth_dict.get("req_did")
 
     except Exception as e:
         logging.warning(f"解析认证数据时出错: {e}")
         user = None
     
-    logging.info(f"Received test request with user: {user}")
+    #logging.info(f"请求方{user}通过认证中间件认证，认证方返回token和自身认证头")
 
     if not user:
         return {

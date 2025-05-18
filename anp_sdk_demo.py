@@ -1,5 +1,11 @@
+import os
+from time import time
+from datetime import datetime
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+
+from colorama import init
+init()  # 初始化 colorama
 
 """ANP SDK 演示程序
 
@@ -11,7 +17,7 @@
 """
 from typing import Optional, Dict, Tuple, Any
 from types import DynamicClassAttribute
-from config.dynamic_config import dynamic_config
+from anp_open_sdk.config.dynamic_config import dynamic_config
 from anp_core.auth.did_auth import send_authenticated_request,send_request_with_token,DIDWbaAuthHeader
 import aiofiles
 import json
@@ -22,7 +28,7 @@ from loguru import logger
 from urllib.parse import urlencode, quote
 
 from anp_sdk import ANPSDK, LocalAgent, RemoteAgent
-from anp_sdk_utils import get_user_cfg_list, get_user_cfg
+from anp_open_sdk.anp_sdk_utils import get_user_cfg_list, get_user_cfg
 
 # 批量加载本地DID用户并实例化LocalAgent
 def load_agents():
@@ -34,7 +40,7 @@ def load_agents():
             agent = LocalAgent(id=did_dict['id'], user_dir=name_to_dir[selected_name])
             agent.name = selected_name
             agents.append(agent)
-            logger.info(f"已加载 LocalAgent: {did_dict['id']} -> 目录: {name_to_dir[selected_name]}")
+            # logger.info(f"已加载 LocalAgent: {did_dict['id']} -> 目录: {name_to_dir[selected_name]}")
         else:
             logger.warning(f"加载用户 {name} 失败")
     return agents
@@ -246,6 +252,7 @@ async def agent_api_call_get(sdk, caller_agent:str, target_agent:str, api_path: 
             "resp_did" : target_agent_obj.id,
             "params": json.dumps(params) if params else ""
         }
+        url_params = urlencode(url_params)
         target_agent_path =  quote(target_agent)
 
         url = f"http://{target_agent_obj.host}:{target_agent_obj.port}/agent/api/{target_agent_path}{api_path}?{url_params}"
@@ -346,7 +353,7 @@ async def agent_msg_group_members(sdk, caller_agent:str, group_url, group_id: st
         async with session.post(url, json=action) as response:
             resp = await response.json()
     return resp
-async def listen_group_messages(sdk, caller_agent:str, group_id, message_file):
+async def listen_group_messages(sdk, caller_agent:str, group_id):
     """监听群聊消息并保存到文件
     
     Args:
@@ -355,6 +362,18 @@ async def listen_group_messages(sdk, caller_agent:str, group_id, message_file):
         message_file: 消息保存的文件路径
     """
 
+    # 构建文件保存路径为运行目录下的 anp_sdk 子目录
+    script_dir = os.path.dirname(__file__)
+    anp_sdk_dir = os.path.join(script_dir, "anp_sdk")
+    message_file = os.path.join(anp_sdk_dir, "group_messages.json")
+
+    # 确保 anp_sdk 目录存在
+    os.makedirs(anp_sdk_dir, exist_ok=True)
+
+    # 清空消息文件
+    with open(message_file, 'w') as f:
+        f.write('')
+    # 监听群聊消息
 
     caller_agent_obj = sdk.get_agent(caller_agent)
     url_params = {
@@ -389,88 +408,110 @@ async def listen_group_messages(sdk, caller_agent:str, group_id, message_file):
 async def demo(sdk, agent1, agent2, agent3, step_mode: bool = False):
     def _pause_if_step_mode(step_name: str = ""):
         if step_mode:
-            input(f"--- {step_name} --- 按任意键继续...")
+            from colorama import Fore, Style
+            input(f"{Fore.GREEN}--- {step_name} ---{Style.RESET_ALL} {Fore.YELLOW}按任意键继续...{Style.RESET_ALL}")
     if not all([agent1, agent2, agent3]):
         logger.error("智能体不足，无法执行演示")
         return
     """演示智能体之间的消息和API调用"""
 
      # 演示API调用
-    logger.info("\n===== 步骤1: 演示API调用 =====")
-    _pause_if_step_mode("步骤1: 演示API调用")
-    
-    logger.info(f"演示：\nagent1:{agent1.name}post调用\nagent2:{agent2.name}的API /info ...")
+    _pause_if_step_mode("步骤1: 演示API调用,第一次请求会包含did双向认证和颁发token,log比较长")
+ 
+
     resp = await agent_api_call_post(sdk, agent1.id, agent2.id, "/info", {"from": f"{agent1.name}"})
-    logger.info(f"\n{agent1.name}get调用{agent2.name}的/info接口后收到响应: {resp}")
-           
-    logger.info(f"演示：\nagent1:{agent1.name}get调用\nagent2:{agent2.name}的API /info ...")
+    logger.info(f"{agent1.name}get调用{agent2.name}的/info接口后收到响应: {resp}")
+
+    _pause_if_step_mode("post请求到/info接口,header提交authorization认证头,url提交req_did,resp_did,body传输params")
+
+          
+    logger.info(f"演示agent1:{agent1.name}get调用agent2:{agent2.name}的API /info接口")
     resp = await agent_api_call_get(sdk, agent1.id, agent2.id, "/info", {"from": f"{agent1.name}"})
-    logger.info(f"\n{agent1.name}get调用{agent2.name}的/info接口后收到响应: {resp}")
+    logger.info(f"{agent1.name}get调用{agent2.name}的/info接口后收到响应: {resp}")
    
+    _pause_if_step_mode("get请求到/info接口,header提交authorization认证头,url提交req_did,resp_did,params")
 
     # 演示消息发送
-    logger.info("\n===== 步骤2: 演示消息发送 =====")
-    _pause_if_step_mode("步骤2: 演示消息发送")
+    _pause_if_step_mode("步骤2: 演示消息发送,双方第一次消息发送会包含did双向认证和颁发token,注意观察")
     
-    logger.info(f"演示：\nagent2:{agent2.name}向\nagent3:{agent3.name}发送消息 ...")
+    logger.info(f"演示：agent2:{agent2.name}向agent3:{agent3.name}发送消息 ...")
     # agent2 向 agent3 发送消息
     resp = await agent_msg_post(sdk, agent2.id, agent3.id, f"你好，我是{agent2.name}")
     logger.info(f"\n{agent2.name}向{agent3.name}发送消息后收到响应: {resp}")
+
+    _pause_if_step_mode("post请求发送消息,使用token认证,body传递消息,接收方注册消息回调接口收消息回复，请比对")
+
     
     # agent3 向 agent1 发送消息
-    logger.info(f"演示：\nagent3:{agent3.name}向\nagent1:{agent1.name}发送消息 ...")
+    logger.info(f"演示agent3:{agent3.name}向agent1:{agent1.name}发送消息 ...")
     resp = await agent_msg_post(sdk, agent3.id, agent1.id, f"你好，我是{agent3.name}")
-    logger.info(f"\n{agent3.name}向{agent1.name}发送消息后收到响应: {resp}")
+    logger.info(f"{agent3.name}向{agent1.name}发送消息后收到响应: {resp}")
     
+    _pause_if_step_mode("post请求发送消息,使用token认证,body传递消息,接收方注册消息回调接口收消息回复，请比对")
+
     # 演示群聊功能
-    logger.info("\n===== 步骤3: 演示群聊功能 =====")
-    _pause_if_step_mode("步骤3: 演示群聊功能")
+    _pause_if_step_mode("步骤3: 演示群聊功能,群聊当前未加入认证,未来计划用did-vc模式,即创建群组者给其他用户颁发vc,加入者使用vc认证加入群聊")
     group_id = "demo_group"
     group_url = f"localhost:{sdk.port}"  # Replace with your group URL and port numbe
-    message_file = "group_messages.json"
-    logger.info(f"\n演示：创建群聊并添加成员...")
     
-    # 清空消息文件
-    with open(message_file, 'w') as f:
-        f.write('')
+    _pause_if_step_mode(f"群聊演示分三步:建群拉人,发消息,{agent1.name}后台sse长连接接收群聊消息存到本地后加载显示")
+
     
     # 创建群组并添加 agent1（创建者自动成为成员）
     action = {"action": "add", "did": agent1.id}
     resp = await agent_msg_group_members(sdk, agent1.id, group_url, group_id, action)
-    logger.info(f"创建群组并添加{agent1.name}的响应: {resp}")
-    
+    logger.info(f"{agent1.name}创建群组{group_id}并添加{agent1.name},服务响应为: {resp}")
+
+    _pause_if_step_mode(f"验证群组逻辑:第一个访问群并加人的自动成为成员")
+
+
     # 添加 agent2 到群组
     action = {"action": "add", "did": agent2.id}
     resp = await agent_msg_group_members(sdk, agent1.id, group_url, group_id, action)
     logger.info(f"{agent1.name}邀请{agent2.name}的响应: {resp}")
     
+    _pause_if_step_mode(f"验证群组逻辑:创建人成员可以拉人")
+
     # 添加 agent3 到群组
     action = {"action": "add", "did": agent3.id}
     resp = await agent_msg_group_members(sdk, agent2.id, group_url, group_id, action)
     logger.info(f"{agent2.name}邀请{agent3.name}的响应: {resp}")
-    
+   
+    _pause_if_step_mode(f"验证群组逻辑:其他成员也可以拉人，群组逻辑可以自定义")
+
     # 创建 agent1 的群聊监听任务
-    logger.info(f"{agent1.name} 开始监听群聊 {group_id} 的消息")
-    listen_task = asyncio.create_task(listen_group_messages(sdk, agent1.id, group_id, message_file))
-    
+    listen_task = asyncio.create_task(listen_group_messages(sdk, agent1.id, group_id))
     # 等待一会儿确保监听任务启动
     await asyncio.sleep(1)
+        
+    _pause_if_step_mode(f"建群拉人结束，{agent1.name} 开始启动子线程，用于监听群聊 {group_id} 存储消息到json记录文件")
     
     # agent1 发送群聊消息
-    logger.info(f"\n演示：{agent1.name}发送群聊消息...")
-    message = f"大家好，我是{agent1.name}，欢迎来到群聊！"
+    time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    logger.info(f"\n演示：{agent1.name}在{time}“发送群聊消息...")
+    message = f"大家好，我是{agent1.name}，现在是{time},欢迎来到群聊！"
     resp = await agent_msg_group_post(sdk, agent1.id, group_url, group_id, message)
     logger.info(f"{agent1.name}发送群聊消息的响应: {resp}")
 
+    _pause_if_step_mode(f"{agent1.name} 向 {group_id} 发消息,所有成员可以通过sse长连接接收消息")
+
     
     # agent2 发送群聊消息
-    logger.info(f"\n演示：{agent2.name}发送群聊消息...")
-    message = f"大家好，我是{agent2.name}，欢迎来到群聊！"
+    await asyncio.sleep(2)
+    time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    logger.info(f"\n演示:{agent2.name}等待2秒后在{time}发送群聊消息...")
+    message = f"大家好，我是{agent2.name}，现在是{time},欢迎来到群聊！"
     resp = await agent_msg_group_post(sdk, agent2.id, group_url, group_id, message)
     logger.info(f"{agent2.name}发送群聊消息的响应: {resp}")
+
+    _pause_if_step_mode(f"{agent2.name} 向 {group_id} 发消息,所有成员可以通过sse长连接接收消息")
+
     
     # 等待一会儿确保消息被接收
     await asyncio.sleep(2)
+
+    _pause_if_step_mode(f"{agent1.name}将停止监听，加载json文件显示sse长连接群聊收到的信息,注意观察时间戳")
+
     
     # 取消监听任务
     listen_task.cancel()
@@ -482,6 +523,11 @@ async def demo(sdk, agent1, agent2, agent3, step_mode: bool = False):
     # 读取并显示接收到的消息
     logger.info(f"\n{agent1.name}接收到的群聊消息:")
     try:
+        # 构建文件保存路径为运行目录下的 anp_sdk 子目录
+        script_dir = os.path.dirname(__file__)
+        anp_sdk_dir = os.path.join(script_dir, "anp_sdk")
+        message_file = os.path.join(anp_sdk_dir, "group_messages.json")
+
         messages = []  # 存储所有消息
         with open(message_file, 'r', encoding='utf-8') as f:
             for line in f:
@@ -521,24 +567,24 @@ def get_response_DIDAuthHeader_Token(response_header):
 
             if did_auth_header and token:
 
-                print("获得双向 'Authorization' 字段，实际值：", did_auth_header)
+                logger.info("收到认证方返回的DID认证头和访问令牌，检查DID认证头签名")
 
                 return did_auth_header, token
             else:
 
-                print("[错误] 解析失败，缺少必要字段", auth_value)
+                logger.info("[错误] 解析失败，缺少必要字段", auth_value)
 
                 return None, None
 
 
         except json.JSONDecodeError:
 
-            print("[错误] Authorization 头格式错误，无法解析 JSON:", response_header["Authorization"])
+            logger.info("[错误] Authorization 头格式错误，无法解析 JSON:", response_header["Authorization"])
 
             return None, None
     else:
 
-        print("[错误] response_header 缺少 'Authorization' 字段，实际值：", response_header)
+        logger.info("[错误] response_header 缺少 'Authorization' 字段，实际值：", response_header)
 
         return None, None
 
@@ -570,17 +616,16 @@ async def check_response_DIDAtuhHeader(auth_value):
 
     if not header_parts:
 
-        print("AuthHeader格式错误")  
-    else:
-
-        print(f"AuthHeader解析成功:{header_parts}")
+        logger.info("AuthHeader格式错误")  
+    # else:
+        #logger.info(f"AuthHeader解析成功:{header_parts}")
 
 
     # 解包顺序：(did, nonce, timestamp, verification_method, signature)
 
     did, nonce, timestamp, resp_did, keyid, signature = header_parts
 
-    logger.info(f"Processing DID WBA authentication - DID: {did}, Key ID: {keyid}")
+    logger.info(f"用 {did}的{keyid}检验")
 
     if not verify_timestamp(timestamp):
 
@@ -605,7 +650,7 @@ async def check_response_DIDAtuhHeader(auth_value):
     # 如果自定义解析器失败，尝试使用标准解析器
     if not did_document:
 
-        logger.info(f"本地DID解析失败，尝试使用标准解析器 for DID: {did}")
+        #logger.info(f"本地DID解析失败，尝试使用标准解析器 for DID: {did}")
 
         try:
 
@@ -622,7 +667,7 @@ async def check_response_DIDAtuhHeader(auth_value):
         print("Failed to resolve DID document")
         
 
-    logger.info(f"成功解析DID文档: {did}")
+    #logger.info(f"成功解析DID文档: {did}")
         
 
     # 验证签名
@@ -670,33 +715,29 @@ async def check_response_DIDAtuhHeader(auth_value):
 def main(step_mode: bool = False):
     def _pause_if_step_mode(step_name: str = ""):
         if step_mode:
-            input(f"--- {step_name} --- 按任意键继续...")
+            from colorama import Fore, Style
+            input(f"{Fore.GREEN}--- {step_name} ---{Style.RESET_ALL} {Fore.YELLOW}按任意键继续...{Style.RESET_ALL}")
     
     # 1. 初始化 SDK
-    logger.info("===== 步骤1: 初始化 SDK =====")
-    _pause_if_step_mode("步骤1: 初始化 SDK")
+    _pause_if_step_mode("准备步骤1: 初始化 SDK")
     from anp_sdk import ANPSDK
     sdk = ANPSDK()
     
     # 2. 加载智能体
-    logger.info("===== 步骤2: 加载智能体 =====")
-    _pause_if_step_mode("步骤2: 加载智能体")
+    _pause_if_step_mode("准备步骤2: 从本地加载智能体，方便演示")
     agents = load_agents()
     
     # 3. 注册处理器
-    logger.info("===== 步骤3: 注册处理器 =====")
-    _pause_if_step_mode("步骤3: 注册处理器")
+    _pause_if_step_mode("准备步骤3: 智能体注册自己的消息处理函数和对外服务API)")
     agents, agent1, agent2, agent3 = register_handlers(agents)
     
     # 4. 注册智能体到 SDK
-    logger.info("===== 步骤4: 注册智能体到 SDK =====")
-    _pause_if_step_mode("步骤4: 注册智能体到 SDK")
+    _pause_if_step_mode("准备步骤4: 智能体注册到SDK,SDK会自动路由请求到各个智能体")
     for agent in agents:
         sdk.register_agent(agent)
         
     # 5. 启动服务器
-    logger.info("===== 步骤5: 启动服务器 =====")
-    _pause_if_step_mode("步骤5: 启动服务器")
+    _pause_if_step_mode("准备步骤5: 启动SDK服务器，智能体的DID查询和API/消息接口对外服务就绪")
     import threading
     def start_server():
         sdk.start_server()
@@ -705,20 +746,18 @@ def main(step_mode: bool = False):
     import time
     time.sleep(0.5)
 
-    input("服务器已启动，按回车继续....")
+    input("服务器已启动，查看'/'了解状态,'/docs'了解基础api,按回车继续....")
 
     # 6. 启动演示任务和服务器
     if all([agent1, agent2, agent3]):
-        logger.info("===== 步骤6: 启动演示任务 =====")
-        _pause_if_step_mode("步骤6: 启动演示任务")
+        _pause_if_step_mode("准备完成:启动演示任务")
         import threading
         def run_demo():
             asyncio.run(demo(sdk, agent1, agent2, agent3, step_mode=step_mode))
         thread = threading.Thread(target=run_demo)
         thread.start()
         thread.join()  # 等待线程完成
-        
-        logger.info("===== 演示完成 =====")
+
         _pause_if_step_mode("演示完成")
 
 
@@ -726,9 +765,198 @@ def main(step_mode: bool = False):
 
 
 
+def get_response_DIDAuthHeader_Token(response_header):
+    """从响应头中获取DIDAUTHHeader
+
+    返回值:
+    - did_auth_header: 双向认证头
+    - token: 访问令牌
+    """
+    if isinstance(response_header, dict) and "Authorization" in response_header:
+        try:
+            auth_value = json.loads(response_header["Authorization"])
+            token = auth_value.get("access_token")
+            did_auth_header = auth_value.get("resp_did_auth_header", {}).get("Authorization")
+
+            if did_auth_header and token:
+                logger.info("获得认证方返回的 'Authorization' 字段，进行双向校验")
+                return did_auth_header, token
+            else:
+                logger.error("[错误] 解析失败，缺少必要字段" + str(auth_value))
+                return None, None
+        except json.JSONDecodeError:
+            logger.error("[错误] Authorization 头格式错误，无法解析 JSON:" + str(response_header["Authorization"]))
+            return None, None
+    else:
+        logger.error("[错误] response_header 缺少 'Authorization' 字段，实际值：" + str(response_header))
+        return None, None
+
+async def check_response_DIDAtuhHeader(auth_value):
+    """检查响应头中的DIDAUTHHeader是否正确"""
+    from anp_core.auth.custom_did_resolver import resolve_local_did_document
+    from anp_core.agent_connect.authentication.did_wba import resolve_did_wba_document
+    from anp_core.agent_connect.authentication.did_wba import verify_auth_header_signature
+    from anp_core.auth.did_auth import extract_auth_header_parts, verify_timestamp, is_valid_server_nonce
+
+    try:
+        header_parts = extract_auth_header_parts(auth_value)
+    except Exception as e:
+        logger.error(f"无法从AuthHeader中解析信息: {e}")
+        header_parts = None
+
+    if not header_parts:
+        logger.error("AuthHeader格式错误")
+        return False
+    #else:
+        #logger.info(f"AuthHeader解析成功:{header_parts}")
+
+    did, nonce, timestamp, resp_did, keyid, signature = header_parts
+    # logger.info(f"Processing DID WBA authentication - DID: {did}, Key ID: {keyid}")
+
+    if not verify_timestamp(timestamp):
+        logger.error("Timestamp expired or invalid")
+        return False
+
+    did_document = await resolve_local_did_document(did)
+
+    if not did_document:
+        logger.info(f"本地DID解析失败，尝试使用标准解析器 for DID: {did}")
+        try:
+            did_document = await resolve_did_wba_document(did)
+        except Exception as e:
+            logger.error(f"标准DID解析器也失败: {e}")
+            did_document = None
+        
+    if not did_document:
+        logger.error("Failed to resolve DID document")
+        return False
+
+    logger.info(f"成功解析DID文档: {did}")
+
+    try:
+        full_auth_header = auth_value
+        target_url = "virtual.WBAback" #迁就现在的url parse代码
+
+        is_valid, message = verify_auth_header_signature(
+            auth_header=full_auth_header,
+            did_document=did_document,
+            service_domain=target_url
+        )
+
+        logger.info(f"签名验证结果: {is_valid}, 消息: {message}")
+
+        if is_valid:
+            return True
+        else:
+            logger.error(f"Invalid signature: {message}")
+            return False
+
+    except Exception as e:
+        logger.error(f"验证签名时出错: {e}")
+        return False
+
+def did_create_user(username, portchoice=1):
+    """创建DID"""
+    from anp_core.agent_connect.authentication.did_wba import create_did_wba_document
+    import json
+    import os
+
+    userdid_filepath = dynamic_config.get('demo_autorun.user_did_path')
+    userdid_hostname = dynamic_config.get('demo_autorun.user_did_hostname')
+
+    if portchoice == 1:
+        userdid_port = dynamic_config.get('demo_autorun.user_did_port_1')
+    else:
+        userdid_port = dynamic_config.get('demo_autorun.user_did_port_2')
+
+    unique_id = secrets.token_hex(8)
+    userdid_filepath = os.path.join(userdid_filepath, f"user_{unique_id}")
+
+    path_segments = ["wba", "user", unique_id]
+    agent_description_url = f"http://{userdid_hostname}:{userdid_port}/wba/user{unique_id}/ad.json"
+
+    did_document, keys = create_did_wba_document(
+        hostname=userdid_hostname,
+        port=userdid_port,
+        path_segments=path_segments,
+        agent_description_url=agent_description_url
+    )
+
+    os.makedirs(userdid_filepath, exist_ok=True)
+    with open(f"{userdid_filepath}/did_document.json", "w") as f:
+        json.dump(did_document, f, indent=4)
+
+    for key_id, (private_key_pem, public_key_pem) in keys.items():
+        with open(f"{userdid_filepath}/{key_id}_private.pem", "wb") as f:
+            f.write(private_key_pem)
+        with open(f"{userdid_filepath}/{key_id}_public.pem", "wb") as f:
+            f.write(public_key_pem)
+
+    agent_cfg = {
+        "name": username,
+        "unique_id": unique_id,
+        "did": did_document["id"]
+    }
+
+    with open(f"{userdid_filepath}/agent_cfg.yaml", "w", encoding='utf-8') as f:
+        yaml.dump(agent_cfg, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+
+    # 生成 JWT 密钥
+    private_key = RSA.generate(2048).export_key()
+    public_key = RSA.import_key(private_key).publickey().export_key()
+
+    # 测试 JWT 密钥
+    testcontent = {"user_id": 123}
+    token = create_jwt(testcontent, private_key)
+    token = verify_jwt(token, public_key)
+
+    if testcontent["user_id"] == token["user_id"]:
+        with open(f"{userdid_filepath}/private_key.pem", "wb") as f:
+            f.write(private_key)
+        with open(f"{userdid_filepath}/public_key.pem", "wb") as f:
+            f.write(public_key)
+
+    logger.info(f"DID创建成功: {did_document['id']}")
+    logger.info(f"DID文档已保存到: {userdid_filepath}")
+    logger.info(f"密钥已保存到: {userdid_filepath}")
+    logger.info(f"用户文件已保存到: {userdid_filepath}")
+    logger.info(f"jwt密钥已保存到: {userdid_filepath}")
+    return did_document
+
+def did_jwt_generate():
+    """生成 JWT 密钥对并进行测试"""
+    import jwt
+    from Crypto.PublicKey import RSA
+
+    private_key = RSA.generate(2048).export_key()
+    public_key = RSA.import_key(private_key).publickey().export_key()
+
+    testcontent = {"user_id": 123}
+    logger.info(f"原文: {testcontent}")
+
+    token = create_jwt(testcontent, private_key)
+    logger.info(f"密文: {token}")
+
+    token = verify_jwt(token, public_key)
+    logger.info(f"解密: {token}")
+
+    if testcontent["user_id"] == token["user_id"]:
+        logger.info(f"jwt正常: {token}")
+
+    with open(f"private_key.pem", "wb") as f:
+        f.write(private_key)
+    with open(f"public_key.pem", "wb") as f:
+        f.write(public_key)
+
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description='ANP SDK 演示程序')
     parser.add_argument('-p', action='store_true', help='启用步骤模式，每个步骤都会暂停等待用户确认')
+    parser.add_argument('--create-user', help='创建新用户，需要提供用户名')
+    parser.add_argument('--port', type=int, choices=[1, 2], default=1, help='选择端口号（1或2）')
     args = parser.parse_args()
-    main(step_mode=args.p)
+
+    if args.create_user:
+        did_create_user(args.create_user, args.port)
+    else:
+        main(step_mode=args.p)

@@ -139,7 +139,7 @@ class AgentRouter:
     def register_agent(self, agent):
         """注册一个本地智能体"""
         self.local_agents[str(agent.id)] = agent
-        self.logger.info(f"已注册智能体: {agent.id}")
+        # self.logger.info(f"已注册智能体: {agent.id}")
         return agent
         
     def get_agent(self, did: str):

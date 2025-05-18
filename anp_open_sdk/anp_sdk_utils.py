@@ -2,7 +2,7 @@ import os
 import json
 import yaml
 from loguru import logger
-from config.dynamic_config import dynamic_config
+from anp_open_sdk.config.dynamic_config import dynamic_config
 
 def get_user_cfg_list():
     """获取用户列表和目录映射"""

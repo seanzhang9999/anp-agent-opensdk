@@ -58,7 +58,7 @@ async def resolve_local_did_document(did: str) -> Optional[Dict]:
             async with session.get(http_url, ssl=False) as response:
                 if response.status == 200:
                     did_document = await response.json()
-                    logging.info(f"成功通过{http_url}获取{did}的DID文档")
+                    logging.info(f"通过DID标识解析的{http_url}获取{did}的DID文档")
                     return did_document
                 else:
                     logging.error(f"HTTP请求失败，状态码: {response.status}")

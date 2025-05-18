@@ -311,7 +311,8 @@ def generate_auth_header(
     )
     
     #logging.info("Successfully generated DID authentication header.")
-    logging.info(f"生成认证头: {auth_header}")
+    logging.info(f"生成认证头: 提交方 {did} -> 认证方 {resp_did}")
+    #logging.info(f"生成认证头: {auth_header}")
     
     return auth_header
 
@@ -628,7 +629,7 @@ def verify_auth_header_signature(
             - Boolean indicating if verification was successful
             - Message describing the verification result or error
     """
-    logging.info("Starting DID authentication header verification")
+    #logging.info("Starting DID authentication header verification")
     
     try:
         # Extract auth header parts

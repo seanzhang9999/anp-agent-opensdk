@@ -5,7 +5,7 @@ JWT configuration module providing functions to get JWT public and private keys.
 import os
 import logging
 from typing import Optional
-from config import dynamic_config
+from anp_open_sdk.config.dynamic_config import dynamic_config
 from core.config import settings
 
 # Ensure key files exist
@@ -33,7 +33,7 @@ def get_jwt_private_key(key_path: str = settings.JWT_PRIVATE_KEY_PATH) -> Option
     try:
         with open(key_path, "r") as f:
             private_key = f.read()
-        logging.info(f"Successfully read private key from {key_path}")
+        logging.info(f"读取到Token签名密钥文件{key_path}，准备签发Token")
         return private_key
     except Exception as e:
         logging.error(f"Error reading private key file: {e}")
