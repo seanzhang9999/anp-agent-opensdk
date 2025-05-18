@@ -15,7 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from anp_open_sdk.auth.auth_middleware import auth_middleware
 
 # 两个历史遗留路由 用于认证 和 did发布 
-from anp_open_sdk.service import auth_router, did_router
+from anp_open_sdk.service import router_auth, router_did
 
 
 # 导入ANP核心组件
@@ -24,8 +24,7 @@ from anp_open_sdk.config.dynamic_config import dynamic_config
 from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect, Response, FastAPI
 from fastapi.responses import StreamingResponse
 
-# 导入代理组件
-from anp_open_sdk.proxy.ws_proxy_client import WSProxyClient
+
 
 # 配置日志
 from loguru import logger
@@ -285,7 +284,7 @@ class ANPSDK:
 
 
         # 创建路由器实例
-        from anp_open_sdk.service.agent_router import AgentRouter
+        from anp_open_sdk.service.router_agent import AgentRouter
         self.router = AgentRouter()
         
         # 初始化日志
@@ -335,8 +334,8 @@ class ANPSDK:
 
            # Include routers
 
-        self.app.include_router(auth_router.router)
-        self.app.include_router(did_router.router)
+        self.app.include_router(router_auth.router)
+        self.app.include_router(router_did.router)
         @self.app.get("/", tags=["status"])
         async def root():
             """

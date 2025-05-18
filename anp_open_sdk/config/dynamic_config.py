@@ -13,6 +13,7 @@ import time
 from types import SimpleNamespace
 import yaml
 import json
+from anp_open_sdk.config.path_resolver import path_resolver
 
 
 class DynamicConfig:
@@ -105,31 +106,30 @@ class DynamicConfig:
                 return False
     
     def get(self, key: str, default: Any = None) -> Any:
-        """获取配置项
-        
-        支持使用点号分隔的路径访问嵌套配置，如 'llm.max_tokens' 或多层嵌套如 'a.b.c.d'
+        """获取配置值
         
         Args:
-            key: 配置键名，支持点号分隔的路径
-            default: 如果键不存在，返回的默认值
+            key: 配置键，支持点号分隔的多级键
+            default: 默认值
             
         Returns:
-            配置值或默认值
+            配置值，如果值包含 {APP_ROOT} 占位符，会自动解析为绝对路径
         """
         with self._config_lock:
-            if '.' not in key:
-                return self._config.get(key, default)
+            # 处理多级键
+            keys = key.split('.')
+            value = self._config
             
-            # 处理嵌套路径
-            parts = key.split('.')
-            current = self._config
-            for part in parts:
-                if not isinstance(current, dict):
-                    return default
-                current = current.get(part)
-                if current is None:
-                    return default
-            return current
+            try:
+                for k in keys:
+                    value = value[k]
+                
+                # 如果值是字符串且包含路径占位符，进行解析
+                if isinstance(value, str) and '{APP_ROOT}' in value:
+                    return path_resolver.resolve_path(value)
+                return value
+            except (KeyError, TypeError):
+                return default
     
     def set(self, key: str, value: Any, save: bool = True) -> bool:
         """设置配置项

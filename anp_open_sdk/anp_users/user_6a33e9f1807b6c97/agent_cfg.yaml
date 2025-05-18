@@ -1,0 +1,4 @@
+name: cool_anp_agent
+unique_id: 6a33e9f1807b6c97
+did: did:wba:localhost%3A9527:wba:agent:6a33e9f1807b6c97
+type: agent

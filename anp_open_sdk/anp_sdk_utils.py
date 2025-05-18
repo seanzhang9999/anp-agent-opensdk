@@ -1,14 +1,18 @@
+from Crypto.PublicKey import RSA
 import os
 import json
 import yaml
+import secrets
 from loguru import logger
+from anp_open_sdk.config import path_resolver
 from anp_open_sdk.config.dynamic_config import dynamic_config
 import jwt
 import json
 from loguru import logger
 from typing import Optional, Dict, Tuple, Any
 from aiohttp import ClientResponse
-
+from anp_open_sdk.config.path_resolver import path_resolver
+from anp_open_sdk.config.dynamic_config import dynamic_config
 
 def get_user_cfg_list():
     """获取用户列表和目录映射"""
@@ -51,34 +55,134 @@ def get_user_cfg(choice, user_list, name_to_dir):
     except ValueError:
         print("请输入有效的数字")
         return False, None, None
-
-def did_create_user(username, portchoice=1):
-    """创建DID用户目录、DID文档和配置文件，返回用户目录和DID文档"""
-    import os, json, yaml
+def did_create_user(user_iput: dict):
+    """创建DID
+    
+    Args:
+        params: 包含以下字段的字典：
+            name: 用户名
+            host: 主机名
+            port: 端口号
+            dir: 路径段
+            type: 智能体类型
+    """
     from anp_core.agent_connect.authentication.did_wba import create_did_wba_document
+    import json
+    import os
+    from datetime import datetime
+    import re
+
+    # 验证所有必需字段
+    required_fields = ['name', 'host', 'port', 'dir', 'type']
+    if not all(field in user_iput for field in required_fields):
+        logger.error("缺少必需的参数字段")
+        return None
 
     userdid_filepath = dynamic_config.get('anp_sdk.user_did_path')
-    userdid_hostname = dynamic_config.get('anp_sdk.user_did_hostname')
-    if not userdid_filepath or not userdid_hostname:
-        raise ValueError('dynamic_config 缺少 user_did_path 或 user_did_hostname 配置')
-    # 端口处理
-    port = 9001 + int(portchoice) - 1
-    did = f"did:wba:{userdid_hostname}%3A{port}:wba:user:{username}"
-    user_dir = os.path.join(userdid_filepath, username)
-    os.makedirs(user_dir, exist_ok=True)
-    # 生成DID文档
-    did_document = create_did_wba_document(username, port=port, hostname=userdid_hostname)
-    # 保存DID文档
-    did_path = os.path.join(user_dir, "did_document.json")
-    with open(did_path, 'w', encoding='utf-8') as f:
-        json.dump(did_document, f, ensure_ascii=False, indent=2)
-    # 生成agent_cfg.yaml
-    agent_cfg = {"name": username, "did": did}
-    cfg_path = os.path.join(user_dir, "agent_cfg.yaml")
-    with open(cfg_path, 'w', encoding='utf-8') as f:
-        yaml.safe_dump(agent_cfg, f, allow_unicode=True)
-    return user_dir, did_document
+    userdid_filepath = path_resolver.resolve_path(userdid_filepath)
+    # 检查用户名是否重复
+    def get_existing_usernames(userdid_filepath):
+        if not os.path.exists(userdid_filepath):
+            return []
+        usernames = []
+        for d in os.listdir(userdid_filepath):
+            if os.path.isdir(os.path.join(userdid_filepath, d)):
+                cfg_path = os.path.join(userdid_filepath, d, 'agent_cfg.yaml')
+                if os.path.exists(cfg_path):
+                    with open(cfg_path, 'r') as f:
+                        try:
+                            cfg = yaml.safe_load(f)
+                            if cfg and 'name' in cfg:
+                                usernames.append(cfg['name'])
+                        except:
+                            pass
+        return usernames
 
+    base_name = user_iput['name']
+    existing_names = get_existing_usernames(userdid_filepath)
+    
+    if base_name in existing_names:
+        # 添加日期后缀
+        date_suffix = datetime.now().strftime('%Y%m%d')
+        new_name = f"{base_name}_{date_suffix}"
+        
+        # 如果带日期的名字也存在，添加序号
+        if new_name in existing_names:
+            pattern = f"{re.escape(new_name)}_?(\d+)?"
+            matches = [re.match(pattern, name) for name in existing_names]
+            numbers = [int(m.group(1)) if m and m.group(1) else 0 for m in matches if m]
+            next_number = max(numbers + [0]) + 1
+            new_name = f"{new_name}_{next_number}"
+        
+        user_iput['name'] = new_name
+        logger.info(f"用户名 {base_name} 已存在，使用新名称：{new_name}")
+
+
+    userdid_hostname = user_iput['host']
+    userdid_port = user_iput['port']
+    unique_id = secrets.token_hex(8)
+    userdid_filepath = os.path.join(userdid_filepath, f"user_{unique_id}")
+
+    path_segments = [user_iput['dir'], user_iput['type'], unique_id]
+    agent_description_url = f"http://{userdid_hostname}:{userdid_port}/{user_iput['dir']}/{user_iput['type']}{unique_id}/ad.json"
+
+    did_document, keys = create_did_wba_document(
+        hostname=userdid_hostname,
+        port=userdid_port,
+        path_segments=path_segments,
+        agent_description_url=agent_description_url
+    )
+
+    os.makedirs(userdid_filepath, exist_ok=True)
+    with open(f"{userdid_filepath}/did_document.json", "w") as f:
+        json.dump(did_document, f, indent=4)
+
+    for key_id, (private_key_pem, public_key_pem) in keys.items():
+        with open(f"{userdid_filepath}/{key_id}_private.pem", "wb") as f:
+            f.write(private_key_pem)
+        with open(f"{userdid_filepath}/{key_id}_public.pem", "wb") as f:
+            f.write(public_key_pem)
+
+    agent_cfg = {
+        "name": user_iput['name'],
+        "unique_id": unique_id,
+        "did": did_document["id"],
+        "type": user_iput['type']
+    }
+
+    with open(f"{userdid_filepath}/agent_cfg.yaml", "w", encoding='utf-8') as f:
+        yaml.dump(agent_cfg, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+
+
+    # 生成 JWT 密钥
+    private_key = RSA.generate(2048).export_key()
+    public_key = RSA.import_key(private_key).publickey().export_key()
+
+    # 测试 JWT 密钥
+    testcontent = {"user_id": 123}
+    token = create_jwt(testcontent, private_key)
+    token = verify_jwt(token, public_key)
+
+    if testcontent["user_id"] == token["user_id"]:
+        with open(f"{userdid_filepath}/private_key.pem", "wb") as f:
+            f.write(private_key)
+        with open(f"{userdid_filepath}/public_key.pem", "wb") as f:
+            f.write(public_key)
+
+
+
+    logger.info(f"DID创建成功: {did_document['id']}")
+    logger.info(f"DID文档已保存到: {userdid_filepath}")
+    logger.info(f"密钥已保存到: {userdid_filepath}")
+    logger.info(f"用户文件已保存到: {userdid_filepath}")
+    logger.info(f"jwt密钥已保存到: {userdid_filepath}")
+
+
+    if user_iput['type'] == "agent":
+        agent_dir = os.path.join(userdid_filepath, "agent")
+        os.makedirs(agent_dir, exist_ok=True)
+        logger.info(f"为agent创建目录: {agent_dir}")
+    return did_document
 
 
 def create_jwt(content: dict, private_key: str) -> str:

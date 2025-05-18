@@ -21,10 +21,32 @@ anp agent opensdk 致力于为 Agent 开发者提供一个快速上手、易于�
 > 启动演示脚本：
 >
 > ```bash
-> python demo_autorun.py
+> python anp_sdk_demo.py -h
+
+    usage: anp_sdk_demo.py [-h] [-p] [-f] [-u name host port host_dir agent_type]
+
+    ANP SDK 演示程序
+
+    options:
+    -h, --help            show this help message and exit
+    -p                    启用步骤模式，每个步骤都会暂停等待用户确认
+    -f                    快速模式，跳过所有等待用户确认的步骤
+    -n name host port host_dir agent_type
+                            创建新用户，需要提供：用户名 主机名 端口号 主机路径 用户类型
 > ```
 >
-> 你将看到每一步的详细输出和关键交互过程。
+python anp_sdk_demo.py -n cool_anper localhost 9527 wba user
+创建一个名为cool_anper的用户，主机名为localhost，端口号为9527，主机路径为wba，用户类型为user
+其地址为did:wba:localhost%3A9527%3A:wba:user:8位随机数
+python anp_sdk_demo.py -n cool_anp_agent localhost 9527 wba agent
+创建一个名为cool_anp_agent的用户，主机名为localhost，端口号为9527，主机路径为wba，用户类型为agent
+其地址为did:wba:localhost%3A9527%3A:wba:agent:unique_id（8位随机数）
+did及其他信息存储在 /anp_open_sdk/anp_users/user_unique_id/目录下
+agent类型会额外创建一个/anp_open_sdk/anp_users/user_unique_id/agent目录,用于配合开发者进行agent的各种配置
+重复用户名会创建为用户名+日期+当日序号
+
+
+
 
 ## Agent 集成步骤说明
 

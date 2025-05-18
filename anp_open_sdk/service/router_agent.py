@@ -6,7 +6,10 @@ import json
 
 from anp_sdk import ANPSDK
 from loguru import logger
+import sys
+import os
 
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..","..")))
 
 class AgentSearchRecord:
     """智能体搜索记录"""

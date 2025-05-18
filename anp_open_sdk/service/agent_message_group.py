@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+import sys
+import os
 
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..","..")))
 from typing import Optional, Dict, Any
 from urllib.parse import urlencode, quote
 from loguru import logger
 import aiohttp
 import json
 from anp_open_sdk.anp_sdk_utils import handle_response
-from anp_open_sdk.service.anp_agent_api import agent_auth
+from anp_open_sdk.service.agent_auth import agent_auth_two_way
 import aiofiles
 import asyncio
 
@@ -74,20 +77,27 @@ async def agent_msg_group_members(sdk, caller_agent:str, group_url, group_id: st
         logger.error(f"添加群组成员时出错: {e}")
         return {"error": str(e)}
 
-async def listen_group_messages(sdk, caller_agent:str, group_url ,group_id, message_file):
-    """监听群聊消息并保存到文件
+
+
+async def listen_group_messages(sdk, caller_agent: str, group_url, group_id, event_handlers=None):
+    """
+    监听群聊消息并通过事件类型分发给对应的处理函数。
     
     Args:
-        agent: 智能体实例
+        sdk: SDK实例
+        caller_agent: 调用方智能体ID
+        group_url: 群组URL
         group_id: 群组ID
-        message_file: 消息保存的文件路径
+        event_handlers: 事件类型到处理函数的映射（dict），如 {"group_message": handler_func}
     """
+    if event_handlers is None:
+        event_handlers = {}
+    
     caller_agent_obj = sdk.get_agent(caller_agent)
     url_params = {
         "req_did": caller_agent_obj.id,
     }
     url_params = urlencode(url_params)
-
     try:
         async with aiohttp.ClientSession() as session:
             url = f"http://{group_url}/group/{group_id}/connect?{url_params}"
@@ -95,18 +105,26 @@ async def listen_group_messages(sdk, caller_agent:str, group_url ,group_id, mess
                 async for line in response.content:
                     if line:
                         try:
-                            decoded_line = line.decode("utf-8").strip()  # 确保 UTF-8 解码
-                            if not decoded_line:  # 额外检查是否为空
-                                continue  # 跳过空数据
-                            # 确保数据格式正确
+                            decoded_line = line.decode("utf-8").strip()
+                            if not decoded_line:
+                                continue
+                            # 移除 "data:" 前缀
                             if decoded_line.startswith("data:"):
-                                decoded_line = decoded_line.replace("data:", "", 1).strip()  # 去掉 "data:"
-                            message = json.loads(decoded_line)  # 解析 JSON
-                            async with aiofiles.open(message_file, 'a', encoding="utf-8") as f:
-                                await f.write(json.dumps(message,ensure_ascii=False) + '\n')  # 异步写入
-                        except json.JSONDecodeError:
-                            logger.info("JSON 解析错误:", line.decode("utf-8"))  # 记录错误数据
+                                decoded_line = decoded_line[5:].strip()  # 去掉 "data:"
+                            try:
+                                import json
+                                msg_obj = json.loads(decoded_line)
+                                handler = event_handlers.get("*")
+                                if handler:
+                                    await handler(msg_obj)
+                                else:
+                                    logger.debug(f"未注册处理函数")
+                            except Exception as e:
+                                logger.error(f"消息解析或分发出错: {e}")
+                        except Exception as e:
+                            logger.error(f"消息处理时出错: {e}")
     except asyncio.CancelledError:
         logger.info(f"{caller_agent} 的群聊监听已停止")
     except Exception as e:
         logger.error(f"{caller_agent} 的群聊监听发生错误: {e}")
+        await asyncio.sleep(3)  # 延迟后重连

@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+import sys
+import os
 
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..","..")))
 from typing import Optional, Dict, Any
 from urllib.parse import urlencode, quote
 from anp_open_sdk.config.dynamic_config import dynamic_config
 from loguru import logger
 from anp_sdk import RemoteAgent
 from anp_open_sdk.anp_sdk_utils import handle_response
-from anp_open_sdk.service.anp_agent_api import agent_auth
+from anp_open_sdk.service.agent_auth import agent_auth_two_way
 from anp_open_sdk.auth.did_auth import send_authenticated_request, send_request_with_token, DIDWbaAuthHeader
 async def agent_msg_post(sdk, caller_agent:str , target_agent :str, content: str, message_type: str = "text"):
     """发送消息给目标智能体
@@ -25,7 +28,7 @@ async def agent_msg_post(sdk, caller_agent:str , target_agent :str, content: str
     target_agent_obj = RemoteAgent(target_agent)
 
     if caller_agent_obj.get_token_from_remote(target_agent_obj.id) is None:
-        status, error = await agent_auth(sdk, caller_agent, target_agent)
+        status, error = await agent_auth_two_way(sdk, caller_agent, target_agent)
         if status is False:
             return {"error": error}
 
@@ -49,7 +52,7 @@ async def agent_msg_post(sdk, caller_agent:str , target_agent :str, content: str
 
     status, response = await send_request_with_token(url, token, caller_agent_obj.id, target_agent_obj.id, method="POST", json_data=msg)
     if status == 401:
-        status, error = await agent_auth(sdk, caller_agent, target_agent)
+        status, error = await agent_auth_two_way(sdk, caller_agent, target_agent)
         if status is False:
             return {"error": error}
         else:
