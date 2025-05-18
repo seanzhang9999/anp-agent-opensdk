@@ -6,8 +6,8 @@ from typing import List, Optional, Callable
 from fastapi import Request, HTTPException, Response
 from fastapi.responses import JSONResponse
 from pydantic_core.core_schema import none_schema
-from anp_core.auth.did_auth import handle_did_auth, get_and_validate_domain
-from anp_core.auth.token_auth import handle_bearer_auth
+from anp_open_sdk.auth.did_auth import handle_did_auth, get_and_validate_domain
+from anp_open_sdk.auth.token_auth import handle_bearer_auth
 import json
 import fnmatch
 # from anp_sdk import ANPSDK
@@ -41,7 +41,7 @@ async def verify_auth_header(request: Request , sdk = None) -> dict:
         HTTPException: When authentication fails
     """
     from anp_sdk import ANPSDK
-    from anp_core.auth.did_auth import handle_did_auth, get_and_validate_domain
+    from anp_open_sdk.auth.did_auth import handle_did_auth, get_and_validate_domain
     # Get authorization header
     auth_header = request.headers.get("Authorization")
 

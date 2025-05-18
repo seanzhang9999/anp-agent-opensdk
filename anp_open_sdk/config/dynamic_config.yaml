@@ -20,6 +20,7 @@ anp_sdk:
   user_did_path: anp_open_sdk/anp_users
   user_did_key_id: key-1
   group_msg_path: anp_open_sdk
+  msg_virtual_dir: /agent/message/post
   user_did_port_1: 9527
   user_did_port_2: 9527
   token_expire_time: 3600 # 单位秒

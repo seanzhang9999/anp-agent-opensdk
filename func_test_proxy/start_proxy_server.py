@@ -16,7 +16,7 @@ import uvicorn
 # 添加项目根目录到Python路径
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from anp_core.proxy.ws_proxy_server import app
+from anp_open_sdk.proxy.ws_proxy_server import app
 
 # 配置日志
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')

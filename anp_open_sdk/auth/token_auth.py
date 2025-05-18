@@ -7,7 +7,7 @@ from fastapi import HTTPException
 
 from datetime import datetime, timezone, timedelta
 from core.config import settings
-from anp_core.auth.jwt_keys import get_jwt_public_key, get_jwt_private_key
+from anp_open_sdk.auth.jwt_keys import get_jwt_public_key, get_jwt_private_key
 
 
 def create_access_token(private_key_path, data: Dict, expires_delta: int = None) -> str:

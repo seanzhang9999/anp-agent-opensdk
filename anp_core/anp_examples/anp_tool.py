@@ -9,7 +9,7 @@ from typing import Dict, Any, Optional
 import logging
 from core.config import settings
 
-from anp_core.auth.did_auth import generate_or_load_did
+from anp_open_sdk.auth.did_auth import generate_or_load_did
 
 # 尝试导入DIDWbaAuthHeader，如果不可用则设置标志
 try:

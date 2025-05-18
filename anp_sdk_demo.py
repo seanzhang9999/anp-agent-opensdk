@@ -6,59 +6,21 @@ from time import time
 from datetime import datetime
 import yaml
 import secrets
-import jwt  # 用于生成和验证 JWT token
+from anp_open_sdk.service.anp_agent_api import agent_auth, agent_api_call_post, agent_api_call_get  # 已迁移到 anp_agent_api.py
+from anp_open_sdk.anp_auth import check_response_DIDAtuhHeader  # 已迁移到 anp_auth.py
+
+
+from anp_open_sdk.service.anp_message import agent_msg_post  # 已迁移到 anp_message.py
+
+
+# 已迁移到 anp_utils.py
+
+from anp_open_sdk.service.anp_group import agent_msg_group_post, agent_msg_group_members, listen_group_messages  # 已迁移到 anp_group.py
 
 from colorama import init
 init()  # 初始化 colorama
-def verify_jwt(token: str, public_key: str) -> dict:
-    """验证 JWT token
-    
-    Args:
-        token: JWT token 字符串
-        public_key: RSA 公钥字符串
-    
-    Returns:
-        dict: 解码后的 payload，验证失败返回 None
-    """
-    try:
-        # 使用公钥验证并解码 token
-        payload = jwt.decode(
-            jwt=token,
-            key=public_key,
-            algorithms=['RS256']
-        )
-        return payload
-    except jwt.InvalidTokenError as e:
-        logger.error(f"验证 JWT token 失败: {e}")
-        return None
 
-def create_jwt(content: dict, private_key: str) -> str:
-    """使用私钥创建 JWT token
-    
-    Args:
-        content: 需要编码的内容
-        private_key: RSA 私钥字符串
-    
-    Returns:
-        str: JWT token
-    """
-    try:
-        # 设置 JWT header
-        headers = {
-            'alg': 'RS256',
-            'typ': 'JWT'
-        }
-        # 生成 JWT token
-        token = jwt.encode(
-            payload=content,
-            key=private_key,
-            algorithm='RS256',
-            headers=headers
-        )
-        return token
-    except Exception as e:
-        logger.error(f"生成 JWT token 失败: {e}")
-        return None
+from anp_open_sdk.anp_sdk_utils import create_jwt, verify_jwt, get_response_DIDAuthHeader_Token, handle_response
 
 
 
@@ -73,7 +35,7 @@ def create_jwt(content: dict, private_key: str) -> str:
 from typing import Optional, Dict, Tuple, Any
 from types import DynamicClassAttribute
 from anp_open_sdk.config.dynamic_config import dynamic_config
-from anp_core.auth.did_auth import send_authenticated_request,send_request_with_token,DIDWbaAuthHeader
+from anp_open_sdk.auth.did_auth import send_authenticated_request,send_request_with_token,DIDWbaAuthHeader
 import aiofiles
 import json
 import asyncio
@@ -139,326 +101,6 @@ def register_handlers(agents):
     return agents, agent1, agent2, agent3
 
 
-async def agent_auth(sdk, caller_agent:str, target_agent:str):
-
-    caller_agent_obj = sdk.get_agent(caller_agent)
-    target_agent_obj = RemoteAgent(target_agent)
-
-    
-    auth_client = DIDWbaAuthHeader(
-
-        did_document_path=str(caller_agent_obj.did_document_path),
-
-        private_key_path=str(caller_agent_obj.private_key_path),
-        )
-
-    url_params = {
-        "req_did": caller_agent_obj.id,
-        "resp_did" : target_agent_obj.id
-    }
-    url_params = urlencode(url_params)
-
-    base_url = f"http://{target_agent_obj.host}:{target_agent_obj.port}"
-
-    test_url = f"{base_url}/{dynamic_config.get('anp_sdk.auth_virtual_dir')}?{url_params}"
-
-    status, response, response_header ,token = await send_authenticated_request(test_url, auth_client , str(target_agent_obj.id))
-    
-    auth_value, token = get_response_DIDAuthHeader_Token(response_header)
-
-    if status != 200:
-        error = f"发起方发出的DID认证失败! 状态: {status}\n响应: {response}"
-        return False, error
-
-    if await check_response_DIDAtuhHeader(auth_value) is False:
-        error = f"\n接收方DID认证头验证失败! 状态: {status}\n响应: {response}"
-        return False, error
-
-
-    if token:
-
-        status, response = await send_request_with_token(test_url, token, caller_agent_obj.id, target_agent_obj.id)
-        
-        if status == 200:
-            caller_agent_obj.store_token_from_remote(target_agent_obj.id,token)
-            error = f"\nDID认证成功! {caller_agent_obj.id} 已保存 {target_agent_obj.id}颁发的token:{token}"
-            return True, error
-        else:
-            error = f"\n令牌认证失败! 状态: {status}\n响应: {response}"
-            return False, error
-    else:
-        error = "未从服务器收到令牌"
-        return False, error
-
-    
-async def agent_api_call_post(sdk, caller_agent:str, target_agent:str, api_path: str, params: dict = None):
-    """通过 POST 方式调用智能体的 API
-    
-    Args:
-        sdk: ANPSDK 实例
-        caller_agent: 调用方智能体
-        target_agent: 目标智能体
-        api_path: API 路径
-        params: API 参数
-    """
-    caller_agent_obj = sdk.get_agent(caller_agent)
-    target_agent_obj = RemoteAgent(target_agent)
-
-
-    if caller_agent_obj.get_token_from_remote(target_agent_obj.id) is None:
-        status, error = await agent_auth(sdk, caller_agent, target_agent)
-        if status is False:
-            return error
-
-    req = {
-        "params": params or {}
-    }
-    
-    url_params = {
-        "req_did": caller_agent_obj.id,
-        "resp_did" : target_agent_obj.id
-    }
-    url_params = urlencode(url_params)
-    target_agent_path = quote(target_agent)
-    
-    url = f"http://{target_agent_obj.host}:{target_agent_obj.port}/agent/api/{target_agent_path}{api_path}?{url_params}"
-    token = caller_agent_obj.get_token_from_remote(target_agent_obj.id)['token']
-
-    status,response = await send_request_with_token(url, token, caller_agent_obj.id, target_agent_obj.id, method="POST" ,  json_data=req)
-    if status == 401:
-        status, error = await agent_auth(sdk, caller_agent, target_agent)
-        if status is False:
-            return error
-        else:
-            token = caller_agent_obj.get_token_from_remote(target_agent_obj.id)['token']
-            status,response = await send_request_with_token(url, token, caller_agent_obj.id, target_agent_obj.id, method="POST",  json_data=req)
-
-    response = await handle_response(response)
-    return response
-
-
-async def send_request_with_token(target_url: str, token: str, sender_did: str, targeter_did:str, method: str = "GET",
-                                  json_data: Optional[Dict] = None) -> Tuple[int, Dict[str, Any]]:
-    """
-    使用已获取的令牌发送请求
-    
-    Args:
-        target_url: 目标URL
-        token: 访问令牌
-        method: HTTP方法
-        json_data: 可选的JSON数据
-        
-    Returns:
-        Tuple[int, Dict[str, Any]]: 状态码和响应
-    """
-    try:
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "req_did": f"{sender_did}",
-            "resp_did": f"{targeter_did}"
-        }
-
-        async with aiohttp.ClientSession() as session:
-            if method.upper() == "GET":
-                async with session.get(
-                    target_url,
-                    headers=headers
-                ) as response:
-                    status = response.status
-                    response_data = await response.json() if status == 200 else {}
-                    return status, response_data
-            elif method.upper() == "POST":
-                async with session.post(
-                    target_url,
-                    headers=headers,
-                    json=json_data
-                ) as response:
-                    status = response.status
-                    response_data = await response.json() if status == 200 else {}
-                    return status, response_data
-            else:
-                logging.error(f"Unsupported HTTP method: {method}")
-                return 400, {"error": "Unsupported HTTP method"}
-    except Exception as e:
-        logger.error(f"Error sending request with token: {e}")
-        return 500, {"error": str(e)}
-
-async def agent_api_call_get(sdk, caller_agent:str, target_agent:str, api_path: str, params: dict = None):
-        """通过 GET 方式调用智能体的 API
-        
-        Args:
-            sdk: ANPSDK 实例
-            caller_agent: 调用方智能体
-            target_agent: 目标智能体
-            api_path: API 路径
-            params: API 参数
-        """
-
-        caller_agent_obj = sdk.get_agent(caller_agent)
-        target_agent_obj = RemoteAgent(target_agent)
-
-        if caller_agent_obj.get_token_from_remote(target_agent_obj.id) is None:
-            status, error = await agent_auth(sdk, caller_agent, target_agent)
-            if status is False:
-                return error
-
-        url_params = {
-            "req_did": caller_agent_obj.id,
-            "resp_did" : target_agent_obj.id,
-            "params": json.dumps(params) if params else ""
-        }
-        url_params = urlencode(url_params)
-        target_agent_path =  quote(target_agent)
-
-        url = f"http://{target_agent_obj.host}:{target_agent_obj.port}/agent/api/{target_agent_path}{api_path}?{url_params}"
-        token = caller_agent_obj.get_token_from_remote(target_agent_obj.id)['token']
-
-        status,response = await send_request_with_token(url, token, caller_agent_obj.id, target_agent_obj.id, method="GET")
-        if status == 401:
-            status, error = await agent_auth(sdk, caller_agent, target_agent)
-            if status is False:
-                return error
-            else:
-                token = caller_agent_obj.get_token_from_remote(target_agent_obj.id)['token']
-                status,response = await send_request_with_token(url, token, caller_agent_obj.id, target_agent_obj.id, method="POST",  json_data=req)
-        response = await handle_response(response)
-        return response
-
-
-async def agent_msg_post(sdk, caller_agent:str , target_agent :str, content: str, message_type: str = "text"):
-    """通过 POST 方式发送消息
-    
-    Args:
-        sdk: ANPSDK 实例
-        sender_agent: 发送方智能体
-        target_agent: 目标智能体
-        content: 消息内容
-        message_type: 消息类型，默认为text
-    """
-
-    caller_agent_obj = sdk.get_agent(caller_agent)
-    target_agent_obj = RemoteAgent(target_agent)
-
-    if caller_agent_obj.get_token_from_remote(target_agent_obj.id) is None:
-        status, error = await agent_auth(sdk, caller_agent, target_agent)
-        if status is False:
-            return error
-
-    url_params = {
-        "req_did": caller_agent_obj.id,
-        "resp_did" : target_agent_obj.id
-    }
-    url_params = urlencode(url_params)
-    
-    target_agent_path =  quote(target_agent)
-
-    msg = {
-        "req_did": caller_agent_obj.id,
-        "message_type": message_type,
-        "content": content
-    }
-
-    url = f"http://{target_agent_obj.host}:{target_agent_obj.port}/agent/message/post/{target_agent_path}?{url_params}"
-    token = caller_agent_obj.get_token_from_remote(target_agent_obj.id)['token']
-
-    status,response = await send_request_with_token(url, token, caller_agent_obj.id, target_agent_obj.id, method="POST" ,  json_data=msg)
-    if status == 401:
-        status, error = await agent_auth(sdk, caller_agent, target_agent)
-        if status is False:
-            return error
-        else:
-            token = caller_agent_obj.get_token_from_remote(target_agent_obj.id)['token']
-            status,response = await send_request_with_token(url, token, caller_agent_obj.id, target_agent_obj.id, method="POST",  json_data=req)
-   
-    response = await handle_response(response)
-    return response
-
-
-async def handle_response(response):
-    if isinstance(response, dict):  
-        return response  # 直接返回字典
-    elif isinstance(response, aiohttp.ClientResponse):  
-        return await response.json()  # 解析 JSON
-    else:
-        raise TypeError(f"未知类型: {type(response)}")
-
-async def agent_msg_group_post(sdk, caller_agent:str, group_url ,group_id: str, message: str):
-
-    caller_agent_obj = sdk.get_agent(caller_agent)
-    message = {
-        "content": message or {}
-    }
-    url_params = {
-        "req_did": caller_agent_obj.id,
-    }
-    url_params = urlencode(url_params)
-    async with aiohttp.ClientSession() as session:
-        url = f"http://{group_url}/group/{group_id}/message?{url_params}"
-        async with session.post(url, json=message) as response:
-            resp = await response.json()
-    return resp
-async def agent_msg_group_members(sdk, caller_agent:str, group_url, group_id: str , action):
-    caller_agent_obj = sdk.get_agent(caller_agent)
-    url_params = {
-        "req_did": caller_agent_obj.id,
-    }
-    url_params = urlencode(url_params)
-    async with aiohttp.ClientSession() as session:
-        url = f"http://{group_url}/group/{group_id}/members?{url_params}"
-        async with session.post(url, json=action) as response:
-            resp = await response.json()
-    return resp
-async def listen_group_messages(sdk, caller_agent:str, group_id):
-    """监听群聊消息并保存到文件
-    
-    Args:
-        agent: 智能体实例
-        group_id: 群组ID
-        message_file: 消息保存的文件路径
-    """
-
-    # 构建文件保存路径为运行目录下的 anp_sdk 子目录
-    script_dir = os.path.dirname(__file__)
-    anp_sdk_dir = os.path.join(script_dir, dynamic_config.get('anp_sdk.group_msg_path'))
-    message_file = os.path.join(anp_sdk_dir, "group_messages.json")
-
-    # 确保 anp_sdk 目录存在
-    os.makedirs(anp_sdk_dir, exist_ok=True)
-
-    # 清空消息文件
-    with open(message_file, 'w') as f:
-        f.write('')
-    # 监听群聊消息
-
-    caller_agent_obj = sdk.get_agent(caller_agent)
-    url_params = {
-        "req_did": caller_agent_obj.id,
-    }
-    url_params = urlencode(url_params)
-
-    host , port = ANPSDK.get_did_host_port_from_did(caller_agent_obj.id)
-    try:
-        async with aiohttp.ClientSession() as session:
-            url = f"http://{host}:{port}/group/{group_id}/connect?{url_params}"
-            async with session.get(url) as response:
-                async for line in response.content:
-                    if line:
-                        try:
-                            decoded_line = line.decode("utf-8").strip()  # 确保 UTF-8 解码
-                            if not decoded_line:  # 额外检查是否为空
-                                continue  # 跳过空数据
-                            # 确保数据格式正确
-                            if decoded_line.startswith("data:"):
-                                decoded_line = decoded_line.replace("data:", "", 1).strip()  # 去掉 "data:"
-                            message = json.loads(decoded_line)  # 解析 JSON
-                            async with aiofiles.open(message_file, 'a', encoding="utf-8") as f:
-                                await f.write(json.dumps(message,ensure_ascii=False) + '\n')  # 异步写入
-                        except json.JSONDecodeError:
-                            logger.info("JSON 解析错误:", line.decode("utf-8"))  # 记录错误数据
-    except asyncio.CancelledError:
-        logger.info(f"{caller_agent} 的群聊监听已停止")
-    except Exception as e:
-        logger.error(f"{caller_agent} 的群聊监听发生错误: {e}")
 
 async def demo(sdk, agent1, agent2, agent3, step_mode: bool = False):
     def _pause_if_step_mode(step_name: str = ""):
@@ -507,8 +149,10 @@ async def demo(sdk, agent1, agent2, agent3, step_mode: bool = False):
     # 演示群聊功能
     _pause_if_step_mode("步骤3: 演示群聊功能,群聊当前未加入认证,未来计划用did-vc模式,即创建群组者给其他用户颁发vc,加入者使用vc认证加入群聊")
     group_id = "demo_group"
-    group_url = f"localhost:{sdk.port}"  # Replace with your group URL and port numbe
+    group_url = f"localhost:{sdk.port}"  #理论上群聊可以在任何地方# Replace with your group URL and port numbe
     
+
+
     _pause_if_step_mode(f"群聊演示分三步:建群拉人,发消息,{agent1.name}后台sse长连接接收群聊消息存到本地后加载显示")
 
     
@@ -534,8 +178,15 @@ async def demo(sdk, agent1, agent2, agent3, step_mode: bool = False):
    
     _pause_if_step_mode(f"验证群组逻辑:其他成员也可以拉人，群组逻辑可以自定义")
 
-    # 创建 agent1 的群聊监听任务
-    listen_task = asyncio.create_task(listen_group_messages(sdk, agent1.id, group_id))
+
+
+    # 创建 agent1 的群聊监听任务,指定存储位置
+    script_dir = os.path.dirname(__file__)
+    anp_sdk_dir = os.path.join(script_dir, dynamic_config.get("anp_sdk.group_msg_path"))
+    message_file = os.path.join(anp_sdk_dir, "group_messages.json")
+    with open(message_file, 'w') as f:
+        f.write('')
+    listen_task = asyncio.create_task(listen_group_messages(sdk, agent1.id,group_url, group_id,message_file))
     # 等待一会儿确保监听任务启动
     await asyncio.sleep(1)
         
@@ -578,11 +229,6 @@ async def demo(sdk, agent1, agent2, agent3, step_mode: bool = False):
     # 读取并显示接收到的消息
     logger.info(f"\n{agent1.name}接收到的群聊消息:")
     try:
-        # 构建文件保存路径为运行目录下的 anp_sdk 子目录
-        script_dir = os.path.dirname(__file__)
-        anp_sdk_dir = os.path.join(script_dir, dynamic_config.get("anp_sdk.group_msg_path"))
-        message_file = os.path.join(anp_sdk_dir, "group_messages.json")
-
         messages = []  # 存储所有消息
         with open(message_file, 'r', encoding='utf-8') as f:
             for line in f:
@@ -597,171 +243,7 @@ async def demo(sdk, agent1, agent2, agent3, step_mode: bool = False):
     
 
 
-def get_response_DIDAuthHeader_Token(response_header):
 
-    """从响应头中获取DIDAUTHHeader
-
-    返回值:
-
-    - did_auth_header: 双向认证头
-
-    - token: 访问令牌
-    """
-
-    if isinstance(response_header, dict) and "Authorization" in response_header:
-
-        try:
-
-            auth_value = json.loads(response_header["Authorization"])
-            
-
-            token = auth_value.get("access_token")
-
-            did_auth_header = auth_value.get("resp_did_auth_header", {}).get("Authorization")
-
-
-            if did_auth_header and token:
-
-                logger.info("收到认证方返回的DID认证头和访问令牌，检查DID认证头签名")
-
-                return did_auth_header, token
-            else:
-
-                logger.info("[错误] 解析失败，缺少必要字段", auth_value)
-
-                return None, None
-
-
-        except json.JSONDecodeError:
-
-            logger.info("[错误] Authorization 头格式错误，无法解析 JSON:", response_header["Authorization"])
-
-            return None, None
-    else:
-
-        logger.info("[错误] response_header 缺少 'Authorization' 字段，实际值：", response_header)
-
-        return None, None
-
-
-
-async def check_response_DIDAtuhHeader(auth_value):
-
-    """检查响应头中的DIDAUTHHeader是否正确"""
-
-    from anp_core.auth.custom_did_resolver import resolve_local_did_document
-
-    from anp_core.agent_connect.authentication.did_wba import resolve_did_wba_document
-
-    from anp_core.agent_connect.authentication.did_wba import verify_auth_header_signature
-
-    from anp_core.auth.did_auth import extract_auth_header_parts, verify_timestamp, is_valid_server_nonce
-
-        # Extract header parts
-
-    try:
-
-        header_parts = extract_auth_header_parts(auth_value)
-
-    except Exception as e:
-
-        print(f"无法从AuthHeader中解析信息: {e}")
-
-        header_parts = None
-
-    if not header_parts:
-
-        logger.info("AuthHeader格式错误")  
-    # else:
-        #logger.info(f"AuthHeader解析成功:{header_parts}")
-
-
-    # 解包顺序：(did, nonce, timestamp, verification_method, signature)
-
-    did, nonce, timestamp, resp_did, keyid, signature = header_parts
-
-    logger.info(f"用 {did}的{keyid}检验")
-
-    if not verify_timestamp(timestamp):
-
-        print("Timestamp expired or invalid")
-
-    # 验证 nonce 有效性
-
-    # if not is_valid_server_nonce(nonce):
-
-    #     logging.error(f"Invalid or expired nonce: {nonce}")
-
-    #     raise HTTPException(status_code=401, detail="Invalid or expired nonce")
-        
-
-    # 尝试使用自定义解析器解析DID文档, 如果失败则使用标准解析器
-
-    # 自定义解析器的DID地址http_url = f"http://{hostname}/wba/user/{user_id}/did.json"
-
-    did_document = await resolve_local_did_document(did)
-
-
-    # 如果自定义解析器失败，尝试使用标准解析器
-    if not did_document:
-
-        #logger.info(f"本地DID解析失败，尝试使用标准解析器 for DID: {did}")
-
-        try:
-
-            did_document = await(resolve_did_wba_document(did))
-
-        except Exception as e:
-
-            logger.error(f"标准DID解析器也失败: {e}")
-
-            did_document = None
-        
-    if not did_document:
-
-        print("Failed to resolve DID document")
-        
-
-    #logger.info(f"成功解析DID文档: {did}")
-        
-
-    # 验证签名
-
-    try:
-
-        # 重新构造完整的授权头，target URL 是为了迁就现在的url parse函数检查要求写的虚拟值
-
-        full_auth_header = auth_value
-
-        target_url = "virtual.WBAback" #迁就现在的url parse代码 
-        
-
-        # 调用验证函数
-
-        is_valid, message = verify_auth_header_signature(
-
-            auth_header=full_auth_header,
-
-            did_document=did_document,
-
-            service_domain=target_url
-        )
-            
-
-        logger.info(f"签名验证结果: {is_valid}, 消息: {message}")
-
-        if is_valid:
-
-            return True
-        else:
-
-            print(f"Invalid signature: {message}")
-
-            return False
-
-    except Exception as e:
-
-        print(f"验证签名时出错: {e}")
 
 
 
@@ -822,95 +304,7 @@ def main(step_mode: bool = False, fast_mode: bool = False):
 
 
 
-def get_response_DIDAuthHeader_Token(response_header):
-    """从响应头中获取DIDAUTHHeader
-
-    返回值:
-    - did_auth_header: 双向认证头
-    - token: 访问令牌
-    """
-    if isinstance(response_header, dict) and "Authorization" in response_header:
-        try:
-            auth_value = json.loads(response_header["Authorization"])
-            token = auth_value.get("access_token")
-            did_auth_header = auth_value.get("resp_did_auth_header", {}).get("Authorization")
-
-            if did_auth_header and token:
-                logger.info("获得认证方返回的 'Authorization' 字段，进行双向校验")
-                return did_auth_header, token
-            else:
-                logger.error("[错误] 解析失败，缺少必要字段" + str(auth_value))
-                return None, None
-        except json.JSONDecodeError:
-            logger.error("[错误] Authorization 头格式错误，无法解析 JSON:" + str(response_header["Authorization"]))
-            return None, None
-    else:
-        logger.error("[错误] response_header 缺少 'Authorization' 字段，实际值：" + str(response_header))
-        return None, None
-
-async def check_response_DIDAtuhHeader(auth_value):
-    """检查响应头中的DIDAUTHHeader是否正确"""
-    from anp_core.auth.custom_did_resolver import resolve_local_did_document
-    from anp_core.agent_connect.authentication.did_wba import resolve_did_wba_document
-    from anp_core.agent_connect.authentication.did_wba import verify_auth_header_signature
-    from anp_core.auth.did_auth import extract_auth_header_parts, verify_timestamp, is_valid_server_nonce
-
-    try:
-        header_parts = extract_auth_header_parts(auth_value)
-    except Exception as e:
-        logger.error(f"无法从AuthHeader中解析信息: {e}")
-        header_parts = None
-
-    if not header_parts:
-        logger.error("AuthHeader格式错误")
-        return False
-    #else:
-        #logger.info(f"AuthHeader解析成功:{header_parts}")
-
-    did, nonce, timestamp, resp_did, keyid, signature = header_parts
-    # logger.info(f"Processing DID WBA authentication - DID: {did}, Key ID: {keyid}")
-
-    if not verify_timestamp(timestamp):
-        logger.error("Timestamp expired or invalid")
-        return False
-
-    did_document = await resolve_local_did_document(did)
-
-    if not did_document:
-        logger.info(f"本地DID解析失败，尝试使用标准解析器 for DID: {did}")
-        try:
-            did_document = await resolve_did_wba_document(did)
-        except Exception as e:
-            logger.error(f"标准DID解析器也失败: {e}")
-            did_document = None
-        
-    if not did_document:
-        logger.error("Failed to resolve DID document")
-        return False
-
-    logger.info(f"成功解析DID文档: {did}")
-
-    try:
-        full_auth_header = auth_value
-        target_url = "virtual.WBAback" #迁就现在的url parse代码
-
-        is_valid, message = verify_auth_header_signature(
-            auth_header=full_auth_header,
-            did_document=did_document,
-            service_domain=target_url
-        )
-
-        logger.info(f"签名验证结果: {is_valid}, 消息: {message}")
-
-        if is_valid:
-            return True
-        else:
-            logger.error(f"Invalid signature: {message}")
-            return False
-
-    except Exception as e:
-        logger.error(f"验证签名时出错: {e}")
-        return False
+# 已迁移到 anp_utils.py
 
 def did_create_user(user_iput: dict):
     """创建DID

@@ -25,8 +25,8 @@ async def get_did_document(user_id: str) -> Dict:
     Returns:
         Dict: DID document
     """
-    # 构建DID文档路径
-    current_dir = Path(__file__).parent.parent.absolute()
+    # 构建DID文档路径 路径和did_router所在目录严重相关 现在did_router在三级目录
+    current_dir = Path(__file__).parent.parent.parent.absolute()
     did_path = dynamic_config.get('anp_sdk.user_did_path')
     #logger.info(f"current_dir: {current_dir}\n did_path = {did_path}" )
     did_path = current_dir.joinpath( did_path,f"user_{user_id}" , "did_document.json" )

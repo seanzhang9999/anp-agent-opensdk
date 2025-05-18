@@ -24,10 +24,10 @@ from anp_core.agent_connect.authentication import (
     DIDWbaAuthHeader
 )
 
-from anp_core.auth.custom_did_resolver import resolve_local_did_document
+from anp_open_sdk.auth.custom_did_resolver import resolve_local_did_document
 
 from core.config import settings
-# from anp_core.auth.token_auth import create_access_token  # 延迟导入，避免循环依赖
+# from anp_open_sdk.auth.token_auth import create_access_token  # 延迟导入，避免循环依赖
 
 # 存储服务端生成的nonce
 VALID_SERVER_NONCES: Dict[str, datetime] = {}
@@ -202,7 +202,7 @@ async def handle_did_auth(authorization: str, domain: str , request: Request , s
        
         # 生成访问令牌
         from anp_open_sdk.config.dynamic_config import dynamic_config
-        from anp_core.auth.token_auth import create_access_token
+        from anp_open_sdk.auth.token_auth import create_access_token
         expiration_time = dynamic_config.get('anp_sdk.token_expire_time')
         access_token = create_access_token(
             resp_did_agent.jwt_private_key_path,
