@@ -222,7 +222,7 @@ async def handle_did_auth(authorization: str, domain: str , request: Request , s
                 from anp_open_sdk.config.dynamic_config import dynamic_config
                 # 获取resp_did用户目录
                 key_id = "key-1"
-                userdid_filepath = dynamic_config.get('demo_autorun.user_did_path')
+                userdid_filepath = dynamic_config.get('anp_sdk.user_did_path')
                 userdid_filepath = os.path.join(userdid_filepath, f"user_{resp_did[-16:]}")
                 did_document_path = f"{userdid_filepath}/did_document.json"
                 private_key_path = f"{userdid_filepath}/{key_id}_private.pem"

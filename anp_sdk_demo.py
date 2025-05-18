@@ -1,11 +1,66 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+from Crypto.PublicKey import RSA
 import os
 from time import time
 from datetime import datetime
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+import yaml
+import secrets
+import jwt  # 用于生成和验证 JWT token
 
 from colorama import init
 init()  # 初始化 colorama
+def verify_jwt(token: str, public_key: str) -> dict:
+    """验证 JWT token
+    
+    Args:
+        token: JWT token 字符串
+        public_key: RSA 公钥字符串
+    
+    Returns:
+        dict: 解码后的 payload，验证失败返回 None
+    """
+    try:
+        # 使用公钥验证并解码 token
+        payload = jwt.decode(
+            jwt=token,
+            key=public_key,
+            algorithms=['RS256']
+        )
+        return payload
+    except jwt.InvalidTokenError as e:
+        logger.error(f"验证 JWT token 失败: {e}")
+        return None
+
+def create_jwt(content: dict, private_key: str) -> str:
+    """使用私钥创建 JWT token
+    
+    Args:
+        content: 需要编码的内容
+        private_key: RSA 私钥字符串
+    
+    Returns:
+        str: JWT token
+    """
+    try:
+        # 设置 JWT header
+        headers = {
+            'alg': 'RS256',
+            'typ': 'JWT'
+        }
+        # 生成 JWT token
+        token = jwt.encode(
+            payload=content,
+            key=private_key,
+            algorithm='RS256',
+            headers=headers
+        )
+        return token
+    except Exception as e:
+        logger.error(f"生成 JWT token 失败: {e}")
+        return None
+
+
 
 """ANP SDK 演示程序
 
@@ -364,7 +419,7 @@ async def listen_group_messages(sdk, caller_agent:str, group_id):
 
     # 构建文件保存路径为运行目录下的 anp_sdk 子目录
     script_dir = os.path.dirname(__file__)
-    anp_sdk_dir = os.path.join(script_dir, "anp_sdk")
+    anp_sdk_dir = os.path.join(script_dir, dynamic_config.get('anp_sdk.group_msg_path'))
     message_file = os.path.join(anp_sdk_dir, "group_messages.json")
 
     # 确保 anp_sdk 目录存在
@@ -525,7 +580,7 @@ async def demo(sdk, agent1, agent2, agent3, step_mode: bool = False):
     try:
         # 构建文件保存路径为运行目录下的 anp_sdk 子目录
         script_dir = os.path.dirname(__file__)
-        anp_sdk_dir = os.path.join(script_dir, "anp_sdk")
+        anp_sdk_dir = os.path.join(script_dir, dynamic_config.get("anp_sdk.group_msg_path"))
         message_file = os.path.join(anp_sdk_dir, "group_messages.json")
 
         messages = []  # 存储所有消息
@@ -712,7 +767,7 @@ async def check_response_DIDAtuhHeader(auth_value):
 
 
 # 主函数
-def main(step_mode: bool = False):
+def main(step_mode: bool = False, fast_mode: bool = False):
     def _pause_if_step_mode(step_name: str = ""):
         if step_mode:
             from colorama import Fore, Style
@@ -746,7 +801,9 @@ def main(step_mode: bool = False):
     import time
     time.sleep(0.5)
 
-    input("服务器已启动，查看'/'了解状态,'/docs'了解基础api,按回车继续....")
+
+    if not fast_mode:
+        input("服务器已启动，查看'/'了解状态,'/docs'了解基础api,按回车继续....")
 
     # 6. 启动演示任务和服务器
     if all([agent1, agent2, agent3]):
@@ -855,25 +912,78 @@ async def check_response_DIDAtuhHeader(auth_value):
         logger.error(f"验证签名时出错: {e}")
         return False
 
-def did_create_user(username, portchoice=1):
-    """创建DID"""
+def did_create_user(user_iput: dict):
+    """创建DID
+    
+    Args:
+        params: 包含以下字段的字典：
+            name: 用户名
+            host: 主机名
+            port: 端口号
+            dir1: 第一个路径段
+            dir2: 第二个路径段
+    """
     from anp_core.agent_connect.authentication.did_wba import create_did_wba_document
     import json
     import os
+    from datetime import datetime
+    import re
 
-    userdid_filepath = dynamic_config.get('demo_autorun.user_did_path')
-    userdid_hostname = dynamic_config.get('demo_autorun.user_did_hostname')
+    # 验证所有必需字段
+    required_fields = ['name', 'host', 'port', 'dir1', 'dir2']
+    if not all(field in user_iput for field in required_fields):
+        logger.error("缺少必需的参数字段")
+        return None
+    userdid_filepath = dynamic_config.get('anp_sdk.user_did_path')
 
-    if portchoice == 1:
-        userdid_port = dynamic_config.get('demo_autorun.user_did_port_1')
-    else:
-        userdid_port = dynamic_config.get('demo_autorun.user_did_port_2')
 
+
+
+    # 检查用户名是否重复
+    def get_existing_usernames(userdid_filepath):
+        if not os.path.exists(userdid_filepath):
+            return []
+        usernames = []
+        for d in os.listdir(userdid_filepath):
+            if os.path.isdir(os.path.join(userdid_filepath, d)):
+                cfg_path = os.path.join(userdid_filepath, d, 'agent_cfg.yaml')
+                if os.path.exists(cfg_path):
+                    with open(cfg_path, 'r') as f:
+                        try:
+                            cfg = yaml.safe_load(f)
+                            if cfg and 'name' in cfg:
+                                usernames.append(cfg['name'])
+                        except:
+                            pass
+        return usernames
+
+    base_name = user_iput['name']
+    existing_names = get_existing_usernames(userdid_filepath)
+    
+    if base_name in existing_names:
+        # 添加日期后缀
+        date_suffix = datetime.now().strftime('%Y%m%d')
+        new_name = f"{base_name}_{date_suffix}"
+        
+        # 如果带日期的名字也存在，添加序号
+        if new_name in existing_names:
+            pattern = f"{re.escape(new_name)}_?(\d+)?"
+            matches = [re.match(pattern, name) for name in existing_names]
+            numbers = [int(m.group(1)) if m and m.group(1) else 0 for m in matches if m]
+            next_number = max(numbers + [0]) + 1
+            new_name = f"{new_name}_{next_number}"
+        
+        user_iput['name'] = new_name
+        logger.info(f"用户名 {base_name} 已存在，使用新名称：{new_name}")
+
+
+    userdid_hostname = user_iput['host']
+    userdid_port = user_iput['port']
     unique_id = secrets.token_hex(8)
     userdid_filepath = os.path.join(userdid_filepath, f"user_{unique_id}")
 
-    path_segments = ["wba", "user", unique_id]
-    agent_description_url = f"http://{userdid_hostname}:{userdid_port}/wba/user{unique_id}/ad.json"
+    path_segments = [user_iput['dir1'], user_iput['dir2'], unique_id]
+    agent_description_url = f"http://{userdid_hostname}:{userdid_port}/{user_iput['dir1']}/{user_iput['dir2']}{unique_id}/ad.json"
 
     did_document, keys = create_did_wba_document(
         hostname=userdid_hostname,
@@ -893,7 +1003,7 @@ def did_create_user(username, portchoice=1):
             f.write(public_key_pem)
 
     agent_cfg = {
-        "name": username,
+        "name": user_iput['name'],
         "unique_id": unique_id,
         "did": did_document["id"]
     }
@@ -952,11 +1062,20 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description='ANP SDK 演示程序')
     parser.add_argument('-p', action='store_true', help='启用步骤模式，每个步骤都会暂停等待用户确认')
-    parser.add_argument('--create-user', help='创建新用户，需要提供用户名')
-    parser.add_argument('--port', type=int, choices=[1, 2], default=1, help='选择端口号（1或2）')
+    parser.add_argument('-f', action='store_true', help='快速模式，跳过所有等待用户确认的步骤')
+    parser.add_argument('-u', nargs=5, metavar=('name', 'host', 'port', 'dir1', 'dir2'),
+                        help='创建新用户，需要提供：用户名 主机名 端口号 路径段1 路径段2')
     args = parser.parse_args()
 
-    if args.create_user:
-        did_create_user(args.create_user, args.port)
+    if args.u:
+        name, host, port, dir1, dir2 = args.u
+        params = {
+            'name': name,
+            'host': host,
+            'port': int(port),
+            'dir1': dir1,
+            'dir2': dir2
+        }
+        did_create_user(params)
     else:
-        main(step_mode=args.p)
+        main(step_mode=args.p, fast_mode=args.f)

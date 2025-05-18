@@ -24,7 +24,7 @@ def get_user_cfg_list():
 
 def get_user_cfg(choice, user_list, name_to_dir):
     """根据用户选择加载用户配置"""
-    user_dirs = dynamic_config.get('demo_autorun.user_did_path')
+    user_dirs = dynamic_config.get('anp_sdk.user_did_path')
     try:
         idx = int(choice) - 1
         if 0 <= idx < len(user_list):
@@ -51,8 +51,8 @@ def did_create_user(username, portchoice=1):
     import os, json, yaml
     from anp_core.agent_connect.authentication.did_wba import create_did_wba_document
 
-    userdid_filepath = dynamic_config.get('demo_autorun.user_did_path')
-    userdid_hostname = dynamic_config.get('demo_autorun.user_did_hostname')
+    userdid_filepath = dynamic_config.get('anp_sdk.user_did_path')
+    userdid_hostname = dynamic_config.get('anp_sdk.user_did_hostname')
     if not userdid_filepath or not userdid_hostname:
         raise ValueError('dynamic_config 缺少 user_did_path 或 user_did_hostname 配置')
     # 端口处理

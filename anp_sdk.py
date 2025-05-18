@@ -31,13 +31,6 @@ from anp_core.proxy.ws_proxy_client import WSProxyClient
 from loguru import logger
 
 
-# 定义消息传输模式枚举
-class MessageMode(Enum):
-    HTTP_POST = "http_post"  # 传统HTTP POST请求
-    WEBSOCKET = "websocket"  # WebSocket长连接
-    HTTP_SSE = "http_sse"    # HTTP Server-Sent Events
-
-
 class RemoteAgent:
     """远程智能体，代表其他DID身份"""
     
@@ -53,12 +46,6 @@ class RemoteAgent:
 
         self.host = host
         self.port = port
-
-
- 
-   
-
-
 
 class LocalAgent:
     """本地智能体，代表当前用户的DID身份"""
@@ -167,7 +154,7 @@ class LocalAgent:
             return {"anp_result": {"status": "error", "message": "未知的请求类型"}}
     
     def store_token_to_remote(self, req_did: str, token: str, expires_delta: int):
-        """存储token信息
+        """存储颁发给其他方的token信息
         
         Args:
             req_did: 请求方DID
@@ -187,7 +174,7 @@ class LocalAgent:
         }
     
     def get_token_from_remote(self, req_did: str):
-        """获取token信息
+        """获取从其他方拿到存储在自己空间的token信息
         
         Args:
             req_did: 请求方DID
@@ -199,7 +186,7 @@ class LocalAgent:
     
 
     def store_token_from_remote(self, req_did: str, token: str):
-        """存储token信息
+        """存储从其他方拿到的token信息
         
         Args:
             req_did: 请求方DID
@@ -214,7 +201,7 @@ class LocalAgent:
         }
     
     def get_token_to_remote(self, req_did: str):
-        """获取token信息
+        """获取颁发给其他方的token信息
         
         Args:
             req_did: 请求方DID
@@ -225,7 +212,7 @@ class LocalAgent:
         return self.token_to_remote_dict.get(req_did)
     
     def revoke_token_to_remote(self, req_did: str):
-        """撤销token
+        """撤销颁发给其他方的token
         
         Args:
             req_did: 请求方DID
@@ -237,148 +224,6 @@ class LocalAgent:
             self.token_to_remote_dict[req_did]["is_revoked"] = True
             return True
         return False
-
-    def call_api(self, url: str, params: dict = None, method: str = "GET"):
-        """
-        调用远程API
-        Args:
-            url: 目标API完整URL
-            params: 请求参数
-            method: 请求方法，默认为GET
-        Returns:
-            响应内容
-        """
-        import requests
-        try:
-            if method.upper() == "GET":
-                resp = requests.get(url, params=params, timeout=10)
-            else:
-                resp = requests.post(url, json=params, timeout=10)
-            if resp.status_code == 200:
-                return resp.json()
-            else:
-                self.logger.error(f"API调用失败，状态码: {resp.status_code}")
-                return {"status": "error", "message": f"API调用失败，状态码: {resp.status_code}"}
-        except Exception as e:
-            self.logger.error(f"API调用异常: {e}")
-            return {"status": "error", "message": str(e)}
-
-    async def _send_http_post(self, target_did: str, target_url: str, message: Dict[str, Any]):
-        """通过HTTP POST发送消息
-        
-        Args:
-            target_did: 目标DID
-            target_url: 目标URL
-            message: 消息内容
-            
-        Returns:
-            响应结果
-        """
-        try:
-            # 构建POST消息URL
-            post_url = f"http://{target_url}/api/message"
-            
-            # 构建请求数据
-            request_data = {
-                "req_did": self.id,
-                "resp_did": target_did,
-                "message": message
-            }
-            
-            # 发送POST请求到消息端点
-            async with aiohttp.ClientSession() as session:
-                async with session.post(post_url, json=request_data) as response:
-                    if response.status == 200:
-                        return await response.json()
-                    else:
-                        self.logger.error(f"HTTP POST请求失败，状态码: {response.status}")
-                        return {"status": "error", "message": f"HTTP POST请求失败，状态码: {response.status}"}
-                        
-        except Exception as e:
-            self.logger.error(f"发送HTTP POST消息时出错: {e}")
-            return {"status": "error", "message": str(e)}
-
-    async def _send_http_sse(self, target_did: str, target_url: str, message: Dict[str, Any]):
-        """通过HTTP SSE发送消息
-        
-        Args:
-            target_did: 目标DID
-            target_url: 目标URL
-            message: 消息内容
-            
-        Returns:
-            响应结果
-        """
-        try:
-            # 构建SSE消息URL
-            sse_url = f"http://{target_url}/sse/message"
-            
-            # 构建请求数据
-            request_data = {
-                "req_did": self.id,
-                "resp_did": target_did,
-                "message": message
-            }
-            
-            # 发送SSE请求到消息端点
-            async with aiohttp.ClientSession() as session:
-                async with session.post(sse_url, json=request_data) as response:
-                    if response.status == 200:
-                        return await response.json()
-                    else:
-                        self.logger.error(f"HTTP SSE请求失败，状态码: {response.status}")
-                        return {"status": "error", "message": f"HTTP SSE请求失败，状态码: {response.status}"}
-                        
-        except Exception as e:
-            self.logger.error(f"发送HTTP SSE消息时出错: {e}")
-            return {"status": "error", "message": str(e)}
-
-
-    def header_req_auth(Request):
-        """
-        验证请求头是否包含Authorization
-        DID请求头，走DID验证
-        Token请求头，走Token验证
-        函数返回
-            req_did和resp_did  方便路由使用
-            检验结果 确认放行
-            返回头 方便后续加入header
-                返回认证头时一律走 "access_token","token_type","req_did","resp_did"方式返回
-                因为请求方无法解析bearer token,所以后两个明文返回，未来可以考虑did公钥加密
-                在有双向认证请求时，附加DID认证头，resp_did_auth_header
-        """
-        auth_header = Request.headers.get("Authorization")
-        if auth_header and auth_header.startswith("ANP "):
-            return auth_header.split(" ")[1]
-        return None
-
-    def header_resp_auth(Response):
-        """
-        验证响应头是否包含Authorization
-        校验DID响应头，完成双向认证后，存储Token和双向认证结果
-        返回req_did和resp_did 检验结果
-        """
-        auth_header = Request.headers.get("Authorization")
-        if auth_header and auth_header.startswith("ANP "):
-            return auth_header.split(" ")[1]
-        return None
-    
-    def header_req_generate(req_did: str, resp_did: str):
-        """
-        生成请求头，
-        如果有Token，直接用Token请求头
-        如果本地Agent没有远方Agent的Token，生成DID请求头
-        如果本地Agent没有远方Agent的双向认证结果或双向认证结果过期，附加双向认证请求
-        """
-        req_did = LocalAgent(req_did)
-        resp_did = RemoteAgent(resp_did)
-        token = req_did.get_token(resp_did)
-        if token:
-            return f"ANP {token}"
-
-
-        return f"ANP {req_did}"
-
 
 
 
@@ -395,7 +240,7 @@ class ANPSDK:
             port: 可选，指定服务器端口，默认使用配置中的端口
         """
         self.server_running = False
-        self.port = port or dynamic_config.get('demo_autorun.user_did_port_1')
+        self.port = port or dynamic_config.get('anp_sdk.user_did_port_1')
         self.agent = None
         self.api_routes = {}
         self.message_handlers = {}
@@ -790,44 +635,7 @@ class ANPSDK:
         self.logger.info("服务器已停止")
         
         return True
-    
-    async def send_message(self, target_did: str, message: Union[str, Dict], message_type: str = "text", mode: MessageMode = MessageMode.HTTP_POST):
-        """向目标DID发送消息
-        
-        Args:
-            target_did: 目标DID
-            message: 消息内容，可以是字符串或字典
-            message_type: 消息类型，默认为text
-            mode: 消息传输模式，默认为HTTP_POST
-        
-        Returns:
-            响应结果
-        """
-        if not self.agent:
-            self.logger.error("智能体未初始化")
-            return None
-        
-        # 创建远程智能体对象
-        target_agent = RemoteAgent(id=target_did)
-        
-        # 构建消息
-        if isinstance(message, str):
-            msg = {
-                "type": message_type,
-                "content": message,
-                "timestamp": datetime.now().isoformat()
-            }
-        else:
-            msg = message
-            if "timestamp" not in msg:
-                msg["timestamp"] = datetime.now().isoformat()
-            if "type" not in msg:
-                msg["type"] = message_type
-        
-        # 发送消息
-        response = await self.agent.send_message(target_agent, msg, mode)
-        return response
-    
+     
     def call_api(self, target_did: str, api_path: str, params: Dict[str, Any] = None, method: str = "GET"):
         """调用目标DID的API
         
