@@ -211,24 +211,6 @@ async def demo(sdk, agent1, agent2, agent3, step_mode: bool = False):
     task = await agent1.start_group_listening(sdk, group_url, group_id)
 
 
-    """
-        # 为agent1注册群聊监听存盘处理器 事件注册
-    def get_group_event_handlers(message_file):
-        async def save_message_to_file(message):
-            try:
-                async with aiofiles.open(message_file, 'a') as f:
-                    await f.write(json.dumps(message, ensure_ascii=False) + '\n')
-                return
-            except Exception as e:
-                logger.error(f"保存消息到文件时出错: {e}")
-                return
-        return {"*": save_message_to_file}
-    
-    # 注册群聊事件处理器
-    event_handlers = get_group_event_handlers(message_file)
-    # 创建 agent1 的群聊监听任务
-    listen_task = asyncio.create_task(listen_group_messages(sdk, agent1.id, group_url, group_id, event_handlers=event_handlers))
-    """
 
     await asyncio.sleep(1)
         
