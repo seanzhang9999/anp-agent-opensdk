@@ -179,7 +179,6 @@ async def demo(sdk, agent1, agent2, agent3, step_mode: bool = False):
     action = {"action": "add", "did": agent1.id}
     resp = await agent_msg_group_members(sdk, agent1.id, group_url, group_id, action)
     logger.info(f"{agent1.name}创建群组{group_id}并添加{agent1.name},服务响应为: {resp}")
-
     _pause_if_step_mode(f"验证群组逻辑:第一个访问群并加人的自动成为成员")
 
 
@@ -187,42 +186,35 @@ async def demo(sdk, agent1, agent2, agent3, step_mode: bool = False):
     action = {"action": "add", "did": agent2.id}
     resp = await agent_msg_group_members(sdk, agent1.id, group_url, group_id, action)
     logger.info(f"{agent1.name}邀请{agent2.name}的响应: {resp}")
-    
     _pause_if_step_mode(f"验证群组逻辑:创建人成员可以拉人")
 
     # 添加 agent3 到群组
     action = {"action": "add", "did": agent3.id}
     resp = await agent_msg_group_members(sdk, agent2.id, group_url, group_id, action)
     logger.info(f"{agent2.name}邀请{agent3.name}的响应: {resp}")
-   
     _pause_if_step_mode(f"验证群组逻辑:其他成员也可以拉人，群组逻辑可以自定义")
 
+
+
+    # 清空群聊消息文件 准备本轮监听
     message_file = dynamic_config.get("anp_sdk.group_msg_path")
     message_file = path_resolver.resolve_path(message_file)
     message_file = os.path.join(message_file, "group_messages.json")
     async with aiofiles.open(message_file, 'w') as f:
         await f.write("")
 
-
-
-
-
-
+    #启动agent1的监听任务，返回一个Task object
     task = await agent1.start_group_listening(sdk, group_url, group_id)
-
-
-
     await asyncio.sleep(1)
-        
     _pause_if_step_mode(f"建群拉人结束，{agent1.name} 开始启动子线程，用于监听群聊 {group_id} 存储消息到json记录文件")
-    
+
+
     # agent1 发送群聊消息
     time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     logger.info(f"\n演示：{agent1.name}在{time}“发送群聊消息...")
     message = f"大家好，我是{agent1.name}，现在是{time},欢迎来到群聊！"
     resp = await agent_msg_group_post(sdk, agent1.id, group_url, group_id, message)
     logger.info(f"{agent1.name}发送群聊消息的响应: {resp}")
-
     _pause_if_step_mode(f"{agent1.name} 向 {group_id} 发消息,所有成员可以通过sse长连接接收消息")
 
     
@@ -233,13 +225,11 @@ async def demo(sdk, agent1, agent2, agent3, step_mode: bool = False):
     message = f"大家好，我是{agent2.name}，现在是{time},欢迎来到群聊！"
     resp = await agent_msg_group_post(sdk, agent2.id, group_url, group_id, message)
     logger.info(f"{agent2.name}发送群聊消息的响应: {resp}")
-
     _pause_if_step_mode(f"{agent2.name} 向 {group_id} 发消息,所有成员可以通过sse长连接接收消息")
 
     
     # 等待一会儿确保消息被接收
     await asyncio.sleep(2)
-
     _pause_if_step_mode(f"{agent1.name}将停止监听，加载json文件显示sse长连接群聊收到的信息,注意观察时间戳")
 
     
@@ -260,15 +250,6 @@ async def demo(sdk, agent1, agent2, agent3, step_mode: bool = False):
         logger.info(f"批量收到消息:\n{json.dumps(messages, ensure_ascii=False, indent=2)}")  # 一次性输出
     except Exception as e:
         logger.error(f"读取消息文件失败: {e}")
-
-    
-    # 注意：实际接收消息需要通过 SSE 连接，这里只演示了发送消息
-    # 可以使用 examples/group_chat.html 页面来测试完整的群聊功能
-    
-
-
-
-
 
 
 
