@@ -891,70 +891,6 @@ class ANPSDK:
         """异步上下文管理器退出"""
         self.stop_server()
 
-    async def start_proxy_mode(self, proxy_url: str):
-        """启动公网代理模式
-        
-        Args:
-            proxy_url: 公网WebSocket代理服务器URL
-            
-        Returns:
-            是否成功启动代理模式
-        """
-        if not self.agent:
-            self.logger.error("未初始化智能体，无法启动代理模式")
-            return False
-        
-        if self.proxy_mode:
-            self.logger.warning("代理模式已经启动")
-            return True
-        
-        try:
-            # 创建代理客户端
-            self.proxy_client = WSProxyClient(self, proxy_url, self.agent.id)
-            
-            # 启动代理客户端
-            self.proxy_task = asyncio.create_task(self.proxy_client.start())
-            self.proxy_mode = True
-            
-            self.logger.info(f"已启动公网代理模式，连接到: {proxy_url}")
-            return True
-        
-        except Exception as e:
-            self.logger.error(f"启动代理模式时出错: {e}")
-            return False
-    
-    async def stop_proxy_mode(self):
-        """停止公网代理模式
-        
-        Returns:
-            是否成功停止代理模式
-        """
-        if not self.proxy_mode or not self.proxy_client:
-            return True
-        
-        try:
-            # 断开代理客户端连接
-            await self.proxy_client.disconnect()
-            
-            # 取消代理任务
-            if self.proxy_task and not self.proxy_task.done():
-                self.proxy_task.cancel()
-                try:
-                    await self.proxy_task
-                except asyncio.CancelledError:
-                    pass
-            
-            self.proxy_client = None
-            self.proxy_mode = False
-            self.proxy_task = None
-            
-            self.logger.info("已停止公网代理模式")
-            return True
-        
-        except Exception as e:
-            self.logger.error(f"停止代理模式时出错: {e}")
-            return False
-    
     async def _handle_api_call(self, req_did: str, resp_did: str, api_path: str, method: str, params: Dict[str, Any]):
         """处理API调用请求
         
@@ -987,6 +923,8 @@ class ANPSDK:
             return {"status": "error", "message": f"未找到API: {api_path} [{method}]"}
 
 
+
+# 其实应该转移到 anp_open_sdk  anp_sdk_utils
     @staticmethod
     def get_did_host_port_from_did(did: str) -> tuple[str, int]:
         """从DID中解析出主机和端口"""

@@ -51,13 +51,18 @@ anp agent opensdk 致力于为 Agent 开发者提供一个快速上手、易于�
 > ```
 >
 python anp_sdk_demo.py -n cool_anper localhost 9527 wba user
+
 创建一个名为cool_anper的用户，主机名为localhost，端口号为9527，主机路径为wba，用户类型为user
 其地址为did:wba:localhost%3A9527%3A:wba:user:8位随机数
+
 python anp_sdk_demo.py -n cool_anp_agent localhost 9527 wba agent
+
 创建一个名为cool_anp_agent的用户，主机名为localhost，端口号为9527，主机路径为wba，用户类型为agent
 其地址为did:wba:localhost%3A9527%3A:wba:agent:unique_id（8位随机数）
+
 did及其他信息存储在 /anp_open_sdk/anp_users/user_unique_id/目录下
 agent类型会额外创建一个/anp_open_sdk/anp_users/user_unique_id/agent目录,用于配合开发者进行agent的各种配置
+
 重复用户名会创建为用户名+日期+当日序号
 
 
