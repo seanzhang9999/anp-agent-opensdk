@@ -7,13 +7,17 @@ authors = [
 ]
 license = {text = "Apache License 2.0"}
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
+
+
+[tool.poetry]
 packages = [
     { include = "anp_open_sdk" },
     { include = "utils" }
 ]
-dependencies = [
-    pyyaml = "^6.0.2"
+
+[tool.poetry.dependencies]
+pyyaml = "^6.0.2"
 python = ">=3.10,<4.0"
 fastapi = "^0.103.0"
 uvicorn = "^0.32.0"
@@ -34,7 +38,7 @@ loguru = "^0.7.3"
 pycryptodome = "^3.22.0"
 aiofiles = "^24.1.0"
 colorama = "^0.4.6"
-]
+
 
 
 [build-system]
