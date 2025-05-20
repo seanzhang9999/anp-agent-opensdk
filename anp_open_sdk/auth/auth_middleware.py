@@ -24,7 +24,7 @@ from anp_open_sdk.auth.did_auth import handle_did_auth, get_and_validate_domain
 from anp_open_sdk.auth.token_auth import handle_bearer_auth
 import json
 import fnmatch
-# from anp_sdk import ANPSDK
+# from anp_open_sdk.anp_sdk import ANPSDK
 
 # Define exempt paths that don't require authentication
 
@@ -54,7 +54,7 @@ async def verify_auth_header(request: Request , sdk = None) -> dict:
     Raises:
         HTTPException: When authentication fails
     """
-    from anp_sdk import ANPSDK
+    from anp_open_sdk.anp_sdk import ANPSDK
     from anp_open_sdk.auth.did_auth import handle_did_auth, get_and_validate_domain
     # Get authorization header
     auth_header = request.headers.get("Authorization")

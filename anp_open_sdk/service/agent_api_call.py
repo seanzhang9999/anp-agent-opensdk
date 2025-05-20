@@ -25,7 +25,7 @@ import json
 from urllib.parse import urlencode, quote
 from loguru import logger
 from anp_open_sdk.config.dynamic_config import dynamic_config
-from anp_sdk import RemoteAgent
+from anp_open_sdk.anp_sdk import RemoteAgent
 from anp_open_sdk.anp_sdk_utils import handle_response
 from anp_open_sdk.service.agent_auth import agent_auth_two_way
 from anp_open_sdk.service.agent_auth import check_response_DIDAtuhHeader

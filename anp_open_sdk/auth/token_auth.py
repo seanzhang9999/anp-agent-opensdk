@@ -106,7 +106,7 @@ async def handle_bearer_auth(token: str, req_did, resp_did, sdk= None) -> Dict:
             token_info = resp_did_agent.get_token_from_remote(req_did)
 
         else:
-            from anp_sdk import ANPSDK
+            from anp_open_sdk.anp_sdk import ANPSDK
             from typing import cast
             sdk= cast(ANPSDK, sdk)
             resp_did_agent = sdk.get_agent(resp_did)

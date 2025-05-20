@@ -61,7 +61,7 @@ import aiohttp
 from loguru import logger
 from urllib.parse import urlencode, quote
 
-from anp_sdk import ANPSDK, LocalAgent, RemoteAgent
+from anp_open_sdk.anp_sdk import ANPSDK, LocalAgent, RemoteAgent
 from anp_open_sdk.anp_sdk_utils import get_user_cfg_list, get_user_cfg
 
 
@@ -282,7 +282,7 @@ def main(step_mode: bool = False, fast_mode: bool = False):
     
     # 1. 初始化 SDK
     _pause_if_step_mode("准备步骤1: 初始化 SDK")
-    from anp_sdk import ANPSDK
+    from anp_open_sdk.anp_sdk import ANPSDK
     sdk = ANPSDK()
     
     # 2. 加载智能体

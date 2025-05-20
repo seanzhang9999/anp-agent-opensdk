@@ -70,7 +70,7 @@ python examples/proxy_mode_example.py --proxy-url ws://your-server:8000/ws/proxy
 
 ```python
 import asyncio
-from anp_sdk import ANPSDK
+from anp_open_sdk.anp_sdk import ANPSDK
 
 async def main():
     # 创建ANPSDK实例

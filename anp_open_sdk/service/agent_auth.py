@@ -28,7 +28,7 @@ from anp_open_sdk.agent_connect_hotpatch.authentication.did_wba import verify_au
 from anp_open_sdk.auth.did_auth import verify_timestamp
 from anp_open_sdk.agent_connect_hotpatch.authentication.did_wba import extract_auth_header_parts
 
-from anp_sdk import RemoteAgent
+from anp_open_sdk.anp_sdk import RemoteAgent
 async def check_response_DIDAtuhHeader(auth_value: str) -> bool:
 
     """检查响应头中的DIDAUTHHeader是否正确

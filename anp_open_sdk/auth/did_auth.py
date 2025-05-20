@@ -26,7 +26,7 @@ import aiohttp
 from typing import Dict, Tuple, Optional, Any
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
-# from anp_sdk import ANPSDK  # 延迟导入，避免循环依赖
+# from anp_open_sdk.anp_sdk import ANPSDK  # 延迟导入，避免循环依赖
 
 from fastapi import Request, HTTPException
 from canonicaljson import encode_canonical_json
@@ -151,7 +151,7 @@ async def handle_did_auth(authorization: str, domain: str , request: Request , s
        # logging.info(f"Processing DID WBA authentication - domain: {domain}, Authorization header: {authorization}")
 
         # Extract header parts
-        from anp_sdk import ANPSDK
+        from anp_open_sdk.anp_sdk import ANPSDK
         header_parts = extract_auth_header_parts(authorization)
         
         if not header_parts:
@@ -210,7 +210,7 @@ async def handle_did_auth(authorization: str, domain: str , request: Request , s
         
 
         from typing import cast
-        from anp_sdk import ANPSDK
+        from anp_open_sdk.anp_sdk import ANPSDK
         sdk = cast(ANPSDK, sdk)
         resp_did_agent = sdk.get_agent(resp_did)
 
