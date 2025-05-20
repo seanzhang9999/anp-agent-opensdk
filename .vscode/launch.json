@@ -7,11 +7,11 @@
 
 
         {
-            "name": "win-demo_autorun",
+            "name": "win-anp_sdk_demo",
             "type": "debugpy",
             "request": "launch",
             "python": ".venv/Scripts/python.exe",
-            "program": "${workspaceFolder}/demo_autorun.py",
+            "program": "${workspaceFolder}/anp_sdk_demo.py",
             "console": "integratedTerminal",
             "justMyCode": true,
       },

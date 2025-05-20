@@ -141,6 +141,21 @@ async def listen_group_messages(sdk, caller_agent: str, group_url, group_id, eve
                             logger.error(f"消息处理时出错: {e}")
     except asyncio.CancelledError:
         logger.info(f"{caller_agent} 的群聊监听已停止")
+        # 添加资源清理代码
+        try:
+            # 清理会话资源
+            if 'session' in locals() and session is not None:
+                await session.close()
+        except Exception as e:
+            logger.error(f"清理资源时出错: {e}")
+        # 重新抛出异常，让调用者知道任务已取消
+        raise
     except Exception as e:
         logger.error(f"{caller_agent} 的群聊监听发生错误: {e}")
+        # 清理资源
+        try:
+            if 'session' in locals() and session is not None:
+                await session.close()
+        except Exception as cleanup_error:
+            logger.error(f"清理资源时出错: {cleanup_error}")
         await asyncio.sleep(3)  # 延迟后重连

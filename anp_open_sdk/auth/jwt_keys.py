@@ -20,16 +20,17 @@ import os
 import logging
 from typing import Optional
 from anp_open_sdk.config.dynamic_config import dynamic_config
-from core.config import settings
+
 
 # Ensure key files exist
-if not os.path.exists(settings.JWT_PRIVATE_KEY_PATH):
-    raise FileNotFoundError(f"JWT private key not found at: {settings.JWT_PRIVATE_KEY_PATH}")
-if not os.path.exists(settings.JWT_PUBLIC_KEY_PATH):
-    raise FileNotFoundError(f"JWT public key not found at: {settings.JWT_PUBLIC_KEY_PATH}")
+"""
+if not os.path.exists(dynamic_config.get("anp_sdk.JWT_PRIVATE_KEY_PATH")):
+    raise FileNotFoundError(f"JWT private key not found at: {dynamic_config.get("anp_sdk.JWT_PRIVATE_KEY_PATH")}")
+if not os.path.exists( dynamic_config.get("anp_sdk.JWT_PUBLIC_KEY_PATH")):
+    raise FileNotFoundError(f"JWT public key not found at: { dynamic_config.get("anp_sdk.JWT_PUBLIC_KEY_PATH")}")
+"""
 
-
-def get_jwt_private_key(key_path: str = settings.JWT_PRIVATE_KEY_PATH) -> Optional[str]:
+def get_jwt_private_key(key_path: str = None ) -> Optional[str]:
     """
     Get the JWT private key from a PEM file.
 
@@ -54,7 +55,7 @@ def get_jwt_private_key(key_path: str = settings.JWT_PRIVATE_KEY_PATH) -> Option
         return None
 
 
-def get_jwt_public_key(key_path: str = settings.JWT_PUBLIC_KEY_PATH) -> Optional[str]:
+def get_jwt_public_key(key_path: str = None) -> Optional[str]:
     """
     Get the JWT public key from a PEM file.
 

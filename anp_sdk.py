@@ -174,6 +174,25 @@ class LocalAgent:
             except Exception as e:
                 self.logger.error(f"群事件处理器出错: {e}")
                 
+    def __del__(self):
+        """确保在对象销毁时释放资源"""
+        try:
+            # 清理WebSocket连接
+            for ws in self._ws_connections.values():
+                # 由于在析构函数中不能使用异步调用，记录日志提示可能的资源泄漏
+                self.logger.debug(f"LocalAgent {self.id} 销毁时存在未关闭的WebSocket连接")
+            
+            # 清理其他资源
+            self._ws_connections.clear()
+            self._sse_clients.clear()
+            self.token_to_remote_dict.clear()
+            self.token_from_remote_dict.clear()
+            
+            self.logger.debug(f"LocalAgent {self.id} 资源已释放")
+        except Exception:
+            # 忽略错误，防止在解释器关闭时出现问题
+            pass
+                
     async def start_group_listening(self, sdk, group_url: str, group_id: str):
         """
         启动对指定群组的消息监听
@@ -687,10 +706,14 @@ class ANPSDK:
         host, port = self.get_did_host_port_from_did(agent1.id)   
 
         def run_server():
-            uvicorn.run(self.app, host=host, port=int(port))
+            # 保存uvicorn服务器实例以便后续关闭
+            config = uvicorn.Config(self.app, host=host, port=int(port))
+            self.uvicorn_server = uvicorn.Server(config)
+            self.uvicorn_server.run()
         
         # 在新线程中启动服务器
-        self.server_thread = threading.Thread(target=run_server, daemon=True)
+        self.server_thread = threading.Thread(target=run_server)
+        self.server_thread.daemon = True  # 显式设置为守护线程
         self.server_thread.start()
         
         self.server_running = True
@@ -715,13 +738,24 @@ class ANPSDK:
         # 清空SSE客户端
         self.sse_clients.clear()
         
-        # 由于服务器在独立线程中运行，这里我们不需要显式停止它
-        # 线程会在主程序退出时自动终止（因为是daemon线程）
+        # 优雅关闭uvicorn服务器
+        if hasattr(self, 'uvicorn_server'):
+            self.uvicorn_server.should_exit = True
+            self.logger.info("已发送服务器关闭信号")
         
         self.server_running = False
         self.logger.info("服务器已停止")
         
         return True
+        
+    def __del__(self):
+        """确保在对象销毁时释放资源"""
+        try:
+            if self.server_running:
+                self.stop_server()
+        except Exception as e:
+            # 避免在解释器关闭时出现问题
+            pass
      
     def call_api(self, target_did: str, api_path: str, params: Dict[str, Any] = None, method: str = "GET"):
         """调用目标DID的API

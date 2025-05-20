@@ -20,7 +20,7 @@ import jwt
 from fastapi import HTTPException
 
 from datetime import datetime, timezone, timedelta
-from core.config import settings
+from anp_open_sdk.config.dynamic_config import dynamic_config
 from anp_open_sdk.auth.jwt_keys import get_jwt_public_key, get_jwt_private_key
 
 
@@ -36,9 +36,11 @@ def create_access_token(private_key_path, data: Dict, expires_delta: int = None)
     Returns:
         str: Encoded JWT token
     """
+
+    token_expire_time = dynamic_config.get("anp_sdk.token_expire_time")
     
     to_encode = data.copy()
-    expires = datetime.now(timezone.utc) + (timedelta(minutes= expires_delta) or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES))
+    expires = datetime.now(timezone.utc) + (timedelta(minutes= expires_delta) or timedelta(secondes = token_expire_time))
     to_encode.update({"exp": expires})
     
     # Get private key for signing
@@ -47,11 +49,13 @@ def create_access_token(private_key_path, data: Dict, expires_delta: int = None)
         logging.error("Failed to load JWT private key")
         raise HTTPException(status_code=500, detail="Internal server error during token generation")
     
+    jwt_algorithm = dynamic_config.get("anp_sdk.jwt_algorithm")
+
     # Create the JWT token using RS256 algorithm with private key
     encoded_jwt = jwt.encode(
         to_encode, 
         private_key, 
-        algorithm=settings.JWT_ALGORITHM
+        algorithm=jwt_algorithm
     )
     
    
@@ -151,11 +155,13 @@ async def handle_bearer_auth(token: str, req_did, resp_did, sdk= None) -> Dict:
                 logging.error("Failed to load JWT public key")
                 raise HTTPException(status_code=500, detail="Internal server error during token verification")
                 
+            jwt_algorithm = dynamic_config.get("anp_sdk.jwt_algorithm")
+
             # Decode and verify the token using the public key
             payload = jwt.decode(
                 token_body,
                 public_key,
-                algorithms=[settings.JWT_ALGORITHM]
+                algorithms=[jwt_algorithm]
             )
             
             # Check if token contains required fields

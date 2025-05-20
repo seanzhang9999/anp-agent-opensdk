@@ -123,7 +123,7 @@ def register_handlers(agents):
         message_file = path_resolver.resolve_path(message_file)
         message_file = os.path.join(message_file, "group_messages.json")
         try:
-            async with aiofiles.open(message_file, 'a') as f:
+            async with aiofiles.open(message_file, 'a' , encoding='utf-8') as f:
                 await f.write(json.dumps(event_data, ensure_ascii=False) + '\n')
                 return
         except Exception as e:
@@ -244,16 +244,21 @@ async def demo(sdk, agent1, agent2, agent3, step_mode: bool = False):
 
     
     # 等待一会儿确保消息被接收
-    await asyncio.sleep(2)
+    await asyncio.sleep(0.5)
     _pause_if_step_mode(f"{agent1.name}将停止监听，加载json文件显示sse长连接群聊收到的信息,注意观察时间戳")
 
     
-    # 取消监听任务
+    # 取消监听任务并确保资源被清理
     task.cancel()
     try:
         await task
     except asyncio.CancelledError:
-        pass
+        logger.info("群聊监听任务已取消")
+    except Exception as e:
+        logger.error(f"取消群聊监听任务时出错: {e}")
+    finally:
+        # 确保任何资源都被清理
+        logger.info("群聊监听资源已清理")
     
     # 读取并显示接收到的消息
     logger.info(f"\n{agent1.name}接收到的群聊消息:")
@@ -297,8 +302,12 @@ def main(step_mode: bool = False, fast_mode: bool = False):
     _pause_if_step_mode("准备步骤5: 启动SDK服务器，智能体的DID查询和API/消息接口对外服务就绪")
     import threading
     def start_server():
-        sdk.start_server()
+        try:
+            sdk.start_server()
+        except Exception as e:
+            logger.error(f"服务器启动错误: {e}")
     server_thread = threading.Thread(target=start_server)
+    server_thread.daemon = True  # 设置为守护线程，确保主程序退出时线程也会退出
     server_thread.start()
     import time
     time.sleep(0.5)
@@ -312,10 +321,17 @@ def main(step_mode: bool = False, fast_mode: bool = False):
         _pause_if_step_mode("准备完成:启动演示任务")
         import threading
         def run_demo():
-            asyncio.run(demo(sdk, agent1, agent2, agent3, step_mode=step_mode))
+            try:
+                asyncio.run(demo(sdk, agent1, agent2, agent3, step_mode=step_mode))
+            except Exception as e:
+                logger.error(f"演示运行错误: {e}")
         thread = threading.Thread(target=run_demo)
         thread.start()
-        thread.join()  # 等待线程完成
+        try:
+            thread.join()  # 等待线程完成
+        except KeyboardInterrupt:
+            logger.info("用户中断演示")
+            # 这里可以添加清理代码
 
         _pause_if_step_mode("演示完成")
 
@@ -345,4 +361,5 @@ if __name__ == "__main__":
         }
         did_create_user(params)
     else:
+
         main(step_mode=args.p, fast_mode=args.f)

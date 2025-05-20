@@ -33,11 +33,11 @@ from canonicaljson import encode_canonical_json
 from agent_connect.authentication import create_did_wba_document
 
 from anp_open_sdk.agent_connect_hotpatch.authentication.did_wba_auth_header import DIDWbaAuthHeader
-from anp_open_sdk.agent_connect_hotpatch.authentication.did_wba import  extract_auth_header_parts, verify_auth_header_signature
+from anp_open_sdk.agent_connect_hotpatch.authentication.did_wba import  extract_auth_header_parts, verify_auth_header_signature,resolve_did_wba_document
 
 from anp_open_sdk.auth.custom_did_resolver import resolve_local_did_document
 
-from core.config import settings
+from anp_open_sdk.config.dynamic_config import dynamic_config
 # from anp_open_sdk.auth.token_auth import create_access_token  # 延迟导入，避免循环依赖
 
 # 存储服务端生成的nonce
@@ -75,8 +75,10 @@ def is_valid_server_nonce(nonce: str) -> bool:
     
     nonce_time = VALID_SERVER_NONCES[nonce]
     current_time = datetime.now(timezone.utc)
+
+    nonce_expire_minutes = dynamic_config.get('anp_sdk.nonce_expire_minutes')
     
-    return current_time - nonce_time <= timedelta(minutes=settings.NONCE_EXPIRATION_MINUTES)
+    return current_time - nonce_time <= timedelta(minutes=nonce_expire_minutes)
 
 
 def verify_timestamp(timestamp_str: str) -> bool:
@@ -98,9 +100,11 @@ def verify_timestamp(timestamp_str: str) -> bool:
         
         # Calculate time difference
         time_diff = abs((current_time - request_time).total_seconds() / 60)
-        
+
+        nonce_expire_minutes = dynamic_config.get('anp_sdk.nonce_expire_minutes')
+
         # Verify timestamp is within valid period
-        if time_diff > settings.TIMESTAMP_EXPIRATION_MINUTES:
+        if time_diff > nonce_expire_minutes:
             logging.error(f"Timestamp expired. Current time: {current_time}, Request time: {request_time}, Difference: {time_diff} minutes")
             return False
             

@@ -240,5 +240,13 @@ class DynamicConfig:
     
  
 
+    def __del__(self):
+        """析构函数，确保资源被正确释放"""
+        try:
+            self.logger.debug("DynamicConfig 实例被销毁，资源已释放")
+        except:
+            pass  # 忽略日志错误，防止在解释器关闭时出现问题
+
+
 # 创建全局配置实例
 dynamic_config = DynamicConfig()

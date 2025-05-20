@@ -24,6 +24,11 @@ anp_sdk:
   user_did_port_1: 9527
   user_did_port_2: 9527
   token_expire_time: 3600 # 单位秒
+  nonce_expire_minutes: 6 # 单位分钟
+  jwt_algorithm: RS256
+  JWT_PRIVATE_KEY_PATH: anp_open_sdk/jwt_private_key.pem
+  JWT_PUBLIC_KEY_PATH: anp_open_sdk/jwt_public_key.pem
+
 
 
 

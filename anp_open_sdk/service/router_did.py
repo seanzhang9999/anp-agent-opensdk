@@ -26,7 +26,7 @@ from typing import Dict, Optional
 from pathlib import Path
 from fastapi import APIRouter, Request, Response, HTTPException
 from anp_open_sdk.config.dynamic_config import dynamic_config
-from core.config import settings
+
 from loguru import logger
 
 router = APIRouter(tags=["did"])
