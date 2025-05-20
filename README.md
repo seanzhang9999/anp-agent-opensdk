@@ -103,3 +103,4 @@ agent类型会额外创建一个/anp_open_sdk/anp_users/user_unique_id/agent目�
 - 示例代码与自动演示脚本
 
 欢迎反馈建议，共同完善 anp agent opensdk！
+本项目采用 Apache License 2.0 进行授权，详情请查看 LICENSE 文件。

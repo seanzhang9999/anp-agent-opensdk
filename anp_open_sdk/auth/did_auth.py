@@ -1,3 +1,17 @@
+# Copyright 2024 ANP Open SDK Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """
 DID WBA authentication module with both client and server capabilities.
 """
@@ -16,13 +30,10 @@ from pathlib import Path
 
 from fastapi import Request, HTTPException
 from canonicaljson import encode_canonical_json
-from anp_core.agent_connect.authentication import (
-    verify_auth_header_signature,
-    resolve_did_wba_document,
-    extract_auth_header_parts,
-    create_did_wba_document,
-    DIDWbaAuthHeader
-)
+from agent_connect.authentication import create_did_wba_document
+
+from anp_open_sdk.agent_connect_hotpatch.authentication.did_wba_auth_header import DIDWbaAuthHeader
+from anp_open_sdk.agent_connect_hotpatch.authentication.did_wba import  extract_auth_header_parts, verify_auth_header_signature
 
 from anp_open_sdk.auth.custom_did_resolver import resolve_local_did_document
 

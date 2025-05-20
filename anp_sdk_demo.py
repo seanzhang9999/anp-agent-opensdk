@@ -1,3 +1,17 @@
+# Copyright 2024 ANP Open SDK Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 from Crypto.PublicKey import RSA
@@ -37,7 +51,8 @@ from anp_open_sdk.anp_sdk_utils import create_jwt, verify_jwt, get_response_DIDA
 from typing import Optional, Dict, Tuple, Any
 from types import DynamicClassAttribute
 from anp_open_sdk.config.dynamic_config import dynamic_config
-from anp_open_sdk.auth.did_auth import send_authenticated_request,send_request_with_token,DIDWbaAuthHeader
+from anp_open_sdk.auth.did_auth import send_authenticated_request,send_request_with_token
+from anp_open_sdk.agent_connect_hotpatch.authentication.did_wba_auth_header import DIDWbaAuthHeader
 import aiofiles
 import json
 import asyncio

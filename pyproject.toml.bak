@@ -1,19 +1,15 @@
-[project]
-name = "anp-agent-opensdk"
+[tool.poetry]
+name = "anp_open_sdk"
 version = "0.1.0"
 description = "anp_open_sdk is a middleware built on the ANP Agent Connect kernel protocol, designed to help developers seamlessly integrate ANP capabilities into their applications and agents"
-authors = [
-    {name = "seanzhang9999",email = "seanzhang9999@gmail.com"}
-]
-license = {text = "Apache License 2.0"}
-readme = "README.md"
-requires-python = ">=3.11"
+authors = ["seanzhang9999 <seanzhang9999@gmail.com>"]
 packages = [
     { include = "anp_open_sdk" },
     { include = "utils" }
 ]
-dependencies = [
-    pyyaml = "^6.0.2"
+
+[tool.poetry.dependencies]
+pyyaml = "^6.0.2"
 python = ">=3.10,<4.0"
 fastapi = "^0.103.0"
 uvicorn = "^0.32.0"
@@ -34,9 +30,13 @@ loguru = "^0.7.3"
 pycryptodome = "^3.22.0"
 aiofiles = "^24.1.0"
 colorama = "^0.4.6"
-]
 
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.0"
+
+[tool.uv.workspace]
+members = ["mcp_client_example"]
 
 [build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
+requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"

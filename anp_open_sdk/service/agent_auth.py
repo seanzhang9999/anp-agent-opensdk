@@ -1,5 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+
+# Copyright 2024 ANP Open SDK Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import sys
 import os
 from urllib.parse import urlencode, quote
@@ -9,9 +23,11 @@ from anp_open_sdk.anp_sdk_utils import get_response_DIDAuthHeader_Token
 from anp_open_sdk.auth.did_auth import send_authenticated_request, send_request_with_token, DIDWbaAuthHeader
 from loguru import logger
 from anp_open_sdk.auth.custom_did_resolver import resolve_local_did_document
-from anp_core.agent_connect.authentication.did_wba import resolve_did_wba_document
-from anp_core.agent_connect.authentication.did_wba import verify_auth_header_signature
-from anp_open_sdk.auth.did_auth import extract_auth_header_parts, verify_timestamp
+from agent_connect.authentication.did_wba import resolve_did_wba_document
+from anp_open_sdk.agent_connect_hotpatch.authentication.did_wba import verify_auth_header_signature
+from anp_open_sdk.auth.did_auth import verify_timestamp
+from anp_open_sdk.agent_connect_hotpatch.authentication.did_wba import extract_auth_header_parts
+
 from anp_sdk import RemoteAgent
 async def check_response_DIDAtuhHeader(auth_value: str) -> bool:
 
@@ -74,7 +90,7 @@ async def check_response_DIDAtuhHeader(auth_value: str) -> bool:
         logger.error(f"验证签名时出错: {e}")
         return False
 from anp_open_sdk.config.dynamic_config import dynamic_config
-from anp_core.agent_connect.authentication.did_wba_auth_header import DIDWbaAuthHeader
+from anp_open_sdk.agent_connect_hotpatch.authentication.did_wba_auth_header import DIDWbaAuthHeader
 
 async def agent_auth_two_way(sdk, caller_agent: str, target_agent: str) -> tuple[bool, str]:
     """执行智能体之间的认证

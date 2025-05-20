@@ -96,3 +96,4 @@ Supports ANPSDK interoperability experience across multiple processes or hosts:
 - Example code and automatic demo script
 
 Welcome feedback and suggestions to jointly improve anp agent opensdk!
+This project is distributed under the Apache License 2.0. Please refer to the LICENSE file for more details
