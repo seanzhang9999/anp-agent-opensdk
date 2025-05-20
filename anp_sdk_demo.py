@@ -169,7 +169,6 @@ async def demo(sdk, agent1, agent2, agent3, step_mode: bool = False):
     # agent2 向 agent3 发送消息
     resp = await agent_msg_post(sdk, agent2.id, agent3.id, f"你好，我是{agent2.name}")
     logger.info(f"\n{agent2.name}向{agent3.name}发送消息后收到响应: {resp}")
-
     _pause_if_step_mode("post请求发送消息,使用token认证,body传递消息,接收方注册消息回调接口收消息回复，请比对")
 
     
@@ -177,25 +176,19 @@ async def demo(sdk, agent1, agent2, agent3, step_mode: bool = False):
     logger.info(f"演示agent3:{agent3.name}向agent1:{agent1.name}发送消息 ...")
     resp = await agent_msg_post(sdk, agent3.id, agent1.id, f"你好，我是{agent3.name}")
     logger.info(f"{agent3.name}向{agent1.name}发送消息后收到响应: {resp}")
-    
     _pause_if_step_mode("post请求发送消息,使用token认证,body传递消息,接收方注册消息回调接口收消息回复，请比对")
 
     # 演示群聊功能
     _pause_if_step_mode("步骤3: 演示群聊功能,群聊当前未加入认证,未来计划用did-vc模式,即创建群组者给其他用户颁发vc,加入者使用vc认证加入群聊")
     group_id = "demo_group"
     group_url = f"localhost:{sdk.port}"  #理论上群聊可以在任何地方# Replace with your group URL and port numbe
-    
-
-
     _pause_if_step_mode(f"群聊演示分三步:建群拉人,发消息,{agent1.name}后台sse长连接接收群聊消息存到本地后加载显示")
-
-    
+   
     # 创建群组并添加 agent1（创建者自动成为成员）
     action = {"action": "add", "did": agent1.id}
     resp = await agent_msg_group_members(sdk, agent1.id, group_url, group_id, action)
     logger.info(f"{agent1.name}创建群组{group_id}并添加{agent1.name},服务响应为: {resp}")
     _pause_if_step_mode(f"验证群组逻辑:第一个访问群并加人的自动成为成员")
-
 
     # 添加 agent2 到群组
     action = {"action": "add", "did": agent2.id}
@@ -209,8 +202,6 @@ async def demo(sdk, agent1, agent2, agent3, step_mode: bool = False):
     logger.info(f"{agent2.name}邀请{agent3.name}的响应: {resp}")
     _pause_if_step_mode(f"验证群组逻辑:其他成员也可以拉人，群组逻辑可以自定义")
 
-
-
     # 清空群聊消息文件 准备本轮监听
     message_file = dynamic_config.get("anp_sdk.group_msg_path")
     message_file = path_resolver.resolve_path(message_file)
@@ -223,7 +214,6 @@ async def demo(sdk, agent1, agent2, agent3, step_mode: bool = False):
     await asyncio.sleep(1)
     _pause_if_step_mode(f"建群拉人结束，{agent1.name} 开始启动子线程，用于监听群聊 {group_id} 存储消息到json记录文件")
 
-
     # agent1 发送群聊消息
     time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     logger.info(f"\n演示：{agent1.name}在{time}“发送群聊消息...")
@@ -231,7 +221,6 @@ async def demo(sdk, agent1, agent2, agent3, step_mode: bool = False):
     resp = await agent_msg_group_post(sdk, agent1.id, group_url, group_id, message)
     logger.info(f"{agent1.name}发送群聊消息的响应: {resp}")
     _pause_if_step_mode(f"{agent1.name} 向 {group_id} 发消息,所有成员可以通过sse长连接接收消息")
-
     
     # agent2 发送群聊消息
     await asyncio.sleep(2)
@@ -241,13 +230,11 @@ async def demo(sdk, agent1, agent2, agent3, step_mode: bool = False):
     resp = await agent_msg_group_post(sdk, agent2.id, group_url, group_id, message)
     logger.info(f"{agent2.name}发送群聊消息的响应: {resp}")
     _pause_if_step_mode(f"{agent2.name} 向 {group_id} 发消息,所有成员可以通过sse长连接接收消息")
-
     
     # 等待一会儿确保消息被接收
     await asyncio.sleep(0.5)
     _pause_if_step_mode(f"{agent1.name}将停止监听，加载json文件显示sse长连接群聊收到的信息,注意观察时间戳")
-
-    
+   
     # 取消监听任务并确保资源被清理
     task.cancel()
     try:
@@ -270,8 +257,6 @@ async def demo(sdk, agent1, agent2, agent3, step_mode: bool = False):
         logger.info(f"批量收到消息:\n{json.dumps(messages, ensure_ascii=False, indent=2)}")  # 一次性输出
     except Exception as e:
         logger.error(f"读取消息文件失败: {e}")
-
-
 
 # 主函数
 def main(step_mode: bool = False, fast_mode: bool = False):
@@ -312,7 +297,6 @@ def main(step_mode: bool = False, fast_mode: bool = False):
     import time
     time.sleep(0.5)
 
-
     if not fast_mode:
         input("服务器已启动，查看'/'了解状态,'/docs'了解基础api,按回车继续....")
 
@@ -334,12 +318,6 @@ def main(step_mode: bool = False, fast_mode: bool = False):
             # 这里可以添加清理代码
 
         _pause_if_step_mode("演示完成")
-
-
-
-
-
-
 
 if __name__ == "__main__":
     import argparse
