@@ -27,7 +27,6 @@ from agent_connect.authentication.did_wba import resolve_did_wba_document
 from anp_open_sdk.agent_connect_hotpatch.authentication.did_wba import verify_auth_header_signature
 from anp_open_sdk.auth.did_auth import verify_timestamp
 from anp_open_sdk.agent_connect_hotpatch.authentication.did_wba import extract_auth_header_parts
-
 from anp_open_sdk.anp_sdk import RemoteAgent
 async def check_response_DIDAtuhHeader(auth_value: str) -> bool:
 

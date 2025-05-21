@@ -18,6 +18,8 @@ DID document API router.
 import sys
 import os
 
+from anp_open_sdk.config import path_resolver
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..","..")))
 import os
 import json
@@ -26,6 +28,7 @@ from typing import Dict, Optional
 from pathlib import Path
 from fastapi import APIRouter, Request, Response, HTTPException
 from anp_open_sdk.config.dynamic_config import dynamic_config
+from anp_open_sdk.config.path_resolver import path_resolver
 
 from loguru import logger
 
@@ -44,10 +47,11 @@ async def get_did_document(user_id: str) -> Dict:
         Dict: DID document
     """
     # 构建DID文档路径 路径和did_router所在目录严重相关 现在did_router在三级目录
-    current_dir = Path(__file__).parent.parent.parent.absolute()
-    did_path = dynamic_config.get('anp_sdk.user_did_path')
-    #logger.info(f"current_dir: {current_dir}\n did_path = {did_path}" )
-    did_path = current_dir.joinpath( did_path,f"user_{user_id}" , "did_document.json" )
+    did_path = Path(dynamic_config.get('anp_sdk.user_did_path'))
+    did_path = did_path.joinpath( f"user_{user_id}" , "did_document.json" )
+    did_path = Path(path_resolver.resolve_path(did_path.as_posix()))
+    # logger.info(f"current_dir: {current_dir}\n did_path = {did_path}" )
+    # did_path = current_dir.joinpath( did_path,f"user_{user_id}" , "did_document.json" )
 
 
 

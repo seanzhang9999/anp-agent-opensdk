@@ -437,6 +437,7 @@ if __name__ == "__main__":
     elif args.p is not None or '-p' in sys.argv:
         agent_did_host_start(args.p)
         sdk , agents, agent1 , agent2 ,agent3  = main(step_mode=args.s, fast_mode=args.f)
+        
 
     else:
          # 启动演示服务器
