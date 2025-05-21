@@ -16,6 +16,7 @@
 # -*- coding: utf-8 -*-
 from Crypto.PublicKey import RSA
 import os
+import sys
 from time import time
 from datetime import datetime
 import yaml
@@ -63,21 +64,125 @@ from urllib.parse import urlencode, quote
 
 from anp_open_sdk.anp_sdk import ANPSDK, LocalAgent, RemoteAgent
 from anp_open_sdk.anp_sdk_utils import get_user_cfg_list, get_user_cfg
+from anp_open_sdk.config.dynamic_config import dynamic_config
+from anp_open_sdk.config.path_resolver import path_resolver
+import os, json, yaml
 
+def agent_did_host_start(args):
+    import uvicorn
+    from fastapi import FastAPI, Request
+    import shutil
+    from anp_open_sdk.anp_sdk import ANPSDK, LocalAgent
+    from anp_open_sdk.config.dynamic_config import dynamic_config
+    from anp_open_sdk.config.path_resolver import path_resolver
+    import os, yaml, json
+
+    # 读取配置文件中的 host, port, did_hoster
+    agent_cfg = dynamic_config.get('anp_sdk.agent', {})
+    did_hoster = agent_cfg.get('did_hoster')
+    host, port = ANPSDK.get_did_host_port_from_did(did_hoster)
+    if not did_hoster:
+        raise RuntimeError('dynamic_config.yaml 缺少 anp_sdk.agent.did_hoster 字段')
+    # 允许命令行参数覆盖 did_hoster
+    if args is not None:
+        did_hoster = args[0]
+    did = did_hoster
+    user_did_path = dynamic_config.get('anp_sdk.user_did_path')
+    user_did_path = path_resolver.resolve_path(user_did_path)
+    # 在 anp_users 目录下查找 did 对应目录
+    user_dir = None
+    for d in os.listdir(user_did_path):
+        did_path = os.path.join(user_did_path, d, 'did_document.json')
+        if os.path.exists(did_path):
+            with open(did_path, 'r', encoding='utf-8') as f:
+                did_doc = json.load(f)
+                if did_doc.get('id') == did:
+                    user_dir = d
+                    break
+    if not user_dir:
+        raise RuntimeError(f'anp_users 目录下未找到 DID={did} 的目录')
+    agent_dir = os.path.join(user_did_path, user_dir)
+    did_path = os.path.join(agent_dir, 'did_document.json')
+    cfg_path = os.path.join(agent_dir, 'agent_cfg.yaml')
+    with open(did_path, 'r', encoding='utf-8') as f:
+        did_document = json.load(f)
+    if os.path.exists(cfg_path):
+        with open(cfg_path, 'r', encoding='utf-8') as f:
+            agent_cfg = yaml.safe_load(f)
+    else:
+        agent_cfg = {}
+    agent_cfg['host_did'] = True
+    with open(cfg_path, 'w', encoding='utf-8') as f:
+        yaml.dump(agent_cfg, f, allow_unicode=True, sort_keys=False)
+    agent_did_host = LocalAgent(id=did_document['id'], user_dir=user_dir)
+    sdk = ANPSDK()
+    sdk.register_agent(agent_did_host)
+    @sdk.app.post("/publish_did")
+    async def publish_did(request: Request):
+        data = await request.json()
+        did_doc = data.get('did_document')
+        ad_json = data.get('ad_json')
+        if not (did_doc and ad_json):
+            return {"error": "缺少 did_document 或 ad_json"}
+        save_dir = os.path.join(user_did_path, user_dir)
+        os.makedirs(save_dir, exist_ok=True)
+        with open(os.path.join(save_dir, 'did_document.json'), 'w', encoding='utf-8') as f:
+            json.dump(did_doc, f, ensure_ascii=False, indent=2)
+        agent_cfg_path = os.path.join(save_dir, 'agent_cfg.yaml')
+        if os.path.exists(agent_cfg_path):
+            with open(agent_cfg_path, 'r', encoding='utf-8') as f:
+                cfg = yaml.safe_load(f)
+        else:
+            cfg = {}
+        cfg['host_did'] = True
+        with open(agent_cfg_path, 'w', encoding='utf-8') as f:
+            yaml.dump(cfg, f, allow_unicode=True, sort_keys=False)
+        return {"msg": "DID文档和ad.json已保存", "path": save_dir}
+
+    import threading
+    def start_server():
+        try:
+            uvicorn.run(sdk.app, host=host, port=port)
+        except Exception as e:
+            print(f"服务器启动错误: {e}")
+    server_thread = threading.Thread(target=start_server)
+    server_thread.daemon = True
+    server_thread.start()
+    import time
+    time.sleep(0.5)
 
 # 批量加载本地DID用户并实例化LocalAgent
 def load_agents():
-    user_list, name_to_dir = get_user_cfg_list()
+
+    agent_cfg = dynamic_config.get('anp_sdk.agent', {})
+    dids = [agent_cfg.get('demo_agent1'), agent_cfg.get('demo_agent2'), agent_cfg.get('demo_agent3')]
+    user_did_path = dynamic_config.get('anp_sdk.user_did_path')
+    user_did_path = path_resolver.resolve_path(user_did_path)
     agents = []
-    for idx, name in enumerate(user_list):
-        status, did_dict, selected_name = get_user_cfg(idx + 1, user_list, name_to_dir)
-        if status:
-            agent = LocalAgent(id=did_dict['id'], user_dir=name_to_dir[selected_name])
-            agent.name = selected_name
-            agents.append(agent)
-            # logger.info(f"已加载 LocalAgent: {did_dict['id']} -> 目录: {name_to_dir[selected_name]}")
+    for did in dids:
+        user_dir = None
+        for d in os.listdir(user_did_path):
+            did_path = os.path.join(user_did_path, d, 'did_document.json')
+            if os.path.exists(did_path):
+                with open(did_path, 'r', encoding='utf-8') as f:
+                    did_doc = json.load(f)
+                    if did_doc.get('id') == did:
+                        user_dir = d
+                        break
+        if not user_dir:
+            logger.warning(f'anp_users 目录下未找到 DID={did} 的目录')
+            continue
+        agent_dir = os.path.join(user_did_path, user_dir)
+        agent = LocalAgent(id=did, user_dir=user_dir)
+        # 可选：加载 agent_cfg.yaml 设定 name
+        cfg_path = os.path.join(agent_dir, 'agent_cfg.yaml')
+        if os.path.exists(cfg_path):
+            with open(cfg_path, 'r', encoding='utf-8') as f:
+                cfg = yaml.safe_load(f)
+                agent.name = cfg.get('name', user_dir)
         else:
-            logger.warning(f"加载用户 {name} 失败")
+            agent.name = user_dir
+        agents.append(agent)
     return agents
 
 # 注册API和消息处理器
@@ -136,71 +241,79 @@ def register_handlers(agents):
 
 
 
-async def demo(sdk, agent1, agent2, agent3, step_mode: bool = False):
-    def _pause_if_step_mode(step_name: str = ""):
-        if step_mode:
+
+class StepModeHelper:
+    def __init__(self, step_mode: bool = False):
+        self.step_mode = step_mode
+    def pause(self, step_name: str = ""):
+        if self.step_mode:
             from colorama import Fore, Style
             input(f"{Fore.GREEN}--- {step_name} ---{Style.RESET_ALL} {Fore.YELLOW}按任意键继续...{Style.RESET_ALL}")
+
+
+
+async def demo(sdk, agent1, agent2, agent3, step_mode: bool = False):
+    step_helper = StepModeHelper(step_mode=step_mode)    
     if not all([agent1, agent2, agent3]):
         logger.error("智能体不足，无法执行演示")
         return
     """演示智能体之间的消息和API调用"""
 
      # 演示API调用
-    _pause_if_step_mode("步骤1: 演示API调用,第一次请求会包含did双向认证和颁发token,log比较长")
+    step_helper.pause("步骤1: 演示API调用,第一次请求会包含did双向认证和颁发token,log比较长")
  
 
     resp = await agent_api_call_post(sdk, agent1.id, agent2.id, "/info", {"from": f"{agent1.name}"})
     logger.info(f"{agent1.name}get调用{agent2.name}的/info接口后收到响应: {resp}")
 
-    _pause_if_step_mode("post请求到/info接口,header提交authorization认证头,url提交req_did,resp_did,body传输params")
+    step_helper.pause("post请求到/info接口,header提交authorization认证头,url提交req_did,resp_did,body传输params")
 
           
     logger.info(f"演示agent1:{agent1.name}get调用agent2:{agent2.name}的API /info接口")
     resp = await agent_api_call_get(sdk, agent1.id, agent2.id, "/info", {"from": f"{agent1.name}"})
     logger.info(f"{agent1.name}get调用{agent2.name}的/info接口后收到响应: {resp}")
    
-    _pause_if_step_mode("get请求到/info接口,header提交authorization认证头,url提交req_did,resp_did,params")
+    step_helper.pause("get请求到/info接口,header提交authorization认证头,url提交req_did,resp_did,params")
 
     # 演示消息发送
-    _pause_if_step_mode("步骤2: 演示消息发送,双方第一次消息发送会包含did双向认证和颁发token,注意观察")
+    step_helper.pause("步骤2: 演示消息发送,双方第一次消息发送会包含did双向认证和颁发token,注意观察")
     
     logger.info(f"演示：agent2:{agent2.name}向agent3:{agent3.name}发送消息 ...")
     # agent2 向 agent3 发送消息
     resp = await agent_msg_post(sdk, agent2.id, agent3.id, f"你好，我是{agent2.name}")
     logger.info(f"\n{agent2.name}向{agent3.name}发送消息后收到响应: {resp}")
-    _pause_if_step_mode("post请求发送消息,使用token认证,body传递消息,接收方注册消息回调接口收消息回复，请比对")
+    step_helper.pause("post请求发送消息,使用token认证,body传递消息,接收方注册消息回调接口收消息回复，请比对")
 
     
     # agent3 向 agent1 发送消息
     logger.info(f"演示agent3:{agent3.name}向agent1:{agent1.name}发送消息 ...")
     resp = await agent_msg_post(sdk, agent3.id, agent1.id, f"你好，我是{agent3.name}")
     logger.info(f"{agent3.name}向{agent1.name}发送消息后收到响应: {resp}")
-    _pause_if_step_mode("post请求发送消息,使用token认证,body传递消息,接收方注册消息回调接口收消息回复，请比对")
+    step_helper.pause("post请求发送消息,使用token认证,body传递消息,接收方注册消息回调接口收消息回复，请比对")
 
     # 演示群聊功能
-    _pause_if_step_mode("步骤3: 演示群聊功能,群聊当前未加入认证,未来计划用did-vc模式,即创建群组者给其他用户颁发vc,加入者使用vc认证加入群聊")
+    step_helper.pause("步骤3: 演示群聊功能,群聊当前未加入认证,未来计划用did-vc模式,即创建群组者给其他用户颁发vc,加入者使用vc认证加入群聊")
     group_id = "demo_group"
     group_url = f"localhost:{sdk.port}"  #理论上群聊可以在任何地方# Replace with your group URL and port numbe
-    _pause_if_step_mode(f"群聊演示分三步:建群拉人,发消息,{agent1.name}后台sse长连接接收群聊消息存到本地后加载显示")
+    step_helper.pause(f"群聊演示分三步:建群拉人,发消息,{agent1.name}后台sse长连接接收群聊消息存到本地后加载显示")
    
     # 创建群组并添加 agent1（创建者自动成为成员）
     action = {"action": "add", "did": agent1.id}
     resp = await agent_msg_group_members(sdk, agent1.id, group_url, group_id, action)
     logger.info(f"{agent1.name}创建群组{group_id}并添加{agent1.name},服务响应为: {resp}")
-    _pause_if_step_mode(f"验证群组逻辑:第一个访问群并加人的自动成为成员")
+    step_helper.pause(f"验证群组逻辑:第一个访问群并加人的自动成为成员")
 
     # 添加 agent2 到群组
     action = {"action": "add", "did": agent2.id}
     resp = await agent_msg_group_members(sdk, agent1.id, group_url, group_id, action)
     logger.info(f"{agent1.name}邀请{agent2.name}的响应: {resp}")
-    _pause_if_step_mode(f"验证群组逻辑:创建人成员可以拉人")
+    step_helper.pause(f"验证群组逻辑:创建人成员可以拉人")
 
     # 添加 agent3 到群组
     action = {"action": "add", "did": agent3.id}
     resp = await agent_msg_group_members(sdk, agent2.id, group_url, group_id, action)
     logger.info(f"{agent2.name}邀请{agent3.name}的响应: {resp}")
-    _pause_if_step_mode(f"验证群组逻辑:其他成员也可以拉人，群组逻辑可以自定义")
+    step_helper.pause(f"验证群组逻辑:其他成员也可以拉人，群组逻辑可以自定义")
 
     # 清空群聊消息文件 准备本轮监听
     message_file = dynamic_config.get("anp_sdk.group_msg_path")
@@ -212,7 +325,7 @@ async def demo(sdk, agent1, agent2, agent3, step_mode: bool = False):
     #启动agent1的监听任务，返回一个Task object
     task = await agent1.start_group_listening(sdk, group_url, group_id)
     await asyncio.sleep(1)
-    _pause_if_step_mode(f"建群拉人结束，{agent1.name} 开始启动子线程，用于监听群聊 {group_id} 存储消息到json记录文件")
+    step_helper.pause(f"建群拉人结束，{agent1.name} 开始启动子线程，用于监听群聊 {group_id} 存储消息到json记录文件")
 
     # agent1 发送群聊消息
     time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -220,7 +333,7 @@ async def demo(sdk, agent1, agent2, agent3, step_mode: bool = False):
     message = f"大家好，我是{agent1.name}，现在是{time},欢迎来到群聊！"
     resp = await agent_msg_group_post(sdk, agent1.id, group_url, group_id, message)
     logger.info(f"{agent1.name}发送群聊消息的响应: {resp}")
-    _pause_if_step_mode(f"{agent1.name} 向 {group_id} 发消息,所有成员可以通过sse长连接接收消息")
+    step_helper.pause(f"{agent1.name} 向 {group_id} 发消息,所有成员可以通过sse长连接接收消息")
     
     # agent2 发送群聊消息
     await asyncio.sleep(2)
@@ -229,11 +342,11 @@ async def demo(sdk, agent1, agent2, agent3, step_mode: bool = False):
     message = f"大家好，我是{agent2.name}，现在是{time},欢迎来到群聊！"
     resp = await agent_msg_group_post(sdk, agent2.id, group_url, group_id, message)
     logger.info(f"{agent2.name}发送群聊消息的响应: {resp}")
-    _pause_if_step_mode(f"{agent2.name} 向 {group_id} 发消息,所有成员可以通过sse长连接接收消息")
+    step_helper.pause(f"{agent2.name} 向 {group_id} 发消息,所有成员可以通过sse长连接接收消息")
     
     # 等待一会儿确保消息被接收
     await asyncio.sleep(0.5)
-    _pause_if_step_mode(f"{agent1.name}将停止监听，加载json文件显示sse长连接群聊收到的信息,注意观察时间戳")
+    step_helper.pause(f"{agent1.name}将停止监听，加载json文件显示sse长连接群聊收到的信息,注意观察时间戳")
    
     # 取消监听任务并确保资源被清理
     task.cancel()
@@ -260,31 +373,28 @@ async def demo(sdk, agent1, agent2, agent3, step_mode: bool = False):
 
 # 主函数
 def main(step_mode: bool = False, fast_mode: bool = False):
-    def _pause_if_step_mode(step_name: str = ""):
-        if step_mode:
-            from colorama import Fore, Style
-            input(f"{Fore.GREEN}--- {step_name} ---{Style.RESET_ALL} {Fore.YELLOW}按任意键继续...{Style.RESET_ALL}")
     
+    step_helper = StepModeHelper(step_mode=step_mode)  
     # 1. 初始化 SDK
-    _pause_if_step_mode("准备步骤1: 初始化 SDK")
+    step_helper.pause("准备步骤1: 初始化 SDK")
     from anp_open_sdk.anp_sdk import ANPSDK
     sdk = ANPSDK()
     
     # 2. 加载智能体
-    _pause_if_step_mode("准备步骤2: 从本地加载智能体，方便演示")
+    step_helper.pause("准备步骤2: 从本地加载智能体，方便演示")
     agents = load_agents()
     
     # 3. 注册处理器
-    _pause_if_step_mode("准备步骤3: 智能体注册自己的消息处理函数和对外服务API)")
+    step_helper.pause("准备步骤3: 智能体注册自己的消息处理函数和对外服务API)")
     agents, agent1, agent2, agent3 = register_handlers(agents)
     
     # 4. 注册智能体到 SDK
-    _pause_if_step_mode("准备步骤4: 智能体注册到SDK,SDK会自动路由请求到各个智能体")
+    step_helper.pause("准备步骤4: 智能体注册到SDK,SDK会自动路由请求到各个智能体")
     for agent in agents:
         sdk.register_agent(agent)
         
     # 5. 启动服务器
-    _pause_if_step_mode("准备步骤5: 启动SDK服务器，智能体的DID查询和API/消息接口对外服务就绪")
+    step_helper.pause("准备步骤5: 启动SDK服务器，智能体的DID查询和API/消息接口对外服务就绪")
     import threading
     def start_server():
         try:
@@ -299,33 +409,19 @@ def main(step_mode: bool = False, fast_mode: bool = False):
 
     if not fast_mode:
         input("服务器已启动，查看'/'了解状态,'/docs'了解基础api,按回车继续....")
+    return sdk, agents, agent1, agent2, agent3
 
-    # 6. 启动演示任务和服务器
-    if all([agent1, agent2, agent3]):
-        _pause_if_step_mode("准备完成:启动演示任务")
-        import threading
-        def run_demo():
-            try:
-                asyncio.run(demo(sdk, agent1, agent2, agent3, step_mode=step_mode))
-            except Exception as e:
-                logger.error(f"演示运行错误: {e}")
-        thread = threading.Thread(target=run_demo)
-        thread.start()
-        try:
-            thread.join()  # 等待线程完成
-        except KeyboardInterrupt:
-            logger.info("用户中断演示")
-            # 这里可以添加清理代码
-
-        _pause_if_step_mode("演示完成")
+   
 
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description='ANP SDK 演示程序')
-    parser.add_argument('-p', action='store_true', help='启用步骤模式，每个步骤都会暂停等待用户确认')
+    parser.add_argument('-s', action='store_true', help='启用步骤模式，每个步骤都会暂停等待用户确认')
     parser.add_argument('-f', action='store_true', help='快速模式，跳过所有等待用户确认的步骤')
     parser.add_argument('-n', nargs=5, metavar=('name', 'host', 'port', 'host_dir', 'agent_type'),
                         help='创建新用户，需要提供：用户名 主机名 端口号 主机路径 用户类型')
+    parser.add_argument('-p', nargs='?', metavar='did',
+                        help='启动DID发布专用Agent，参数为：可选DID，未指定时自动读取配置文件 did_hoster 并查找anp_users目录下对应目录')
     args = parser.parse_args()
 
     if args.n:
@@ -338,6 +434,36 @@ if __name__ == "__main__":
             'type': agent_type,
         }
         did_create_user(params)
-    else:
+    elif args.p is not None or '-p' in sys.argv:
+        agent_did_host_start(args.p)
+        sdk , agents, agent1 , agent2 ,agent3  = main(step_mode=args.s, fast_mode=args.f)
 
-        main(step_mode=args.p, fast_mode=args.f)
+    else:
+         # 启动演示服务器
+        sdk , agents, agent1 , agent2 ,agent3  = main(step_mode=args.s, fast_mode=args.f)
+         # 6. 启动演示任务
+        if all([agent1, agent2, agent3]):
+            step_helper = StepModeHelper(step_mode=args.s)
+            step_helper.pause("准备完成:启动演示任务")
+            import threading
+            def run_demo():
+                try:
+                    asyncio.run(demo(sdk, agent1, agent2, agent3, step_mode=args.s,))
+                except Exception as e:
+                    logger.error(f"演示运行错误: {e}")
+            thread = threading.Thread(target=run_demo)
+            thread.start()
+            try:
+                thread.join()  # 等待线程完成
+            except KeyboardInterrupt:
+                logger.info("用户中断演示")
+                # 这里可以添加清理代码
+
+            step_helper.pause("演示完成")
+
+
+
+
+
+
+

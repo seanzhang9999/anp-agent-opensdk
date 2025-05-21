@@ -1,7 +1,3 @@
-# 一个工程中管理统一多个启动程序的配置文件
-# 除了密钥敏感信息存储于env外，其他信息均可存储于该文件中
-# 运行中改变的值可以选择回写到文件中，下次启动时会自动加载
-# 这样方便检查运行情况，也可以作为部分关键信息的log，便于后续分析
 llm:
   openrouter_api_url: api.302ai.cn
   default_model: deepseek/deepseek-chat-v3-0324:free
@@ -13,9 +9,8 @@ agent:
 chat:
   max_history_items: 50
   max_process_count: 50
-
 anp_sdk:
-  debugmode: True
+  debugmode: true
   auth_virtual_dir: wba/auth
   user_did_path: anp_open_sdk/anp_users
   user_did_key_id: key-1
@@ -23,14 +18,14 @@ anp_sdk:
   msg_virtual_dir: /agent/message/post
   user_did_port_1: 9527
   user_did_port_2: 9527
-  token_expire_time: 3600 # 单位秒
-  nonce_expire_minutes: 6 # 单位分钟
+  token_expire_time: 60
+  nonce_expire_minutes: 6
   jwt_algorithm: RS256
-  JWT_PRIVATE_KEY_PATH: anp_open_sdk/jwt_private_key.pem
-  JWT_PUBLIC_KEY_PATH: anp_open_sdk/jwt_public_key.pem
-
-
-
+  agent:
+    did_hoster: did:wba:localhost%3A7345:wba:user:1fac60af6e3c03bf
+    demo_agent1: did:wba:localhost%3A9527:wba:user:7c15257e086afeba #本田
+    demo_agent2: did:wba:localhost%3A9527:wba:user:e3226214d9bab39e #雅马哈
+    demo_agent3: did:wba:localhost%3A9527:wba:user:66f170193b8f1f72 #铃木
 
 demo_autorun:
   user_did_path: anp_core/anp_users
@@ -39,9 +34,6 @@ demo_autorun:
   user_did_hostname: localhost
   user_did_port_1: 9527
   user_did_port_2: 9527
-
-
-
 web_api:
   server:
     generate_new_did_each_time: true

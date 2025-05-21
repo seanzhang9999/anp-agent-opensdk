@@ -44,7 +44,7 @@ Future demo script will cover the following features:
 
     options:
     -h, --help            show this help message and exit
-    -p                    Enable step mode, each step will pause and wait for user confirmation - suitable for learning and debugging
+    -s                    Enable step mode, each step will pause and wait for user confirmation - suitable for learning and debugging
     -f                    Fast mode, skip all steps that require user confirmation - suitable for regression testing
     -n name host port host_dir agent_type
                             Create a new user, requires: username hostname port host_directory user_type

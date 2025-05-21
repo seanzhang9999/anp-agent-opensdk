@@ -44,7 +44,7 @@ anp agent opensdk 致力于为 Agent 开发者提供一个快速上手、易于�
 
     options:
     -h, --help            show this help message and exit
-    -p                    启用步骤模式，每个步骤都会暂停等待用户确认———适合作为学习与调试
+    -s                    启用步骤模式，每个步骤都会暂停等待用户确认———适合作为学习与调试
     -f                    快速模式，跳过所有等待用户确认的步骤————适合作为回归测试
     -n name host port host_dir agent_type
                             创建新用户，需要提供：用户名 主机名 端口号 主机路径 用户类型

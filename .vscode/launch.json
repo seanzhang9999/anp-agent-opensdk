@@ -34,6 +34,16 @@
             "python": "${workspaceFolder}/.venv/bin/python"
         },
         {
+            "name": "mac-anp_sdk_demo_publisher",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/anp_sdk_demo.py", 
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "args": "-p"
+        },
+        {
             "name": "mac-anp_sdk_test",
             "type": "debugpy",
             "request": "launch",

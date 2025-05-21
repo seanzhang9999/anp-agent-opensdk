@@ -4,12 +4,12 @@
         "https://w3id.org/security/suites/jws-2020/v1",
         "https://w3id.org/security/suites/secp256k1-2019/v1"
     ],
-    "id": "did:wba:localhost%3A9527:wba:user:1fac60af6e3c03bf",
+    "id": "did:wba:localhost%3A7345:wba:user:1fac60af6e3c03bf",
     "verificationMethod": [
         {
-            "id": "did:wba:localhost%3A9527:wba:user:1fac60af6e3c03bf#key-1",
+            "id": "did:wba:localhost%3A7345:wba:user:1fac60af6e3c03bf#key-1",
             "type": "EcdsaSecp256k1VerificationKey2019",
-            "controller": "did:wba:localhost%3A9527:wba:user:1fac60af6e3c03bf",
+            "controller": "did:wba:localhost%3A7345:wba:user:1fac60af6e3c03bf",
             "publicKeyJwk": {
                 "kty": "EC",
                 "crv": "secp256k1",
@@ -20,11 +20,11 @@
         }
     ],
     "authentication": [
-        "did:wba:localhost%3A9527:wba:user:1fac60af6e3c03bf#key-1"
+        "did:wba:localhost%3A7345:wba:user:1fac60af6e3c03bf#key-1"
     ],
     "service": [
         {
-            "id": "did:wba:localhost%3A9527:wba:user:1fac60af6e3c03bf#ad",
+            "id": "did:wba:localhost%3A7345:wba:user:1fac60af6e3c03bf#ad",
             "type": "AgentDescription",
             "serviceEndpoint": "http://localhost:9527/wba/user1fac60af6e3c03bf/ad.json"
         }
