@@ -21,11 +21,14 @@ anp_sdk:
   token_expire_time: 60
   nonce_expire_minutes: 6
   jwt_algorithm: RS256
+  helper_lang: zh
   agent:
     did_hoster: did:wba:localhost%3A7345:wba:user:1fac60af6e3c03bf
-    demo_agent1: did:wba:localhost%3A9527:wba:user:7c15257e086afeba #本田
-    demo_agent2: did:wba:localhost%3A9527:wba:user:e3226214d9bab39e #雅马哈
-    demo_agent3: did:wba:localhost%3A9527:wba:user:66f170193b8f1f72 #铃木
+    demo_agent1: did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1 #本田
+    demo_agent2: did:wba:localhost%3A9527:wba:user:28cddee0fade0258 #雅马哈
+    demo_agent3: did:wba:localhost%3A9527:wba:user:5fea49e183c6c211 #铃木
+  
+
 
 demo_autorun:
   user_did_path: anp_core/anp_users

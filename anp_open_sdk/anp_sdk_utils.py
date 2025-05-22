@@ -46,29 +46,25 @@ def get_user_cfg_list():
                 print(f"读取配置文件 {cfg_path} 出错: {e}")
     return user_list, name_to_dir
 
-def get_user_cfg(choice, user_list, name_to_dir):
-    """根据用户选择加载用户配置"""
+def get_user_cfg_by_did(did):
+    """根据did查找对应的用户文件夹并加载配置"""
     user_dirs = dynamic_config.get('anp_sdk.user_did_path')
-    try:
-        idx = int(choice) - 1
-        if 0 <= idx < len(user_list):
-            selected_name = user_list[idx]
-            user_dir = name_to_dir[selected_name]
-            did_path = os.path.join(user_dirs, user_dir, "did_document.json")
-            if os.path.exists(did_path):
+    for user_dir in os.listdir(user_dirs):
+        did_path = os.path.join(user_dirs, user_dir, "did_document.json")
+        if os.path.exists(did_path):
+            try:
                 with open(did_path, 'r', encoding='utf-8') as f:
                     did_dict = json.load(f)
-                logger.info(f"已加载用户 {selected_name} 的 DID 文档")
-                return True, did_dict, selected_name
-            else:
-                logger.error(f"未找到用户 {selected_name} 的 DID 文档")
-                return False, None, selected_name
-        else:
-            print("无效的选择")
-            return False, None, None
-    except ValueError:
-        print("请输入有效的数字")
-        return False, None, None
+                    if did_dict.get('id') == did:
+                        logger.info(f"已加载用户 {user_dir} 的 DID 文档")
+                        return True, did_dict, user_dir
+            except Exception as e:
+                logger.error(f"读取DID文档 {did_path} 出错: {e}")
+                continue
+    
+    logger.error(f"未找到DID为 {did} 的用户文档")
+    return False, None, None
+
 def did_create_user(user_iput: dict):
     """创建DID
     

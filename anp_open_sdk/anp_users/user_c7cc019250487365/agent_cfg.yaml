@@ -1,0 +1,4 @@
+name: 服务智能体天气
+unique_id: c7cc019250487365
+did: did:wba:localhost%3A9527:wba:agent:c7cc019250487365
+type: agent

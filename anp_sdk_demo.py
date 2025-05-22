@@ -15,6 +15,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 from Crypto.PublicKey import RSA
+import requests
 import os
 import sys
 from time import time
@@ -63,12 +64,119 @@ from loguru import logger
 from urllib.parse import urlencode, quote
 
 from anp_open_sdk.anp_sdk import ANPSDK, LocalAgent, RemoteAgent
-from anp_open_sdk.anp_sdk_utils import get_user_cfg_list, get_user_cfg
+from anp_open_sdk.anp_sdk_utils import get_user_cfg_list
 from anp_open_sdk.config.dynamic_config import dynamic_config
 from anp_open_sdk.config.path_resolver import path_resolver
 import os, json, yaml
 
-def agent_did_host_start(args):
+
+def demo2_1(step_helper) -> None:
+    def demo2_1_delete_demo_agents(usernames=None):
+            """
+            删除指定用户名的用户文件夹，如果未指定用户名，则删除除了 dynamic_config.yaml agent: 内列出的 did 之外的所有用户文件夹
+            Args:
+                usernames: 要删除的用户名列表，如果为None则使用配置文件判断
+            """
+            import os
+            import shutil
+            from anp_open_sdk.config.dynamic_config import dynamic_config
+            
+            users_dir = os.path.join(os.path.dirname(__file__), 'anp_open_sdk', 'anp_users')
+            
+            if usernames:
+                # 如果指定了用户名列表，遍历目录查找匹配的用户
+                for folder in os.listdir(users_dir):
+                    folder_path = os.path.join(users_dir, folder)
+                    if not os.path.isdir(folder_path):
+                        continue
+                        
+                    cfg_path = os.path.join(folder_path, 'agent_cfg.yaml')
+                    if not os.path.exists(cfg_path):
+                        continue
+                        
+                    try:
+                        with open(cfg_path, 'r') as f:
+                            import yaml
+                            cfg = yaml.safe_load(f)
+                            if cfg and 'name' in cfg:
+                                # 检查用户名是否完全匹配或者是否以任何指定的用户名开头
+                                user_name = cfg['name']
+                                if user_name in usernames or any(user_name.startswith(u) for u in usernames):
+                                    print(f"删除用户 {cfg['name']} 的目录: {folder_path}")
+                                    shutil.rmtree(folder_path)
+                    except Exception as e:
+                        print(f"读取配置文件失败: {e}")
+                        continue
+                return
+                
+            # 如果未指定用户名，则使用配置文件判断要保留的did
+            agent_cfg = dynamic_config.get('anp_sdk.agent')
+            keep_dids = set()
+            if agent_cfg:
+                for v in agent_cfg.values():
+                    if isinstance(v, str) and v.startswith('did:'):
+                        keep_dids.add(v)
+            
+            for folder in os.listdir(users_dir):
+                folder_path = os.path.join(users_dir, folder)
+                if os.path.isdir(folder_path):
+                    # 读取 agent_cfg.yaml 或 did_document.json 获取 did
+                    did = None
+                    cfg_path = os.path.join(folder_path, 'agent_cfg.yaml')
+                    did_path = os.path.join(folder_path, 'did_document.json')
+                    if os.path.exists(cfg_path):
+                        with open(cfg_path, 'r', encoding='utf-8') as f:
+                            try:
+                                import yaml
+                                cfg = yaml.safe_load(f)
+                                did = cfg.get('did')
+                            except Exception:
+                                pass
+                    if not did and os.path.exists(did_path):
+                        with open(did_path, 'r', encoding='utf-8') as f:
+                            try:
+                                import json
+                                doc = json.load(f)
+                                did = doc.get('id')
+                            except Exception:
+                                pass
+                    if did not in keep_dids:
+                        print(f"删除多余用户目录: {folder_path}")
+                        shutil.rmtree(folder_path)  
+    
+    step_helper.pause(step_id = "demo2_1_0")
+    """
+        1. 创建智能体所需的用户文件夹
+        清理原有同名智能体用户文件夹
+        创建智能体用户文件夹 返回智能体的DID-Document
+    """
+    agent_user_name = '用户智能体安鹏'
+    agent_road_name = '服务智能体路书'
+    agent_hotel_name = '服务智能体酒店'
+    agent_weather_name = '服务智能体天气'
+    demo2_1_delete_demo_agents([agent_user_name,agent_road_name,agent_hotel_name,agent_weather_name])  # 清理指定的演示用智能体
+    params_agent_user = {'name': agent_user_name, 'host': 'localhost', 'port': 9527, 'dir': 'wba', 'type': 'user'}
+    params_agent_road = {'name': agent_road_name , 'host': 'localhost', 'port': 9527, 'dir': 'wba', 'type': 'agent'}
+    params_agent_hotel = {'name': agent_hotel_name, 'host': 'localhost', 'port': 9527, 'dir': 'wba', 'type': 'agent'}
+    params_agent_weather = {'name': agent_weather_name, 'host': 'localhost', 'port': 9527, 'dir': 'wba', 'type': 'agent'}
+    agent_user_did_doc = did_create_user(params_agent_user)
+    agent_road_did_doc = did_create_user(params_agent_road)
+    agent_hotel_did_doc = did_create_user(params_agent_hotel)
+    agent_weather_did_doc = did_create_user(params_agent_weather)
+    step_helper.pause(step_id = "demo2_1_1")
+
+    """
+        2. 初始化SDK和智能体
+    """
+    user_name_list, user_name_dir = get_user_cfg_list()
+
+
+    agent_user = LocalAgent(id=agent_user_did_doc['id'], user_dir= user_name_dir[agent_user_name])
+    agent_road = LocalAgent(id=agent_road_did_doc['id'], user_dir= user_name_dir[agent_road_name])
+    agent_hotel = LocalAgent(id=agent_hotel_did_doc['id'], user_dir= user_name_dir[agent_hotel_name])
+    agent_weather = LocalAgent(id=agent_weather_did_doc['id'], user_dir= user_name_dir[agent_weather_name])
+
+def demo3_1_host_start(args):
     import uvicorn
     from fastapi import FastAPI, Request
     import shutil
@@ -152,8 +260,13 @@ def agent_did_host_start(args):
     time.sleep(0.5)
 
 # 批量加载本地DID用户并实例化LocalAgent
-def load_agents():
-
+def demo1_1_1_load_agents():
+    """
+    从   dynamic_config.yaml 的 anp_sdk.agent 中读取 demo_agent1, demo_agent2, demo_agent3 字段
+    从   anp_users 目录下加载对应的 DID 文档
+    实例化 LocalAgent 并返回
+    :return: agents, user_dirs
+    """
     agent_cfg = dynamic_config.get('anp_sdk.agent', {})
     dids = [agent_cfg.get('demo_agent1'), agent_cfg.get('demo_agent2'), agent_cfg.get('demo_agent3')]
     user_did_path = dynamic_config.get('anp_sdk.user_did_path')
@@ -186,7 +299,7 @@ def load_agents():
     return agents
 
 # 注册API和消息处理器
-def register_handlers(agents):
+def demo1_1_2_register_handlers(agents):
     if len(agents) < 3:
         logger.error("本地DID用户不足3个，无法完成全部演示")
         return agents, None, None, None
@@ -245,21 +358,50 @@ def register_handlers(agents):
 class StepModeHelper:
     def __init__(self, step_mode: bool = False):
         self.step_mode = step_mode
-    def pause(self, step_name: str = ""):
+    def pause(self, step_name: str = "" , step_id: str = None):
+        if step_id is not None:
+            step_name = helper_load(lang=dynamic_config.get("anp_sdk.helper_lang"), step_id=step_id)
         if self.step_mode:
             from colorama import Fore, Style
             input(f"{Fore.GREEN}--- {step_name} ---{Style.RESET_ALL} {Fore.YELLOW}按任意键继续...{Style.RESET_ALL}")
 
 
 
-async def demo(sdk, agent1, agent2, agent3, step_mode: bool = False):
+async def demo1_2_demo(sdk, agent1, agent2, agent3, step_mode: bool = False):
     step_helper = StepModeHelper(step_mode=step_mode)    
     if not all([agent1, agent2, agent3]):
         logger.error("智能体不足，无法执行演示")
         return
     """演示智能体之间的消息和API调用"""
 
-     # 演示API调用
+    
+
+
+     # 获取每个agent的ad.json
+    step_helper.pause("获取每个agent的ad.json,查看其endpoints和name")
+    
+
+
+    for agent in [agent1, agent2, agent3]:
+        host, port = ANPSDK.get_did_host_port_from_did(agent.id)
+        user_id = str(agent.id)
+        user_id = quote(user_id)
+        url = f"http://{host}:{port}/wba/user/{user_id}/ad.json"
+        resp = requests.get(url)
+
+        try:
+            data = resp.json()  # 尝试解析 JSON
+        except ValueError:
+            data = resp.text  # 如果解析失败，返回文本数据
+
+        print(resp.status_code)  # 获取 HTTP 状态码
+        print(data)  # 获取响应文本
+
+        logger.info(f"{agent.name}的ad.json信息:")
+        logger.info(f"name: {data['name']}")
+        logger.info(f"endpoints: {data['endpoints']}\n")
+
+    # 演示API调用
     step_helper.pause("步骤1: 演示API调用,第一次请求会包含did双向认证和颁发token,log比较长")
  
 
@@ -371,30 +513,30 @@ async def demo(sdk, agent1, agent2, agent3, step_mode: bool = False):
     except Exception as e:
         logger.error(f"读取消息文件失败: {e}")
 
-# 主函数
-def main(step_mode: bool = False, fast_mode: bool = False):
+
+def demo1_1_pre_demo(step_mode: bool = False, fast_mode: bool = False):
     
     step_helper = StepModeHelper(step_mode=step_mode)  
     # 1. 初始化 SDK
-    step_helper.pause("准备步骤1: 初始化 SDK")
+    step_helper.pause(step_id = "demo1_1_0")
     from anp_open_sdk.anp_sdk import ANPSDK
     sdk = ANPSDK()
     
     # 2. 加载智能体
-    step_helper.pause("准备步骤2: 从本地加载智能体，方便演示")
-    agents = load_agents()
+    step_helper.pause(step_id = "demo1_1_1")
+    agents = demo1_1_1_load_agents()
     
     # 3. 注册处理器
-    step_helper.pause("准备步骤3: 智能体注册自己的消息处理函数和对外服务API)")
-    agents, agent1, agent2, agent3 = register_handlers(agents)
+    step_helper.pause(step_id = "demo1_1_2")
+    agents, agent1, agent2, agent3 = demo1_1_2_register_handlers(agents)
     
     # 4. 注册智能体到 SDK
-    step_helper.pause("准备步骤4: 智能体注册到SDK,SDK会自动路由请求到各个智能体")
+    step_helper.pause(step_id = "demo1_1_3")
     for agent in agents:
         sdk.register_agent(agent)
         
     # 5. 启动服务器
-    step_helper.pause("准备步骤5: 启动SDK服务器，智能体的DID查询和API/消息接口对外服务就绪")
+    step_helper.pause(step_id = "demo1_1_4")
     import threading
     def start_server():
         try:
@@ -409,39 +551,78 @@ def main(step_mode: bool = False, fast_mode: bool = False):
 
     if not fast_mode:
         input("服务器已启动，查看'/'了解状态,'/docs'了解基础api,按回车继续....")
-    return sdk, agents, agent1, agent2, agent3
+    return sdk, agent1, agent2, agent3
 
-   
+def helper_load(lang='zh', step_id=None):
+    """从helper.json文件中读取帮助内容
+    
+    Args:
+        lang (str, optional): 语言类型，支持'zh'和'en'. 默认为'zh'.
+        step_id (str, optional): 步骤ID. 如果不指定，返回所有内容.
+    
+    Returns:
+        str或dict: 如果指定step_id，返回对应语言的帮助内容字符串；否则返回所有帮助内容字典
+    """
+    import os
+    import json
+    
+    # 获取当前文件所在目录
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    helper_file = os.path.join(current_dir, 'helper.json')
+    
+    # 检查文件是否存在
+    if not os.path.exists(helper_file):
+        logger.error(f"帮助文件不存在: {helper_file}")
+        return {} if step_id is None else ""
+    
+    try:
+        # 读取JSON文件
+        with open(helper_file, 'r', encoding='utf-8') as f:
+            helper_data = json.load(f)
+        
+        # 确保语言类型有效
+        if lang not in ['zh', 'en']:
+            logger.warning(f"不支持的语言类型: {lang}, 使用默认语言'zh'")
+            lang = 'zh'
+        
+        # 如果指定了步骤ID，返回对应的帮助内容
+        if step_id is not None:
+            return helper_data.get(str(step_id), {}).get(lang, "")
+        
+        # 返回所有帮助内容
+        return {k: v[lang] for k, v in helper_data.items() if lang in v}
+        
+    except json.JSONDecodeError as e:
+        logger.error(f"JSON解析错误: {e}")
+        return {} if step_id is None else ""
+    except Exception as e:
+        logger.error(f"读取帮助文件时发生错误: {e}")
+        return {} if step_id is None else ""
+    
 
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description='ANP SDK 演示程序')
+    parser.add_argument('-d', action='store_true', help='开发者学习模式')
     parser.add_argument('-s', action='store_true', help='启用步骤模式，每个步骤都会暂停等待用户确认')
     parser.add_argument('-f', action='store_true', help='快速模式，跳过所有等待用户确认的步骤')
-    parser.add_argument('-n', nargs=5, metavar=('name', 'host', 'port', 'host_dir', 'agent_type'),
-                        help='创建新用户，需要提供：用户名 主机名 端口号 主机路径 用户类型')
     parser.add_argument('-p', nargs='?', metavar='did',
                         help='启动DID发布专用Agent，参数为：可选DID，未指定时自动读取配置文件 did_hoster 并查找anp_users目录下对应目录')
     args = parser.parse_args()
 
-    if args.n:
-        name, host, port, host_dir, agent_type = args.n
-        params = {
-            'name': name,
-            'host': host,
-            'port': int(port),
-            'dir': host_dir,
-            'type': agent_type,
-        }
-        did_create_user(params)
-    elif args.p is not None or '-p' in sys.argv:
-        agent_did_host_start(args.p)
-        sdk , agents, agent1 , agent2 ,agent3  = main(step_mode=args.s, fast_mode=args.f)
-        
+    if args.p is not None or '-p' in sys.argv:
+        demo3_1_host_start(args.p)
+
+    elif  '-d' in sys.argv:
+        step_mode = True
+         # 启动开发者交互式学习模式
+        step_helper = StepModeHelper(step_mode=step_mode)    
+        demo2_1(step_helper)
+
 
     else:
-         # 启动演示服务器
-        sdk , agents, agent1 , agent2 ,agent3  = main(step_mode=args.s, fast_mode=args.f)
+        # 启动演示服务器
+        sdk , agent1 , agent2 ,agent3  = demo1_1_pre_demo(step_mode=args.s, fast_mode=args.f)
          # 6. 启动演示任务
         if all([agent1, agent2, agent3]):
             step_helper = StepModeHelper(step_mode=args.s)
@@ -449,7 +630,7 @@ if __name__ == "__main__":
             import threading
             def run_demo():
                 try:
-                    asyncio.run(demo(sdk, agent1, agent2, agent3, step_mode=args.s,))
+                    asyncio.run(demo1_2_demo(sdk, agent1, agent2, agent3, step_mode=args.s,))
                 except Exception as e:
                     logger.error(f"演示运行错误: {e}")
             thread = threading.Thread(target=run_demo)
