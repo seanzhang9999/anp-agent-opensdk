@@ -73,7 +73,7 @@ async def get_did_document(user_id: str) -> Dict:
 
 
 @router.get("/wba/user/{resp_did}/ad.json", summary="Get agent description")
-async def get_agent_description(resp_did: str) -> Dict:
+async def get_agent_description(resp_did: str, request: Request) -> Dict:
     """
     Get agent description document.
     
@@ -87,17 +87,6 @@ async def get_agent_description(resp_did: str) -> Dict:
     if not success:
         raise HTTPException(status_code=404, detail=f"Agent with DID {resp_did} not found")
     
-    from fastapi import Request
-    import inspect
-    # 尝试从调用栈获取 request
-    request = None
-    for frame_info in inspect.stack():
-        local_vars = frame_info.frame.f_locals
-        if 'request' in local_vars:
-            request = local_vars['request']
-            break
-    if request is None:
-        raise RuntimeError("无法获取 FastAPI request 实例，无法获取 sdk")
     sdk = request.app.state.sdk
     agent = sdk.get_agent(resp_did)
     if agent is None:

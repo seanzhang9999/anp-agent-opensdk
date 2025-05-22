@@ -1,3 +1,3 @@
 {"status": "connected", "group_id": "demo_group"}
-{"sender": "did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1", "content": "大家好，我是本田，现在是2025-05-22 12:44:16,欢迎来到群聊！", "timestamp": "2025-05-22 12:44:16", "type": "group_message"}
-{"sender": "did:wba:localhost%3A9527:wba:user:28cddee0fade0258", "content": "大家好，我是雅马哈，现在是2025-05-22 12:44:18,欢迎来到群聊！", "timestamp": "2025-05-22 12:44:18", "type": "group_message"}
+{"sender": "did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1", "content": "大家好，我是本田，现在是2025-05-22 12:59:12,欢迎来到群聊！", "timestamp": "2025-05-22 12:59:13", "type": "group_message"}
+{"sender": "did:wba:localhost%3A9527:wba:user:28cddee0fade0258", "content": "大家好，我是雅马哈，现在是2025-05-22 12:59:15,欢迎来到群聊！", "timestamp": "2025-05-22 12:59:15", "type": "group_message"}
