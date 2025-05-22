@@ -599,6 +599,59 @@ def helper_load(lang='zh', step_id=None):
         logger.error(f"读取帮助文件时发生错误: {e}")
         return {} if step_id is None else ""
     
+import inspect
+
+def generate_api_yaml(sdk):
+    """生成注册的API的OpenAPI YAML文件"""
+    openapi_spec = {
+        "openapi": "3.0.0",
+        "info": {
+            "title": "ANP SDK Registered APIs",
+            "version": "1.0.0"
+        },
+        "paths": {}
+    }
+
+    for path, route_info in sdk.api_routes.items():
+        # Assuming route_info is a dict like {'func': func, 'methods': methods}
+        # Or if it's from LocalAgent.expose_api, it might just be the function
+        func = route_info.get('func', route_info) # Handle both cases
+        methods = route_info.get('methods', ['GET']) # Default to GET if not specified
+
+        path_item = {}
+        for method in methods:
+            operation = {
+                "summary": func.__name__,
+                "operationId": func.__name__,
+                "parameters": [], # Add parameter introspection later
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                }
+            }
+            # Basic parameter introspection (can be expanded)
+            sig = inspect.signature(func)
+            for name, param in sig.parameters.items():
+                if name == 'request': # Skip the request object itself
+                    continue
+                parameter_info = {
+                    "name": name,
+                    "in": "query", # Assuming query parameters for simplicity, adjust as needed
+                    "required": param.default == inspect.Parameter.empty,
+                    "schema": {"type": "string"} # Basic type, can be improved
+                }
+                operation["parameters"].append(parameter_info)
+
+            path_item[method.lower()] = operation
+
+        openapi_spec["paths"][path] = path_item
+
+    output_file = "registered_apis.yaml"
+    with open(output_file, 'w', encoding='utf-8') as f:
+        yaml.dump(openapi_spec, f, allow_unicode=True, sort_keys=False)
+    print(f"OpenAPI YAML generated at {output_file}")
+
 
 if __name__ == "__main__":
     import argparse
@@ -608,6 +661,7 @@ if __name__ == "__main__":
     parser.add_argument('-f', action='store_true', help='快速模式，跳过所有等待用户确认的步骤')
     parser.add_argument('-p', nargs='?', metavar='did',
                         help='启动DID发布专用Agent，参数为：可选DID，未指定时自动读取配置文件 did_hoster 并查找anp_users目录下对应目录')
+    parser.add_argument('--generate-api-yaml', action='store_true', help='生成注册的API的OpenAPI YAML文件')
     args = parser.parse_args()
 
     if args.p is not None or '-p' in sys.argv:
@@ -619,6 +673,9 @@ if __name__ == "__main__":
         step_helper = StepModeHelper(step_mode=step_mode)    
         demo2_1(step_helper)
 
+    elif args.generate_api_yaml:
+        sdk , agent1 , agent2 ,agent3  = demo1_1_pre_demo(step_mode=False, fast_mode=True)
+        generate_api_yaml(sdk)
 
     else:
         # 启动演示服务器

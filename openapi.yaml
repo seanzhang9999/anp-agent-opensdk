@@ -1,0 +1,6 @@
+openapi: 3.1.0
+info:
+  title: ANP SDK Server in DebugMode
+  description: ANP SDK Server in DebugMode
+  version: 0.1.0
+paths: {}
