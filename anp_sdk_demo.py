@@ -307,14 +307,14 @@ def demo1_1_2_register_handlers(agents):
     agent1, agent2, agent3 = agents[0], agents[1], agents[2]
     
     # 为agent1注册API 装饰器方式
-    @agent1.expose_api("/hello")
+    @agent1.expose_api("/hello",methods=["GET"])
     def hello_api(request):
         return {"msg": f" {agent1.name}的/hello接口收到请求:", "param": request.get("params")}
     
     # 为agent2注册API 函数注册方式
     def info_api(request):
         return {"msg": f"{agent2.name}的/info接口收到请求:", "data": request.get("params")}
-    agent2.expose_api("/info", info_api)
+    agent2.expose_api("/info", info_api,  methods=["POST","GET"])
     
     # 为agent1注册消息处理器 装饰器方式
     @agent1.register_message_handler("text")

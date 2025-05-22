@@ -52,9 +52,16 @@ from anp_open_sdk.agent_types import LocalAgent
 
 class ANPSDK:
     """ANP SDK主类，提供简单易用的接口"""
-
     
-    def __init__(self,  port: int = None):
+    # 单例模式
+    instance = None
+    
+    def __new__(cls, *args, **kwargs):
+        if cls.instance is None:
+            cls.instance = super().__new__(cls)
+        return cls.instance
+    
+    def __init__(self, port: int = None):
         """初始化ANP SDK
         
         Args:
@@ -62,13 +69,16 @@ class ANPSDK:
             user_dir: 可选，指定用户目录，默认使用配置中的目录
             port: 可选，指定服务器端口，默认使用配置中的端口
         """
-        self.server_running = False
-        self.port = port or dynamic_config.get('anp_sdk.user_did_port_1')
-        self.agent = None
-        self.api_routes = {}
-        self.message_handlers = {}
-        self.ws_connections = {}
-        self.sse_clients = set()
+        if not hasattr(self, 'initialized'):
+            self.server_running = False
+            self.port = port or dynamic_config.get('anp_sdk.user_did_port_1')
+            self.agent = None
+            self.api_routes = {}
+            self.api_registry = {}
+            self.message_handlers = {}
+            self.ws_connections = {}
+            self.sse_clients = set()
+            self.initialized = True
         
         debugmode = dynamic_config.get("anp_sdk.debugmode")
 
@@ -138,6 +148,81 @@ class ANPSDK:
             
         # 注册默认路由
         self._register_default_routes()
+        
+        # 在服务器启动时生成 OpenAPI YAML
+        @self.app.on_event("startup")
+        async def generate_openapi_yaml():
+            self.save_openapi_yaml()
+    
+    def save_openapi_yaml(self):
+        """生成并保存 OpenAPI YAML 文档"""
+        import yaml
+        import os
+        
+        # 确保 docs 目录存在
+        docs_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'docs', 'openapi')
+        os.makedirs(docs_dir, exist_ok=True)
+        
+        # 为每个智能体生成单独的 YAML 文件
+        for agent_id, apis in self.api_registry.items():
+            openapi_spec = {
+                "openapi": "3.0.0",
+                "info": {
+                    "title": f"Agent {agent_id} API Documentation",
+                    "version": "1.0.0"
+                },
+                "paths": {}
+            }
+            
+            # 添加每个API的路径信息
+            for api in apis:
+                path = api["path"]
+                openapi_spec["paths"][path] = {}
+                
+                # 添加GET和POST方法
+                for method in api["methods"]:
+                    method_lower = method.lower()
+                    openapi_spec["paths"][path][method_lower] = {
+                        "summary": api["summary"],
+                        "operationId": f"{method_lower}_{path.replace('/', '_')}",
+                        "parameters": [
+                            {
+                                "name": "req_did",
+                                "in": "query",
+                                "required": False,
+                                "schema": {"type": "string"},
+                                "default": "demo_caller"
+                            }
+                        ],
+                        "responses": {
+                            "200": {
+                                "description": "Successful response",
+                                "content": {
+                                    "application/json": {
+                                        "schema": {"type": "object"}
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    # 为POST方法添加请求体
+                    if method_lower == "post":
+                        openapi_spec["paths"][path][method_lower]["requestBody"] = {
+                            "required": True,
+                            "content": {
+                                "application/json": {
+                                    "schema": {"type": "object"}
+                                }
+                            }
+                        }
+            
+            # 保存YAML文件
+            yaml_path = os.path.join(docs_dir, f"openapi_{agent_id}.yaml")
+            with open(yaml_path, 'w', encoding='utf-8') as f:
+                yaml.dump(openapi_spec, f, allow_unicode=True, sort_keys=False)
+            
+            self.logger.info(f"Generated OpenAPI documentation for agent {agent_id} at {yaml_path}")
     
     def get_agents(self):
         """获取所有已注册的智能体

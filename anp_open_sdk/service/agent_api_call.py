@@ -122,3 +122,101 @@ async def agent_api_call_get(sdk, caller_agent: str, target_agent: str, api_path
 
     response = await handle_response(response)
     return response
+
+
+
+
+
+
+async def agent_post(sdk, caller_agent: str, target_agent: str, url: str, params: Optional[Dict] = None) -> Dict:
+    """通过 POST 方式调用智能体的 API
+    
+    Args:
+        sdk: ANPSDK 实例
+        caller_agent: 调用方智能体ID
+        target_agent: 目标智能体ID
+        api_path: API 路径
+        params: API 参数
+        
+    Returns:
+        Dict: API 响应结果
+    """
+    caller_agent_obj = sdk.get_agent(caller_agent)
+    target_agent_obj = RemoteAgent(target_agent)
+
+    if caller_agent_obj.get_token_from_remote(target_agent_obj.id) is None:
+        status, error = await agent_auth_two_way(sdk, caller_agent, target_agent)
+        if status is False:
+            return error
+
+    req = {"params": params or {}}
+    
+    url_params = {
+        "req_did": caller_agent_obj.id,
+        "resp_did": target_agent_obj.id
+    }
+    url_params = urlencode(url_params)
+    target_agent_path = quote(target_agent)
+    
+    url = f"http://{url}?{url_params}"
+    token = caller_agent_obj.get_token_from_remote(target_agent_obj.id)["token"]
+
+    status, response = await send_request_with_token(url, token, caller_agent_obj.id, target_agent_obj.id, method="POST", json_data=req)
+    if status == 401:
+        status, error = await agent_auth_two_way(sdk, caller_agent, target_agent)
+        if status is False:
+            return error
+        else:
+            token = caller_agent_obj.get_token_from_remote(target_agent_obj.id)["token"]
+            status, response = await send_request_with_token(url, token, caller_agent_obj.id, target_agent_obj.id, method="POST", json_data=req)
+
+    response = await handle_response(response)
+    return response
+
+
+
+async def agent_get(sdk, caller_agent: str, target_agent: str, url: str, params: Optional[Dict] = None) -> Dict:
+    """通过 GET 方式 用于最基础的 FC 所需
+    
+    Args:
+        sdk: ANPSDK 实例
+        caller_agent: 调用方智能体ID
+        target_agent: 目标智能体ID
+        url: 完整带端口路径
+        params: API 参数
+        
+    Returns:
+        Dict: API 响应结果
+    """
+    caller_agent_obj = sdk.get_agent(caller_agent)
+    target_agent_obj = RemoteAgent(target_agent)
+
+    if caller_agent_obj.get_token_from_remote(target_agent_obj.id) is None:
+        status, error = await agent_auth_two_way(sdk, caller_agent, target_agent)
+        if status is False:
+            return error
+
+    url_params = {
+        "req_did": caller_agent_obj.id,
+        "resp_did": target_agent_obj.id,
+        "params": json.dumps(params) if params else ""
+    }
+    url_params = urlencode(url_params)
+    target_agent_path = quote(target_agent)
+
+    url = f"http://{url}?{url_params}"
+    token = caller_agent_obj.get_token_from_remote(target_agent_obj.id)["token"]
+
+    status, response = await send_request_with_token(url, token, caller_agent_obj.id, target_agent_obj.id, method="GET")
+    if status == 401:
+        status, error = await agent_auth_two_way(sdk, caller_agent, target_agent)
+        if status is False:
+            return error
+        else:
+            token = caller_agent_obj.get_token_from_remote(target_agent_obj.id)["token"]
+            status, response = await send_request_with_token(url, token, caller_agent_obj.id, target_agent_obj.id, method="GET")
+
+    response = await handle_response(response)
+    return response
+
+

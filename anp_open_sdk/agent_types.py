@@ -115,14 +115,46 @@ class LocalAgent:
         # 支持装饰器和函数式注册API
     
     # 支持装饰器和函数式注册API
-    def expose_api(self, path: str, func: Callable = None):
+    def expose_api(self, path: str, func: Callable = None, methods=None):
+        methods = methods or ["GET", "POST"] 
         if func is None:
             def decorator(f):
                 self.api_routes[path] = f
+                # 生成API信息
+                api_info = {
+                    "path": f"/agent/api/{self.id}{path}",
+                    "methods": methods,
+                    "summary": f.__doc__ or f"{self.name}的{path}接口",
+                    "agent_id": self.id,
+                    "agent_name": self.name
+                }
+                # 将API信息添加到SDK的注册表中
+                
+                from anp_open_sdk.anp_sdk import ANPSDK
+                if hasattr(ANPSDK, 'instance') and ANPSDK.instance:
+                    if self.id not in ANPSDK.instance.api_registry:
+                        ANPSDK.instance.api_registry[self.id] = []
+                    ANPSDK.instance.api_registry[self.id].append(api_info)
+                    print(f"注册 API: {api_info}")
                 return f
             return decorator
         else:
             self.api_routes[path] = func
+            # 生成API信息
+            api_info = {
+                "path": f"/agent/api/{self.id}{path}",
+                "methods": methods,
+                "summary": func.__doc__ or f"{self.name}的{path}接口",
+                "agent_id": self.id,
+                "agent_name": self.name
+            }
+            # 将API信息添加到SDK的注册表中
+            from anp_open_sdk.anp_sdk import ANPSDK
+            if hasattr(ANPSDK, 'instance') and ANPSDK.instance:
+                if self.id not in ANPSDK.instance.api_registry:
+                    ANPSDK.instance.api_registry[self.id] = []
+                ANPSDK.instance.api_registry[self.id].append(api_info)
+                print(f"注册 API: {api_info}")
             return func
     
     # 支持装饰器和函数式注册消息handler
