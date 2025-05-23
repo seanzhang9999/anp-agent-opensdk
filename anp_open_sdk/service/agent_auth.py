@@ -106,9 +106,13 @@ async def agent_auth_two_way(sdk, caller_agent: str, target_agent: str) -> tuple
     target_agent_obj = RemoteAgent(target_agent)
     auth_dir = dynamic_config.get("anp_sdk.auth_virtual_dir")
 
+    user_data_manager = sdk.user_data_manager
+    user_data = user_data_manager.get_user_data (caller_agent)
+
+
     auth_client = DIDWbaAuthHeader(
-        did_document_path=str(caller_agent_obj.did_document_path),
-        private_key_path=str(caller_agent_obj.private_key_path)
+        did_document_path=str(user_data.did_doc_path),
+        private_key_path=str(user_data.did_private_key_file_path)
     )
 
     url_params = {

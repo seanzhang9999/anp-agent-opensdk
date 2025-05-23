@@ -70,111 +70,6 @@ from anp_open_sdk.config.path_resolver import path_resolver
 import os, json, yaml
 
 
-def demo2_1(step_helper) -> None:
-    def demo2_1_delete_demo_agents(usernames=None):
-            """
-            删除指定用户名的用户文件夹，如果未指定用户名，则删除除了 dynamic_config.yaml agent: 内列出的 did 之外的所有用户文件夹
-            Args:
-                usernames: 要删除的用户名列表，如果为None则使用配置文件判断
-            """
-            import os
-            import shutil
-            from anp_open_sdk.config.dynamic_config import dynamic_config
-            
-            users_dir = os.path.join(os.path.dirname(__file__), 'anp_open_sdk', 'anp_users')
-            
-            if usernames:
-                # 如果指定了用户名列表，遍历目录查找匹配的用户
-                for folder in os.listdir(users_dir):
-                    folder_path = os.path.join(users_dir, folder)
-                    if not os.path.isdir(folder_path):
-                        continue
-                        
-                    cfg_path = os.path.join(folder_path, 'agent_cfg.yaml')
-                    if not os.path.exists(cfg_path):
-                        continue
-                        
-                    try:
-                        with open(cfg_path, 'r') as f:
-                            import yaml
-                            cfg = yaml.safe_load(f)
-                            if cfg and 'name' in cfg:
-                                # 检查用户名是否完全匹配或者是否以任何指定的用户名开头
-                                user_name = cfg['name']
-                                if user_name in usernames or any(user_name.startswith(u) for u in usernames):
-                                    print(f"删除用户 {cfg['name']} 的目录: {folder_path}")
-                                    shutil.rmtree(folder_path)
-                    except Exception as e:
-                        print(f"读取配置文件失败: {e}")
-                        continue
-                return
-                
-            # 如果未指定用户名，则使用配置文件判断要保留的did
-            agent_cfg = dynamic_config.get('anp_sdk.agent')
-            keep_dids = set()
-            if agent_cfg:
-                for v in agent_cfg.values():
-                    if isinstance(v, str) and v.startswith('did:'):
-                        keep_dids.add(v)
-            
-            for folder in os.listdir(users_dir):
-                folder_path = os.path.join(users_dir, folder)
-                if os.path.isdir(folder_path):
-                    # 读取 agent_cfg.yaml 或 did_document.json 获取 did
-                    did = None
-                    cfg_path = os.path.join(folder_path, 'agent_cfg.yaml')
-                    did_path = os.path.join(folder_path, 'did_document.json')
-                    if os.path.exists(cfg_path):
-                        with open(cfg_path, 'r', encoding='utf-8') as f:
-                            try:
-                                import yaml
-                                cfg = yaml.safe_load(f)
-                                did = cfg.get('did')
-                            except Exception:
-                                pass
-                    if not did and os.path.exists(did_path):
-                        with open(did_path, 'r', encoding='utf-8') as f:
-                            try:
-                                import json
-                                doc = json.load(f)
-                                did = doc.get('id')
-                            except Exception:
-                                pass
-                    if did not in keep_dids:
-                        print(f"删除多余用户目录: {folder_path}")
-                        shutil.rmtree(folder_path)  
-    
-    step_helper.pause(step_id = "demo2_1_0")
-    """
-        1. 创建智能体所需的用户文件夹
-        清理原有同名智能体用户文件夹
-        创建智能体用户文件夹 返回智能体的DID-Document
-    """
-    agent_user_name = '用户智能体安鹏'
-    agent_road_name = '服务智能体路书'
-    agent_hotel_name = '服务智能体酒店'
-    agent_weather_name = '服务智能体天气'
-    demo2_1_delete_demo_agents([agent_user_name,agent_road_name,agent_hotel_name,agent_weather_name])  # 清理指定的演示用智能体
-    params_agent_user = {'name': agent_user_name, 'host': 'localhost', 'port': 9527, 'dir': 'wba', 'type': 'user'}
-    params_agent_road = {'name': agent_road_name , 'host': 'localhost', 'port': 9527, 'dir': 'wba', 'type': 'agent'}
-    params_agent_hotel = {'name': agent_hotel_name, 'host': 'localhost', 'port': 9527, 'dir': 'wba', 'type': 'agent'}
-    params_agent_weather = {'name': agent_weather_name, 'host': 'localhost', 'port': 9527, 'dir': 'wba', 'type': 'agent'}
-    agent_user_did_doc = did_create_user(params_agent_user)
-    agent_road_did_doc = did_create_user(params_agent_road)
-    agent_hotel_did_doc = did_create_user(params_agent_hotel)
-    agent_weather_did_doc = did_create_user(params_agent_weather)
-    step_helper.pause(step_id = "demo2_1_1")
-
-    """
-        2. 初始化SDK和智能体
-    """
-    user_name_list, user_name_dir = get_user_cfg_list()
-
-
-    agent_user = LocalAgent(id=agent_user_did_doc['id'], user_dir= user_name_dir[agent_user_name])
-    agent_road = LocalAgent(id=agent_road_did_doc['id'], user_dir= user_name_dir[agent_road_name])
-    agent_hotel = LocalAgent(id=agent_hotel_did_doc['id'], user_dir= user_name_dir[agent_hotel_name])
-    agent_weather = LocalAgent(id=agent_weather_did_doc['id'], user_dir= user_name_dir[agent_weather_name])
 
 def demo3_1_host_start(args):
     import uvicorn
@@ -259,43 +154,43 @@ def demo3_1_host_start(args):
     import time
     time.sleep(0.5)
 
+
+
+
+
 # 批量加载本地DID用户并实例化LocalAgent
-def demo1_1_1_load_agents():
+def demo1_1_1_load_agents(sdk: ANPSDK):
     """
     从   dynamic_config.yaml 的 anp_sdk.agent 中读取 demo_agent1, demo_agent2, demo_agent3 字段
     从   anp_users 目录下加载对应的 DID 文档
     实例化 LocalAgent 并返回
     :return: agents, user_dirs
     """
+    # 使用 ANPSDK 实例中的 LocalUserDataManager
+    user_data_manager = sdk.user_data_manager
+
+    # 从 dynamic_config.yaml 获取 demo 智能体的 DID 列表
     agent_cfg = dynamic_config.get('anp_sdk.agent', {})
-    dids = [agent_cfg.get('demo_agent1'), agent_cfg.get('demo_agent2'), agent_cfg.get('demo_agent3')]
-    user_did_path = dynamic_config.get('anp_sdk.user_did_path')
-    user_did_path = path_resolver.resolve_path(user_did_path)
+    agent_names = [
+        agent_cfg.get('demo_agent1'),
+        agent_cfg.get('demo_agent2'),
+        agent_cfg.get('demo_agent3')
+    ]
+
     agents = []
-    for did in dids:
-        user_dir = None
-        for d in os.listdir(user_did_path):
-            did_path = os.path.join(user_did_path, d, 'did_document.json')
-            if os.path.exists(did_path):
-                with open(did_path, 'r', encoding='utf-8') as f:
-                    did_doc = json.load(f)
-                    if did_doc.get('id') == did:
-                        user_dir = d
-                        break
-        if not user_dir:
-            logger.warning(f'anp_users 目录下未找到 DID={did} 的目录')
+    # 遍历 DID 列表，通过 LocalUserDataManager 加载用户数据并创建 LocalAgent
+    for agent_name in agent_names:
+        if not agent_name:
             continue
-        agent_dir = os.path.join(user_did_path, user_dir)
-        agent = LocalAgent(id=did, user_dir=user_dir)
-        # 可选：加载 agent_cfg.yaml 设定 name
-        cfg_path = os.path.join(agent_dir, 'agent_cfg.yaml')
-        if os.path.exists(cfg_path):
-            with open(cfg_path, 'r', encoding='utf-8') as f:
-                cfg = yaml.safe_load(f)
-                agent.name = cfg.get('name', user_dir)
+        user_data = user_data_manager.get_user_data_by_name(agent_name)
+        if user_data:
+            agent = LocalAgent(sdk, id=user_data.did, name = user_data.name)
+            # 从加载的用户数据中设置智能体名称
+            agent.name = user_data.agent_cfg.get('name', user_data.user_dir)
+            agents.append(agent)
         else:
-            agent.name = user_dir
-        agents.append(agent)
+            logger.warning(f'未找到预设名字={agent_name} 的用户数据')
+
     return agents
 
 # 注册API和消息处理器
@@ -665,7 +560,7 @@ def demo1_1_pre_demo(step_mode: bool = False, fast_mode: bool = False):
     
     # 2. 加载智能体
     step_helper.pause(step_id = "demo1_1_1")
-    agents = demo1_1_1_load_agents()
+    agents = demo1_1_1_load_agents(sdk)
     
     # 3. 注册处理器
     step_helper.pause(step_id = "demo1_1_2")
@@ -751,7 +646,6 @@ if __name__ == "__main__":
     parser.add_argument('-f', action='store_true', help='快速模式，跳过所有等待用户确认的步骤')
     parser.add_argument('-p', nargs='?', metavar='did',
                         help='启动DID发布专用Agent，参数为：可选DID，未指定时自动读取配置文件 did_hoster 并查找anp_users目录下对应目录')
-    parser.add_argument('--generate-api-yaml', action='store_true', help='生成注册的API的OpenAPI YAML文件')
     args = parser.parse_args()
 
     if args.p is not None or '-p' in sys.argv:
@@ -763,9 +657,6 @@ if __name__ == "__main__":
         step_helper = StepModeHelper(step_mode=step_mode)    
         demo2_1(step_helper)
 
-    elif args.generate_api_yaml:
-        sdk , agent1 , agent2 ,agent3  = demo1_1_pre_demo(step_mode=False, fast_mode=True)
-        generate_api_yaml(sdk)
 
     else:
         # 启动演示服务器
@@ -789,62 +680,4 @@ if __name__ == "__main__":
                 # 这里可以添加清理代码
 
             step_helper.pause("演示完成")
-
-
-def generate_api_yaml(sdk):
-    """生成注册的API的OpenAPI YAML文件"""
-    openapi_spec = {
-        "openapi": "3.0.0",
-        "info": {
-            "title": "ANP SDK Registered APIs",
-            "version": "1.0.0"
-        },
-        "paths": {}
-    }
-
-    for path, route_info in sdk.api_routes.items():
-        # Assuming route_info is a dict like {'func': func, 'methods': methods}
-        # Or if it's from LocalAgent.expose_api, it might just be the function
-        func = route_info.get('func', route_info) # Handle both cases
-        methods = route_info.get('methods', ['GET']) # Default to GET if not specified
-
-        path_item = {}
-        for method in methods:
-            operation = {
-                "summary": func.__name__,
-                "operationId": func.__name__,
-                "parameters": [], # Add parameter introspection later
-                "responses": {
-                    "200": {
-                        "description": "Success"
-                    }
-                }
-            }
-            # Basic parameter introspection (can be expanded)
-            sig = inspect.signature(func)
-            for name, param in sig.parameters.items():
-                if name == 'request': # Skip the request object itself
-                    continue
-                parameter_info = {
-                    "name": name,
-                    "in": "query", # Assuming query parameters for simplicity, adjust as needed
-                    "required": param.default == inspect.Parameter.empty,
-                    "schema": {"type": "string"} # Basic type, can be improved
-                }
-                operation["parameters"].append(parameter_info)
-
-            path_item[method.lower()] = operation
-
-        openapi_spec["paths"][path] = path_item
-
-    output_file = "registered_apis.yaml"
-    with open(output_file, 'w', encoding='utf-8') as f:
-        yaml.dump(openapi_spec, f, allow_unicode=True, sort_keys=False)
-    print(f"OpenAPI YAML generated at {output_file}")
-
-
-
-
-
-
 

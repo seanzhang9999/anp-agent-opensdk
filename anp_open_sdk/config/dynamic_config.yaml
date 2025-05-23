@@ -24,9 +24,9 @@ anp_sdk:
   helper_lang: zh
   agent:
     did_hoster: did:wba:localhost%3A7345:wba:user:1fac60af6e3c03bf
-    demo_agent1: did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1 #本田
-    demo_agent2: did:wba:localhost%3A9527:wba:user:28cddee0fade0258 #雅马哈
-    demo_agent3: did:wba:localhost%3A9527:wba:user:5fea49e183c6c211 #铃木
+    demo_agent1: 本田
+    demo_agent2: 雅马哈
+    demo_agent3: 铃木
   
 
 

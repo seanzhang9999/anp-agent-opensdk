@@ -89,22 +89,8 @@ async def get_agent_description(resp_did: str, request: Request) -> Dict:
     if agent is None:
         agent = LocalAgent(did_doc['id'], user_dir)
 
-    def get_agent_cfg_by_user_dir(user_dir: str) -> dict:
-        """
-        从指定 user_dir 目录下加载 agent_cfg.yaml 文件，返回为字典对象。
-        """
-        import os
-        import yaml
-        did_path = Path(dynamic_config.get('anp_sdk.user_did_path'))
-        did_path = did_path.joinpath( user_dir , "agent_cfg.yaml" )
-        cfg_path = Path(path_resolver.resolve_path(did_path.as_posix()))
-
-        if not os.path.isfile(cfg_path):
-            raise FileNotFoundError(f"agent_cfg.yaml not found in {user_dir}")
-        with open(cfg_path, "r", encoding="utf-8") as f:
-            cfg = yaml.safe_load(f)
-        return cfg
     
+    from anp_open_sdk.anp_sdk_utils import get_agent_cfg_by_user_dir
     user_cfg = get_agent_cfg_by_user_dir(user_dir)
     
     # 获取基础端点

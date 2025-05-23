@@ -14,8 +14,10 @@
 
 import os
 from datetime import datetime
+from anp_open_sdk.config.path_resolver import path_resolver
 import inspect
 from typing import Dict, Any, Callable, Optional, Union, List
+from warnings import simplefilter
 from loguru import logger
 
 from anp_open_sdk.anp_sdk_utils import get_user_dir_did_doc_by_did
@@ -39,7 +41,7 @@ class RemoteAgent:
 class LocalAgent:
     """本地智能体，代表当前用户的DID身份"""
     
-    def __init__(self, id: str, user_dir: str = "", name:str = "未命名", agent_type: str = "personal"):
+    def __init__(self, sdk , id: str, name :str = "未命名",  agent_type: str = "personal"):
         """初始化本地智能体
         
         Args:
@@ -48,33 +50,31 @@ class LocalAgent:
             agent_type: 智能体类型，"personal"或"service"
         """
 
-        if not user_dir:
-            result ,did_dict, user_dir = get_user_dir_did_doc_by_did(id)
-            if did_dict['name'] is not None and name == "未命名":
-                self.name = did_dict['name']
-            if result is True:
-                raise ValueError(f"未找到DID为 {id} 的用户文档")
+        
 
+        user_data_manager = sdk.user_data_manager
+        user_data = user_data_manager.get_user_data(id)
+        user_dir = user_data.user_dir
 
 
         if name == "未命名":
-            self.name = f"未命名智能体{id}"
+            if user_data.name:
+                self.name = user_data.name
+            else:
+                self.name = f"未命名智能体{id}"
         self.id = id
         self.name = name
         self.user_dir = user_dir
         self.agent_type = agent_type
         self.key_id = dynamic_config.get('anp_sdk.user_did_key_id')
-        self.userdid_filepath = dynamic_config.get('anp_sdk.user_did_path')
+        
+        self.did_document_path = user_data.did_doc_path
 
-        self.userdid_filepath = os.path.join(self.userdid_filepath, user_dir)
+        self.private_key_path =user_data.did_private_key_file_path
 
-        self.did_document_path = f"{self.userdid_filepath}/did_document.json"
+        self.jwt_private_key_path = user_data.jwt_private_key_file_path
 
-        self.private_key_path = f"{self.userdid_filepath}/{self.key_id}_private.pem"
-
-        self.jwt_private_key_path = f"{self.userdid_filepath}/private_key.pem"
-
-        self.jwt_public_key_path = f"{self.userdid_filepath}/public_key.pem"
+        self.jwt_public_key_path = user_data.jwt_public_key_file_path
 
         self.logger = logger
         self._ws_connections = {}
