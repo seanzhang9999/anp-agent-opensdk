@@ -27,7 +27,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import inspect
 
 # 安全中间件
-from anp_open_sdk.anp_sdk_utils import get_user_cfg_by_did
+from anp_open_sdk.anp_sdk_utils import get_user_dir_did_doc_by_did
 from anp_open_sdk.auth.auth_middleware import auth_middleware
 
 # 两个历史遗留路由 用于认证 和 did发布 
@@ -485,7 +485,7 @@ class ANPSDK:
             return result
 
         # 注册智能体消息路由
-        @self.app.post("/agent/message/post/{did}")
+        @self.app.post("/agent/message/{did}/post")
         async def message_entry_post(did: str, request: Request):
             data = await request.json()
             req_did = request.query_params.get("req_did", "demo_caller")

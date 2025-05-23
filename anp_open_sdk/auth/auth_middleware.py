@@ -37,6 +37,7 @@ EXEMPT_PATHS = [
     "/openapi.json",
     "/wba/user/*",  # Allow access to DID documents
     "/",           # Allow access to root endpoint
+    "/favicon.ico",
     "/agents/example/ad.json"  # Allow access to agent description
 ]  # "/wba/test" path removed from exempt list, now requires authentication
 

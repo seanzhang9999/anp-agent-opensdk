@@ -61,7 +61,7 @@ async def agent_msg_post(sdk, caller_agent:str , target_agent :str, content: str
     
     msg_dir = dynamic_config.get("anp_sdk.msg_virtual_dir")
 
-    url = f"http://{target_agent_obj.host}:{target_agent_obj.port}{msg_dir}/{target_agent_path}?{url_params}"
+    url = f"http://{target_agent_obj.host}:{target_agent_obj.port}{msg_dir}/{target_agent_path}/post?{url_params}"
     token = caller_agent_obj.get_token_from_remote(target_agent_obj.id)["token"]
 
     status, response = await send_request_with_token(url, token, caller_agent_obj.id, target_agent_obj.id, method="POST", json_data=msg)

@@ -536,10 +536,11 @@ async def demo1_2_demo(sdk, agent1, agent2, agent3, step_mode: bool = False):
 
         print(resp.status_code)  # 获取 HTTP 状态码
         print(data)  # 获取响应文本
+        enpoints= data.get("ad:endpoints")
 
         logger.info(f"{agent.name}的ad.json信息:")
         logger.info(f"name: {data['name']}")
-        logger.info(f"endpoints: {data['endpoints']}\n")
+        logger.info(f"ad:endpoints: {enpoints}\n")
 
     # 演示API调用
     step_helper.pause("步骤1: 演示API调用,第一次请求会包含did双向认证和颁发token,log比较长")

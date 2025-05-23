@@ -46,8 +46,10 @@ def get_user_cfg_list():
                 print(f"读取配置文件 {cfg_path} 出错: {e}")
     return user_list, name_to_dir
 
-def get_user_cfg_by_did(did):
-    """根据did查找对应的用户文件夹并加载配置"""
+def get_user_dir_did_doc_by_did(did):
+    """根据did查找对应的用户文件夹并加载配置
+    返回 did_doc, user_dir
+    """
     user_dirs = dynamic_config.get('anp_sdk.user_did_path')
     for user_dir in os.listdir(user_dirs):
         did_path = os.path.join(user_dirs, user_dir, "did_document.json")
@@ -152,12 +154,18 @@ def did_create_user(user_iput: dict):
             f.write(private_key_pem)
         with open(f"{userdid_filepath}/{key_id}_public.pem", "wb") as f:
             f.write(public_key_pem)
+    
+    time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     agent_cfg = {
         "name": user_iput['name'],
         "unique_id": unique_id,
         "did": did_document["id"],
-        "type": user_iput['type']
+        "type": user_iput['type'],
+        "owner": "anper",
+        "description": "anpsdk的测试用户",
+        "version": "0.1.0",
+        "created_at": time
     }
 
     with open(f"{userdid_filepath}/agent_cfg.yaml", "w", encoding='utf-8') as f:

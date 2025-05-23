@@ -18,7 +18,7 @@ import inspect
 from typing import Dict, Any, Callable, Optional, Union, List
 from loguru import logger
 
-from anp_open_sdk.anp_sdk_utils import get_user_cfg_by_did
+from anp_open_sdk.anp_sdk_utils import get_user_dir_did_doc_by_did
 from anp_open_sdk.config.dynamic_config import dynamic_config
 
 class RemoteAgent:
@@ -49,7 +49,7 @@ class LocalAgent:
         """
 
         if not user_dir:
-            result ,did_dict, user_dir = get_user_cfg_by_did(id)
+            result ,did_dict, user_dir = get_user_dir_did_doc_by_did(id)
             if did_dict['name'] is not None and name == "未命名":
                 self.name = did_dict['name']
             if result is True:
