@@ -348,6 +348,146 @@ def demo1_1_2_register_handlers(agents):
             logger.error(f"保存消息到文件时出错: {e}")
             return
     agent1.register_group_event_handler(my_handler, group_id=None, event_type=None)
+    
+    # 为agent1注册群组消息发送处理函数
+    async def group_message_handler(data):
+        group_id = data.get("group_id")
+        req_did = data.get("req_did", "demo_caller")
+        
+        # 初始化群组成员列表
+        if not hasattr(agent1, "group_members"):
+            agent1.group_members = {}
+        if not hasattr(agent1, "group_queues"):
+            agent1.group_queues = {}
+            
+        # 验证发送者权限
+        if group_id not in agent1.group_members or req_did not in agent1.group_members[group_id]:
+            return {"error": "无权在此群组发送消息"}
+        
+        time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        # 构造消息
+        message = {
+            "sender": req_did,
+            "content": data.get("content", ""),
+            "timestamp": time,
+            "type": "group_message"
+        }
+        
+        # 将消息发送到群组队列
+        if group_id in agent1.group_queues:
+            for queue in agent1.group_queues[group_id].values():
+                await queue.put(message)
+        
+        return {"status": "success"}
+    
+    # 为agent1注册群组连接处理函数
+    async def group_connect_handler(data):
+        group_id = data.get("group_id")
+        req_did = data.get("req_did")
+        
+        # 初始化群组成员列表
+        if not hasattr(agent1, "group_members"):
+            agent1.group_members = {}
+        if not hasattr(agent1, "group_queues"):
+            agent1.group_queues = {}
+            
+        if req_did and req_did.find("%3A") == -1:
+            parts = req_did.split(":", 4)  # 分割 4 份 把第三个冒号替换成%3A
+            req_did = ":".join(parts[:3]) + "%3A" + ":".join(parts[3:])
+        if not req_did:
+            return {"error": "未提供订阅者 DID"}
+
+        # 验证订阅者权限
+        if group_id not in agent1.group_members or req_did not in agent1.group_members[group_id]:
+            return {"error": "无权订阅此群组消息"}
+        
+        async def event_generator():
+            # 初始化群组
+            if group_id not in agent1.group_queues:
+                agent1.group_queues[group_id] = {}
+            
+            # 为该客户端创建消息队列
+            client_id = f"{group_id}_{req_did}_{id(req_did)}"
+            agent1.group_queues[group_id][client_id] = asyncio.Queue()
+            
+            try:
+                # 发送初始连接成功消息
+                yield f"data: {json.dumps({'status': 'connected', 'group_id': group_id})}\n\n"
+                
+                # 保持连接打开并等待消息
+                while True:
+                    try:
+                        message = await asyncio.wait_for(
+                            agent1.group_queues[group_id][client_id].get(),
+                            timeout=30
+                        )
+                        yield f"data: {json.dumps(message)}\n\n"
+                    except asyncio.TimeoutError:
+                        # 发送心跳包
+                        yield f"data: {json.dumps({'type': 'heartbeat'})}\n\n"
+            except Exception as e:
+                logger.error(f"群组 {group_id} SSE连接错误: {e}")
+            finally:
+                # 清理资源
+                if group_id in agent1.group_queues and client_id in agent1.group_queues[group_id]:
+                    del agent1.group_queues[group_id][client_id]
+                    if not agent1.group_queues[group_id]:
+                        del agent1.group_queues[group_id]
+        
+        return {"event_generator": event_generator()}
+    
+    # 为agent1注册群组成员管理处理函数
+    async def group_members_handler(data):
+        group_id = data.get("group_id")
+        action = data.get("action")
+        target_did = data.get("did")
+        req_did = data.get("req_did")
+        
+        # 初始化群组成员列表
+        if not hasattr(agent1, "group_members"):
+            agent1.group_members = {}
+            
+        if req_did and req_did.find("%3A") == -1:
+            parts = req_did.split(":", 3)  # 只分割前 3 个
+            req_did = ":".join(parts[:2]) + "%3A" + ":".join(parts[2:])
+            
+        if not all([action, target_did, req_did]):
+            return {"error": "缺少必要参数"}
+        
+        # 初始化群组成员列表
+        if group_id not in agent1.group_members:
+            agent1.group_members[group_id] = set()
+        
+        # 如果是空群组，第一个加入的人自动成为成员
+        if not agent1.group_members[group_id]:
+            if action == "add":
+                agent1.group_members[group_id].add(req_did) # 添加请求者为首个成员
+                if target_did != req_did:  # 如果目标不是请求者自己，也添加目标
+                    agent1.group_members[group_id].add(target_did)
+                    return {"status": "success", "message": "成功创建群组并添加了创建者和创建者邀请的成员"}
+                return {"status": "success", "message": "成功创建群组并添加创建者为首个成员"}
+            return {"error": "群组不存在"}
+        
+        # 验证请求者是否是群组成员
+        if req_did not in agent1.group_members[group_id]:
+            return {"error": "无权管理群组成员"}
+        
+        if action == "add":
+            agent1.group_members[group_id].add(target_did)
+            return {"status": "success", "message": "成功添加成员"}
+        elif action == "remove":
+            if target_did in agent1.group_members[group_id]:
+                agent1.group_members[group_id].remove(target_did)
+                return {"status": "success", "message": "成功移除成员"}
+            return {"error": "成员不存在"}
+        else:
+            return {"error": "不支持的操作"}
+    
+    # 注册群组处理函数
+    agent1.register_message_handler("group_message", group_message_handler)
+    agent1.register_message_handler("group_connect", group_connect_handler)
+    agent1.register_message_handler("group_members", group_members_handler)
 
     
     return agents, agent1, agent2, agent3,
@@ -441,19 +581,19 @@ async def demo1_2_demo(sdk, agent1, agent2, agent3, step_mode: bool = False):
    
     # 创建群组并添加 agent1（创建者自动成为成员）
     action = {"action": "add", "did": agent1.id}
-    resp = await agent_msg_group_members(sdk, agent1.id, group_url, group_id, action)
+    resp = await agent_msg_group_members(sdk, agent1.id,agent1.id, group_url, group_id, action)
     logger.info(f"{agent1.name}创建群组{group_id}并添加{agent1.name},服务响应为: {resp}")
     step_helper.pause(f"验证群组逻辑:第一个访问群并加人的自动成为成员")
 
     # 添加 agent2 到群组
     action = {"action": "add", "did": agent2.id}
-    resp = await agent_msg_group_members(sdk, agent1.id, group_url, group_id, action)
+    resp = await agent_msg_group_members(sdk, agent1.id,agent1.id, group_url, group_id, action)
     logger.info(f"{agent1.name}邀请{agent2.name}的响应: {resp}")
     step_helper.pause(f"验证群组逻辑:创建人成员可以拉人")
 
     # 添加 agent3 到群组
     action = {"action": "add", "did": agent3.id}
-    resp = await agent_msg_group_members(sdk, agent2.id, group_url, group_id, action)
+    resp = await agent_msg_group_members(sdk, agent2.id,agent1.id, group_url, group_id, action)
     logger.info(f"{agent2.name}邀请{agent3.name}的响应: {resp}")
     step_helper.pause(f"验证群组逻辑:其他成员也可以拉人，群组逻辑可以自定义")
 
@@ -465,7 +605,7 @@ async def demo1_2_demo(sdk, agent1, agent2, agent3, step_mode: bool = False):
         await f.write("")
 
     #启动agent1的监听任务，返回一个Task object
-    task = await agent1.start_group_listening(sdk, group_url, group_id)
+    task = await agent1.start_group_listening(sdk, agent1.id,group_url, group_id)
     await asyncio.sleep(1)
     step_helper.pause(f"建群拉人结束，{agent1.name} 开始启动子线程，用于监听群聊 {group_id} 存储消息到json记录文件")
 
@@ -473,7 +613,7 @@ async def demo1_2_demo(sdk, agent1, agent2, agent3, step_mode: bool = False):
     time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     logger.info(f"\n演示：{agent1.name}在{time}“发送群聊消息...")
     message = f"大家好，我是{agent1.name}，现在是{time},欢迎来到群聊！"
-    resp = await agent_msg_group_post(sdk, agent1.id, group_url, group_id, message)
+    resp = await agent_msg_group_post(sdk, agent1.id, agent1.id,group_url, group_id, message)
     logger.info(f"{agent1.name}发送群聊消息的响应: {resp}")
     step_helper.pause(f"{agent1.name} 向 {group_id} 发消息,所有成员可以通过sse长连接接收消息")
     
@@ -482,7 +622,7 @@ async def demo1_2_demo(sdk, agent1, agent2, agent3, step_mode: bool = False):
     time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     logger.info(f"\n演示:{agent2.name}等待2秒后在{time}发送群聊消息...")
     message = f"大家好，我是{agent2.name}，现在是{time},欢迎来到群聊！"
-    resp = await agent_msg_group_post(sdk, agent2.id, group_url, group_id, message)
+    resp = await agent_msg_group_post(sdk, agent2.id, agent1.id,group_url, group_id, message)
     logger.info(f"{agent2.name}发送群聊消息的响应: {resp}")
     step_helper.pause(f"{agent2.name} 向 {group_id} 发消息,所有成员可以通过sse长连接接收消息")
     
@@ -601,6 +741,55 @@ def helper_load(lang='zh', step_id=None):
     
 import inspect
 
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description='ANP SDK 演示程序')
+    parser.add_argument('-d', action='store_true', help='开发者学习模式')
+    parser.add_argument('-s', action='store_true', help='启用步骤模式，每个步骤都会暂停等待用户确认')
+    parser.add_argument('-f', action='store_true', help='快速模式，跳过所有等待用户确认的步骤')
+    parser.add_argument('-p', nargs='?', metavar='did',
+                        help='启动DID发布专用Agent，参数为：可选DID，未指定时自动读取配置文件 did_hoster 并查找anp_users目录下对应目录')
+    parser.add_argument('--generate-api-yaml', action='store_true', help='生成注册的API的OpenAPI YAML文件')
+    args = parser.parse_args()
+
+    if args.p is not None or '-p' in sys.argv:
+        demo3_1_host_start(args.p)
+
+    elif  '-d' in sys.argv:
+        step_mode = True
+         # 启动开发者交互式学习模式
+        step_helper = StepModeHelper(step_mode=step_mode)    
+        demo2_1(step_helper)
+
+    elif args.generate_api_yaml:
+        sdk , agent1 , agent2 ,agent3  = demo1_1_pre_demo(step_mode=False, fast_mode=True)
+        generate_api_yaml(sdk)
+
+    else:
+        # 启动演示服务器
+        sdk , agent1 , agent2 ,agent3  = demo1_1_pre_demo(step_mode=args.s, fast_mode=args.f)
+         # 6. 启动演示任务
+        if all([agent1, agent2, agent3]):
+            step_helper = StepModeHelper(step_mode=args.s)
+            step_helper.pause("准备完成:启动演示任务")
+            import threading
+            def run_demo():
+                try:
+                    asyncio.run(demo1_2_demo(sdk, agent1, agent2, agent3, step_mode=args.s,))
+                except Exception as e:
+                    logger.error(f"演示运行错误: {e}")
+            thread = threading.Thread(target=run_demo)
+            thread.start()
+            try:
+                thread.join()  # 等待线程完成
+            except KeyboardInterrupt:
+                logger.info("用户中断演示")
+                # 这里可以添加清理代码
+
+            step_helper.pause("演示完成")
+
+
 def generate_api_yaml(sdk):
     """生成注册的API的OpenAPI YAML文件"""
     openapi_spec = {
@@ -651,54 +840,6 @@ def generate_api_yaml(sdk):
     with open(output_file, 'w', encoding='utf-8') as f:
         yaml.dump(openapi_spec, f, allow_unicode=True, sort_keys=False)
     print(f"OpenAPI YAML generated at {output_file}")
-
-
-if __name__ == "__main__":
-    import argparse
-    parser = argparse.ArgumentParser(description='ANP SDK 演示程序')
-    parser.add_argument('-d', action='store_true', help='开发者学习模式')
-    parser.add_argument('-s', action='store_true', help='启用步骤模式，每个步骤都会暂停等待用户确认')
-    parser.add_argument('-f', action='store_true', help='快速模式，跳过所有等待用户确认的步骤')
-    parser.add_argument('-p', nargs='?', metavar='did',
-                        help='启动DID发布专用Agent，参数为：可选DID，未指定时自动读取配置文件 did_hoster 并查找anp_users目录下对应目录')
-    parser.add_argument('--generate-api-yaml', action='store_true', help='生成注册的API的OpenAPI YAML文件')
-    args = parser.parse_args()
-
-    if args.p is not None or '-p' in sys.argv:
-        demo3_1_host_start(args.p)
-
-    elif  '-d' in sys.argv:
-        step_mode = True
-         # 启动开发者交互式学习模式
-        step_helper = StepModeHelper(step_mode=step_mode)    
-        demo2_1(step_helper)
-
-    elif args.generate_api_yaml:
-        sdk , agent1 , agent2 ,agent3  = demo1_1_pre_demo(step_mode=False, fast_mode=True)
-        generate_api_yaml(sdk)
-
-    else:
-        # 启动演示服务器
-        sdk , agent1 , agent2 ,agent3  = demo1_1_pre_demo(step_mode=args.s, fast_mode=args.f)
-         # 6. 启动演示任务
-        if all([agent1, agent2, agent3]):
-            step_helper = StepModeHelper(step_mode=args.s)
-            step_helper.pause("准备完成:启动演示任务")
-            import threading
-            def run_demo():
-                try:
-                    asyncio.run(demo1_2_demo(sdk, agent1, agent2, agent3, step_mode=args.s,))
-                except Exception as e:
-                    logger.error(f"演示运行错误: {e}")
-            thread = threading.Thread(target=run_demo)
-            thread.start()
-            try:
-                thread.join()  # 等待线程完成
-            except KeyboardInterrupt:
-                logger.info("用户中断演示")
-                # 这里可以添加清理代码
-
-            step_helper.pause("演示完成")
 
 
 

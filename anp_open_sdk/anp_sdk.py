@@ -11,7 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import os
+import urllib.parse
 import os
 import time
 import logging
@@ -133,9 +134,7 @@ class ANPSDK:
         self.proxy_mode = False
         self.proxy_task = None
         
-        # 群组相关属性
-        self.group_queues = {}  # 群组消息队列: {group_id: {client_id: Queue}}
-        self.group_members = {}  # 群组成员列表: {group_id: set(did)}
+
         
     def register_agent(self, agent: LocalAgent):
         """注册智能体到路由器
@@ -160,7 +159,7 @@ class ANPSDK:
         import os
         
         # 确保 docs 目录存在
-        docs_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'docs', 'openapi')
+        docs_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'anp_open_sdk', 'anp_users')
         os.makedirs(docs_dir, exist_ok=True)
         
         # 为每个智能体生成单独的 YAML 文件
@@ -217,12 +216,209 @@ class ANPSDK:
                             }
                         }
             
-            # 保存YAML文件
-            yaml_path = os.path.join(docs_dir, f"openapi_{agent_id}.yaml")
-            with open(yaml_path, 'w', encoding='utf-8') as f:
-                yaml.dump(openapi_spec, f, allow_unicode=True, sort_keys=False)
+            # 添加消息接口
+            message_path = f"/agent/message/post/{agent_id.split(':')[-1]}"
+            openapi_spec["paths"][message_path] = {
+                "post": {
+                    "summary": "发送消息到智能体",
+                    "operationId": f"post_message_to_{agent_id.split(':')[-1]}",
+                    "parameters": [
+                        {
+                            "name": "req_did",
+                            "in": "query",
+                            "required": False,
+                            "schema": {"type": "string"},
+                            "default": "demo_caller"
+                        }
+                    ],
+                    "requestBody": {
+                        "required": True,
+                        "content": {
+                            "application/json": {
+                                "schema": {"type": "object"}
+                            }
+                        }
+                    },
+                    "responses": {
+                        "200": {
+                            "description": "消息处理成功响应",
+                            "content": {
+                                "application/json": {
+                                    "schema": {"type": "object"}
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             
-            self.logger.info(f"Generated OpenAPI documentation for agent {agent_id} at {yaml_path}")
+            # 添加群组功能接口
+            user_id = agent_id.split(':')[-1]
+            
+            # 群组消息发送接口
+            group_message_path = f"/group/{user_id}/{{group_id}}/message"
+            openapi_spec["paths"][group_message_path] = {
+                "post": {
+                    "summary": "发送消息到群组",
+                    "operationId": f"post_group_message_{user_id}",
+                    "parameters": [
+                        {
+                            "name": "group_id",
+                            "in": "path",
+                            "required": True,
+                            "schema": {"type": "string"}
+                        },
+                        {
+                            "name": "req_did",
+                            "in": "query",
+                            "required": False,
+                            "schema": {"type": "string"},
+                            "default": "demo_caller"
+                        }
+                    ],
+                    "requestBody": {
+                        "required": True,
+                        "content": {
+                            "application/json": {
+                                "schema": {"type": "object"}
+                            }
+                        }
+                    },
+                    "responses": {
+                        "200": {
+                            "description": "群组消息处理成功响应",
+                            "content": {
+                                "application/json": {
+                                    "schema": {"type": "object"}
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            # 群组连接接口
+            group_connect_path = f"/group/{user_id}/{{group_id}}/connect"
+            openapi_spec["paths"][group_connect_path] = {
+                "get": {
+                    "summary": "连接到群组消息流",
+                    "operationId": f"connect_group_{user_id}",
+                    "parameters": [
+                        {
+                            "name": "group_id",
+                            "in": "path",
+                            "required": True,
+                            "schema": {"type": "string"}
+                        },
+                        {
+                            "name": "req_did",
+                            "in": "query",
+                            "required": False,
+                            "schema": {"type": "string"},
+                            "default": "demo_caller"
+                        }
+                    ],
+                    "responses": {
+                        "200": {
+                            "description": "群组消息流连接成功",
+                            "content": {
+                                "text/event-stream": {
+                                    "schema": {"type": "string"}
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            # 群组成员管理接口
+            group_members_path = f"/group/{user_id}/{{group_id}}/members"
+            openapi_spec["paths"][group_members_path] = {
+                "post": {
+                    "summary": "管理群组成员",
+                    "operationId": f"manage_group_members_{user_id}",
+                    "parameters": [
+                        {
+                            "name": "group_id",
+                            "in": "path",
+                            "required": True,
+                            "schema": {"type": "string"}
+                        },
+                        {
+                            "name": "req_did",
+                            "in": "query",
+                            "required": False,
+                            "schema": {"type": "string"},
+                            "default": "demo_caller"
+                        }
+                    ],
+                    "requestBody": {
+                        "required": True,
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "action": {
+                                            "type": "string",
+                                            "enum": ["add", "remove"],
+                                            "description": "要执行的操作，add添加成员，remove移除成员"
+                                        },
+                                        "did": {
+                                            "type": "string",
+                                            "description": "目标成员的DID"
+                                        }
+                                    },
+                                    "required": ["action", "did"]
+                                }
+                            }
+                        }
+                    },
+                    "responses": {
+                        "200": {
+                            "description": "群组成员管理操作成功响应",
+                            "content": {
+                                "application/json": {
+                                    "schema": {"type": "object"}
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            # 保存YAML文件
+            # 从agent_id中提取用户ID
+            user_id = agent_id.split(':')[-1]  # 提取DID最后部分
+            user_dir = f"user_{user_id}"
+            user_path = os.path.join(dynamic_config.get('anp_sdk.user_did_path'), user_dir)
+            safe_agent_id = urllib.parse.quote(agent_id, safe="")  # 编码所有特殊字符
+
+            
+            # 确保用户目录存在
+            if os.path.exists(user_path):
+                # 保存到用户目录
+                yaml_path = os.path.join(user_path, f"openapi_{safe_agent_id}.yaml")
+                with open(yaml_path, 'w', encoding='utf-8') as f:
+                    yaml.dump(openapi_spec, f, allow_unicode=True, sort_keys=False)
+                """
+                # 同时保存到docs目录（保持向后兼容）
+                docs_yaml_path = os.path.join(docs_dir, f"openapi_{agent_id}.yaml")
+                with open(docs_yaml_path, 'w', encoding='utf-8') as f:
+                    yaml.dump(openapi_spec, f, allow_unicode=True, sort_keys=False)
+                
+                self.logger.info(f"Generated OpenAPI documentation for agent {agent_id} at {docs_yaml_path}")
+                """
+                self.logger.info(f"Generated OpenAPI documentation for agent {agent_id} at {yaml_path} ")
+
+            else:
+                # 如果用户目录不存在，只保存到docs目录
+                yaml_path = os.path.join(docs_dir, f"openapi_{safe_agent_id}.yaml")
+                with open(yaml_path, 'w', encoding='utf-8') as f:
+                    yaml.dump(openapi_spec, f, allow_unicode=True, sort_keys=False)
+                
+                self.logger.info(f"Generated OpenAPI documentation for agent {agent_id} at {yaml_path} (user directory not found)")
+
     
     def get_agents(self):
         """获取所有已注册的智能体
@@ -332,129 +528,43 @@ class ANPSDK:
         # 群组成员列表
         self.group_members = {}
         
-        # 注册群聊消息发送路由
-        @self.app.post("/group/{group_id}/message")
-        async def group_message(group_id: str, request: Request):
+        # 注册群聊消息发送路由 - 由agent处理
+        @self.app.post("/group/{did}/{group_id}/message")
+        async def group_message(did: str, group_id: str, request: Request):
             data = await request.json()
-            req_did = request.query_params.get("req_did")
-            if not req_did:
-                return {"error": "未提供发送者 DID"}
-            
-            # 验证发送者权限
-            if group_id not in self.group_members or req_did not in self.group_members[group_id]:
-                return {"error": "无权在此群组发送消息"}
-            
-            time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-            # 构造消息
-            message = {
-                "sender": req_did,
-                "content": data.get("content", ""),
-                "timestamp": time,
-                "type": "group_message"
-            }
-            
-            # 将消息发送到群组队列
-            if group_id in self.group_queues:
-                for queue in self.group_queues[group_id].values():
-                    await queue.put(message)
-            
-            return {"status": "success"}
+            req_did = request.query_params.get("req_did", "demo_caller")
+            resp_did = did
+            data["type"] = "group_message"
+            data["group_id"] = group_id
+            data["req_did"] = req_did
+            result = self.router.route_request(req_did, resp_did, data)
+            return result
         
-        # 注册群聊SSE连接端点
-        @self.app.get("/group/{group_id}/connect")
-        async def group_connect(group_id: str, request: Request):
-            req_did = request.query_params.get("req_did")
-            if req_did.find("%3A") == -1:
-                parts = req_did.split(":", 4)  # 分割 4 份 把第三个冒号替换成%3A 现在都上了urlencode 这个代码应该无用了
-                req_did = ":".join(parts[:3]) + "%3A" + ":".join(parts[3:])
-            if not req_did:
-                return {"error": "未提供订阅者 DID"}
-
-            # 验证订阅者权限
-            if group_id not in self.group_members or req_did not in self.group_members[group_id]:
-                return {"error": "无权订阅此群组消息"}
+        # 注册群聊SSE连接端点 - 由agent处理
+        @self.app.get("/group/{did}/{group_id}/connect")
+        async def group_connect(did: str, group_id: str, request: Request):
+            req_did = request.query_params.get("req_did", "demo_caller")
+            resp_did = did
+            data = {"type": "group_connect", "group_id": group_id}
+            data["req_did"] = req_did
+            result = self.router.route_request(req_did, resp_did, data)
             
-            async def event_generator():
-                # 初始化群组
-                if group_id not in self.group_queues:
-                    self.group_queues[group_id] = {}
-                
-                # 为该客户端创建消息队列
-                client_id = f"{group_id}_{req_did}_{id(request)}"
-                self.group_queues[group_id][client_id] = asyncio.Queue()
-                
-                try:
-                    # 发送初始连接成功消息
-                    yield f"data: {json.dumps({'status': 'connected', 'group_id': group_id})}\n\n"
-                    
-                    # 保持连接打开并等待消息
-                    while True:
-                        try:
-                            message = await asyncio.wait_for(
-                                self.group_queues[group_id][client_id].get(),
-                                timeout=30
-                            )
-                            yield f"data: {json.dumps(message)}\n\n"
-                        except asyncio.TimeoutError:
-                            # 发送心跳包
-                            yield f"data: {json.dumps({'type': 'heartbeat'})}\n\n"
-                except Exception as e:
-                    self.logger.error(f"群组 {group_id} SSE连接错误: {e}")
-                finally:
-                    # 清理资源
-                    if group_id in self.group_queues and client_id in self.group_queues[group_id]:
-                        del self.group_queues[group_id][client_id]
-                        if not self.group_queues[group_id]:
-                            del self.group_queues[group_id]
-            
-            return StreamingResponse(event_generator(), media_type="text/event-stream")
+            # 如果agent返回了event_generator函数，则使用它创建SSE响应
+            if result and "event_generator" in result:
+                return StreamingResponse(result["event_generator"], media_type="text/event-stream")
+            return result
         
-        # 注册群组成员管理路由
-        @self.app.post("/group/{group_id}/members")
-        async def manage_group_members(group_id: str, request: Request):
+        # 注册群组成员管理路由 - 由agent处理
+        @self.app.post("/group/{did}/{group_id}/members")
+        async def manage_group_members(did: str, group_id: str, request: Request):
             data = await request.json()
-            action = data.get("action")
-            target_did = data.get("did")
-            req_did = request.query_params.get("req_did")
-            if req_did.find("%3A") == -1:
-                parts = req_did.split(":", 3)  # 只分割前 3 个
-                req_did = ":".join(parts[:2]) + "%3A" + ":".join(parts[2:])
-                
-            
-            if not all([action, target_did, req_did]):
-                return {"error": "缺少必要参数"}
-            
-            # 初始化群组成员列表
-            if group_id not in self.group_members:
-                self.group_members[group_id] = set()
-            
-            # 如果是空群组，第一个加入的人自动成为成员
-            if not self.group_members[group_id]:
-                if action == "add":
-                    self.group_members[group_id].add(req_did) # 添加请求者为首个成员
-                    if target_did != req_did:  # 如果目标不是请求者自己，也添加目标
-                        self.group_members[group_id].add(target_did)
-                        return {"status": "success", "message": "成功创建群组并添加了创建者和创建者邀请的成员"}
-                    return {"status": "success", "message": "成功创建群组并添加创建者为首个成员"}
-                return {"error": "群组不存在"}
-            
-            # 验证请求者是否是群组成员
-            if req_did not in self.group_members[group_id]:
-                return {"error": "无权管理群组成员"}
-            
-            if action == "add":
-                self.group_members[group_id].add(target_did)
-                return {"status": "success", "message": "成功添加成员"}
-            elif action == "remove":
-                if target_did in self.group_members[group_id]:
-                    self.group_members[group_id].remove(target_did)
-                    return {"status": "success", "message": "成功移除成员"}
-                return {"error": "成员不存在"}
-            else:
-                return {"error": "不支持的操作"}
-            
-            return StreamingResponse(event_generator(), media_type="text/event-stream")
+            req_did = request.query_params.get("req_did", "demo_caller")
+            resp_did = did
+            data["type"] = "group_members"
+            data["group_id"] = group_id
+            data["req_did"] = req_did
+            result = self.router.route_request(req_did, resp_did, data)
+            return result
     
     async def _handle_message(self, message: Dict[str, Any]):
         """处理接收到的消息"""

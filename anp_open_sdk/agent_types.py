@@ -92,6 +92,10 @@ class LocalAgent:
         # [(event_type, handler)] 全局handler
         self._group_global_handlers = []
 
+        # 群组相关属性
+        self.group_queues = {}  # 群组消息队列: {group_id: {client_id: Queue}}
+        self.group_members = {}  # 群组成员列表: {group_id: set(did)}
+
 
     def __del__(self):
         """确保在对象销毁时释放资源"""
@@ -231,7 +235,7 @@ class LocalAgent:
             # 忽略错误，防止在解释器关闭时出现问题
             pass
                 
-    async def start_group_listening(self, sdk, group_url: str, group_id: str):
+    async def start_group_listening(self, sdk, group_hoster:str,group_url: str, group_id: str):
         """
         启动对指定群组的消息监听
         
@@ -248,7 +252,7 @@ class LocalAgent:
         
         # 创建监听任务
         task = asyncio.create_task(
-            listen_group_messages(sdk, self.id, group_url, group_id)
+            listen_group_messages(sdk, self.id, group_hoster, group_url, group_id)
         )
         
         self.logger.info(f"已启动群组 {group_id} 的消息监听")
@@ -256,16 +260,42 @@ class LocalAgent:
        
 
     def handle_request(self, req_did: str, request_data: Dict[str, Any]):
-        """处理来自req_did的请求
-        
+        """Handle requests from req_did
         Args:
-            req_did: 请求方DID
-            request_data: 请求数据
-            
+            req_did: Requester's DID
+            request_data: Request data
         Returns:
-            处理结果
+            Processing result
         """
         req_type = request_data.get("type")
+        # Directly handle group_message, group_connect, group_members
+        if req_type in ("group_message", "group_connect", "group_members"):
+            handler = self.message_handlers.get(req_type)
+            if handler:
+                try:
+                    import asyncio
+                    import nest_asyncio
+                    nest_asyncio.apply()
+                    if asyncio.iscoroutinefunction(handler):
+                        loop = asyncio.get_event_loop() 
+                        if loop.is_running():
+                            future = asyncio.ensure_future(handler(request_data))
+                            return loop.run_until_complete(future)  # 获取任务结果
+                        else:
+                            return loop.run_until_complete(handler(request_data))
+                        #asyncio.set_event_loop(loop)
+                        #result = loop.run_until_complete(handler(request_data))  # 运行异步任务
+                        #result = asyncio.create_task(handler(request_data))
+                    else:
+                        result = handler(request_data)
+                    if isinstance(result, dict) and "anp_result" in result:
+                        return result
+                    return {"anp_result": result}
+                except Exception as e:
+                    self.logger.error(f"Group message handling error: {e}")
+                    return {"anp_result": {"status": "error", "message": str(e)}}
+            else:
+                return {"anp_result": {"status": "error", "message": f"No handler for group type: {req_type}"}}
         if req_type == "api_call":
             api_path = request_data.get("path")
             handler = self.api_routes.get(api_path)

@@ -28,7 +28,7 @@ from anp_open_sdk.service.agent_auth import agent_auth_two_way
 import aiofiles
 import asyncio
 
-async def agent_msg_group_post(sdk, caller_agent: str, group_url: str, group_id: str, message: str):
+async def agent_msg_group_post(sdk, caller_agent: str,     group_hoster:str, group_url: str, group_id: str, message: str):
  
     caller_agent_obj = sdk.get_agent(caller_agent)
     message = {
@@ -39,8 +39,8 @@ async def agent_msg_group_post(sdk, caller_agent: str, group_url: str, group_id:
         "group_id": group_id
     }
     url_params = urlencode(url_params)
-    
-    url = f"http://{group_url}/group/{group_id}/message?{url_params}"
+    group_hoster = quote(group_hoster)
+    url = f"http://{group_url}/group/{group_hoster}/{group_id}/message?{url_params}"
     
     try:
         async with aiohttp.ClientSession() as session:
@@ -55,7 +55,7 @@ async def agent_msg_group_post(sdk, caller_agent: str, group_url: str, group_id:
     except Exception as e:
         logger.error(f"发送群组消息时出错: {e}")
         return {"error": str(e)}
-async def agent_msg_group_members(sdk, caller_agent:str, group_url, group_id: str , action):
+async def agent_msg_group_members(sdk, caller_agent:str, group_hoster:str ,  group_url,group_id: str , action):
     """向群组添加成员
     
     Args:
@@ -75,7 +75,8 @@ async def agent_msg_group_members(sdk, caller_agent:str, group_url, group_id: st
         "group_id": group_id
     }
     url_params = urlencode(url_params)
-    url = f"http://{group_url}/group/{group_id}/members?{url_params}"
+    group_hoster = quote(group_hoster)
+    url = f"http://{group_url}/group/{group_hoster}/{group_id}/members?{url_params}"
     
     try:
         async with aiohttp.ClientSession() as session:
@@ -93,7 +94,7 @@ async def agent_msg_group_members(sdk, caller_agent:str, group_url, group_id: st
 
 
 
-async def listen_group_messages(sdk, caller_agent: str, group_url, group_id, event_handlers=None):
+async def listen_group_messages(sdk, caller_agent: str, group_hoster:str, group_url, group_id, event_handlers=None):
     """
     监听群聊消息并通过事件类型分发给 LocalAgent 的群事件服务。
     Args:
@@ -108,9 +109,10 @@ async def listen_group_messages(sdk, caller_agent: str, group_url, group_id, eve
         "req_did": caller_agent_obj.id,
     }
     url_params = urlencode(url_params)
+    group_hoster = quote(group_hoster)
     try:
         async with aiohttp.ClientSession() as session:
-            url = f"http://{group_url}/group/{group_id}/connect?{url_params}"
+            url = f"http://{group_url}/group/{group_hoster}/{group_id}/connect?{url_params}"
             async with session.get(url) as response:
                 async for line in response.content:
                     if line:
