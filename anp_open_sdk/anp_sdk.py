@@ -150,6 +150,14 @@ class ANPSDK:
     
     # 单例模式
     instance = None
+    _instances = {}
+
+    # 单例模式 并支持多端口分别运行 各端口无需指定 通过注册的agent列表中第一个agent获取agent名字中的port
+    @classmethod
+    def get_instance(cls, port):
+        if port not in cls._instances:
+            cls._instances[port] = cls(port)
+        return cls._instances[port]
     
     def __new__(cls, *args, **kwargs):
         if cls.instance is None:
@@ -164,6 +172,8 @@ class ANPSDK:
             user_dir: 可选，指定用户目录，默认使用配置中的目录
             port: 可选，指定服务器端口，默认使用配置中的端口
         """
+
+        self.port = port
         if not hasattr(self, 'initialized'):
             self.server_running = False
             self.port = port or dynamic_config.get('anp_sdk.user_did_port_1')
@@ -260,7 +270,9 @@ class ANPSDK:
         os.makedirs(docs_dir, exist_ok=True)
         
         # 为每个智能体生成单独的 YAML 文件
-        for agent_id, apis in self.api_registry.items():
+        # 遍历所有已注册的本地智能体
+        for agent_id, agent in self.router.local_agents.items():
+            # 动态遍历 FastAPI 路由，自动生成 OpenAPI paths
             openapi_spec = {
                 "openapi": "3.0.0",
                 "info": {
@@ -269,30 +281,103 @@ class ANPSDK:
                 },
                 "paths": {}
             }
-            
-            # 添加每个API的路径信息
-            for api in apis:
-                path = api["path"]
-                openapi_spec["paths"][path] = {}
-                
-                # 添加GET和POST方法
-                for method in api["methods"]:
-                    method_lower = method.lower()
-                    openapi_spec["paths"][path][method_lower] = {
-                        "summary": api["summary"],
-                        "operationId": f"{method_lower}_{path.replace('/', '_')}",
-                        "parameters": [
-                            {
-                                "name": "req_did",
-                                "in": "query",
-                                "required": False,
-                                "schema": {"type": "string"},
-                                "default": "demo_caller"
+            # 1. 先处理 /agent/api/ 路由（直接遍历 self.api_registry）
+            if hasattr(self, 'api_registry') and self.api_registry:
+                for agent_api_id, apis in self.api_registry.items():
+                    # 只导出当前 agent_id 的 api
+                    if agent_api_id != agent_id:
+                        continue
+                    for api in apis:
+                        api_path = api.get('path')
+                        api_methods = api.get('methods', ['GET'])
+                        api_summary = api.get('summary', '')
+                        for method in api_methods:
+                            method_lower = method.lower()
+                            if method_lower == "head":
+                                continue
+                            # 修正拼接，避免重复 /agent/api/{agent_id}/agent/api/{agent_id}/xxx
+                            if api_path.startswith(f"/agent/api/{agent_id}"):
+                                openapi_path = api_path
+                            else:
+                                openapi_path = f"/agent/api/{agent_id}{api_path if api_path.startswith('/') else '/' + api_path}"
+                            if openapi_path not in openapi_spec["paths"]:
+                                openapi_spec["paths"][openapi_path] = {}
+                            parameters = [
+                                {
+                                    "name": "req_did",
+                                    "in": "query",
+                                    "required": False,
+                                    "schema": {"type": "string"},
+                                    "default": "demo_caller"
+                                }
+                            ]
+                            # operationId
+                            operation_id = f"{method_lower}_{openapi_path.replace('/', '_').replace('{', '').replace('}', '')}"
+                            responses = {
+                                "200": {
+                                    "description": "成功响应",
+                                    "content": {
+                                        "application/json": {
+                                            "schema": {"type": "object"}
+                                        }
+                                    }
+                                }
                             }
-                        ],
-                        "responses": {
+                            request_body = None
+                            if method_lower == "post":
+                                request_body = {
+                                    "required": True,
+                                    "content": {
+                                        "application/json": {
+                                            "schema": {"type": "object"}
+                                        }
+                                    }
+                                }
+                            openapi_spec["paths"][openapi_path][method_lower] = {
+                                "summary": api_summary,
+                                "operationId": operation_id,
+                                "parameters": parameters,
+                                "responses": responses
+                            }
+                            if request_body:
+                                openapi_spec["paths"][openapi_path][method_lower]["requestBody"] = request_body
+
+            # 2. 再处理其他路由（message/group/wba等，依然用 self.app.routes）
+            for route in self.app.routes:
+                if hasattr(route, "methods") and hasattr(route, "path"):
+                    methods = route.methods
+                    path = route.path
+                    # 跳过 /agent/api/ 路由，已由上面处理
+                    if path.startswith("/agent/api/"):
+                        continue
+                    if not (path.startswith("/agent/message/") or path.startswith("/agent/group/") or path.startswith("/wba/")):
+                        continue
+                    for method in methods:
+                        method_lower = method.lower()
+                        if method_lower == "head":
+                            continue
+                        if path not in openapi_spec["paths"]:
+                            openapi_spec["paths"][path] = {}
+                        parameters = []
+                        if "{group_id}" in path:
+                            parameters.append({
+                                "name": "group_id",
+                                "in": "path",
+                                "required": True,
+                                "schema": {"type": "string"}
+                            })
+                        parameters.append({
+                            "name": "req_did",
+                            "in": "query",
+                            "required": False,
+                            "schema": {"type": "string"},
+                            "default": "demo_caller"
+                        })
+                        summary = getattr(route, "summary", None) or getattr(route, "name", "")
+                        operation_id = f"{method_lower}_{path.replace('/', '_').replace('{', '').replace('}', '')}"
+                        responses = {
                             "200": {
-                                "description": "Successful response",
+                                "description": "成功响应",
                                 "content": {
                                     "application/json": {
                                         "schema": {"type": "object"}
@@ -300,189 +385,31 @@ class ANPSDK:
                                 }
                             }
                         }
-                    }
-                    
-                    # 为POST方法添加请求体
-                    if method_lower == "post":
-                        openapi_spec["paths"][path][method_lower]["requestBody"] = {
-                            "required": True,
-                            "content": {
-                                "application/json": {
-                                    "schema": {"type": "object"}
-                                }
-                            }
-                        }
-            
-            # 添加消息接口
-            message_path = f"/agent/message/post/{agent_id.split(':')[-1]}"
-            openapi_spec["paths"][message_path] = {
-                "post": {
-                    "summary": "发送消息到智能体",
-                    "operationId": f"post_message_to_{agent_id.split(':')[-1]}",
-                    "parameters": [
-                        {
-                            "name": "req_did",
-                            "in": "query",
-                            "required": False,
-                            "schema": {"type": "string"},
-                            "default": "demo_caller"
-                        }
-                    ],
-                    "requestBody": {
-                        "required": True,
-                        "content": {
-                            "application/json": {
-                                "schema": {"type": "object"}
-                            }
-                        }
-                    },
-                    "responses": {
-                        "200": {
-                            "description": "消息处理成功响应",
-                            "content": {
-                                "application/json": {
-                                    "schema": {"type": "object"}
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            
-            # 添加群组功能接口
-            user_id = agent_id.split(':')[-1]
-            
-            # 群组消息发送接口
-            group_message_path = f"/group/{user_id}/{{group_id}}/message"
-            openapi_spec["paths"][group_message_path] = {
-                "post": {
-                    "summary": "发送消息到群组",
-                    "operationId": f"post_group_message_{user_id}",
-                    "parameters": [
-                        {
-                            "name": "group_id",
-                            "in": "path",
-                            "required": True,
-                            "schema": {"type": "string"}
-                        },
-                        {
-                            "name": "req_did",
-                            "in": "query",
-                            "required": False,
-                            "schema": {"type": "string"},
-                            "default": "demo_caller"
-                        }
-                    ],
-                    "requestBody": {
-                        "required": True,
-                        "content": {
-                            "application/json": {
-                                "schema": {"type": "object"}
-                            }
-                        }
-                    },
-                    "responses": {
-                        "200": {
-                            "description": "群组消息处理成功响应",
-                            "content": {
-                                "application/json": {
-                                    "schema": {"type": "object"}
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            
-            # 群组连接接口
-            group_connect_path = f"/group/{user_id}/{{group_id}}/connect"
-            openapi_spec["paths"][group_connect_path] = {
-                "get": {
-                    "summary": "连接到群组消息流",
-                    "operationId": f"connect_group_{user_id}",
-                    "parameters": [
-                        {
-                            "name": "group_id",
-                            "in": "path",
-                            "required": True,
-                            "schema": {"type": "string"}
-                        },
-                        {
-                            "name": "req_did",
-                            "in": "query",
-                            "required": False,
-                            "schema": {"type": "string"},
-                            "default": "demo_caller"
-                        }
-                    ],
-                    "responses": {
-                        "200": {
-                            "description": "群组消息流连接成功",
-                            "content": {
+                        if path.endswith("/connect") and method_lower == "get":
+                            responses["200"]["content"] = {
                                 "text/event-stream": {
                                     "schema": {"type": "string"}
                                 }
                             }
-                        }
-                    }
-                }
-            }
-            
-            # 群组成员管理接口
-            group_members_path = f"/group/{user_id}/{{group_id}}/members"
-            openapi_spec["paths"][group_members_path] = {
-                "post": {
-                    "summary": "管理群组成员",
-                    "operationId": f"manage_group_members_{user_id}",
-                    "parameters": [
-                        {
-                            "name": "group_id",
-                            "in": "path",
-                            "required": True,
-                            "schema": {"type": "string"}
-                        },
-                        {
-                            "name": "req_did",
-                            "in": "query",
-                            "required": False,
-                            "schema": {"type": "string"},
-                            "default": "demo_caller"
-                        }
-                    ],
-                    "requestBody": {
-                        "required": True,
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "action": {
-                                            "type": "string",
-                                            "enum": ["add", "remove"],
-                                            "description": "要执行的操作，add添加成员，remove移除成员"
-                                        },
-                                        "did": {
-                                            "type": "string",
-                                            "description": "目标成员的DID"
-                                        }
-                                    },
-                                    "required": ["action", "did"]
+                        request_body = None
+                        if method_lower == "post":
+                            request_body = {
+                                "required": True,
+                                "content": {
+                                    "application/json": {
+                                        "schema": {"type": "object"}
+                                    }
                                 }
                             }
+                        openapi_spec["paths"][path][method_lower] = {
+                            "summary": summary,
+                            "operationId": operation_id,
+                            "parameters": parameters,
+                            "responses": responses
                         }
-                    },
-                    "responses": {
-                        "200": {
-                            "description": "群组成员管理操作成功响应",
-                            "content": {
-                                "application/json": {
-                                    "schema": {"type": "object"}
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+                        if request_body:
+                            openapi_spec["paths"][path][method_lower]["requestBody"] = request_body
+
             
             # 保存YAML文件
             # 从agent_id中提取用户ID
@@ -591,8 +518,55 @@ class ANPSDK:
             result = self.router.route_request(req_did, resp_did, data)
             return result
 
+        # 群组消息队列
+        self.group_queues = {}
+        # 群组成员列表
+        self.group_members = {}
+        
+        # 注册群聊消息发送路由 - 由agent处理
+        @self.app.post("/agent/group/{did}/{group_id}/message")
+        async def group_message(did: str, group_id: str, request: Request):
+            data = await request.json()
+            req_did = request.query_params.get("req_did", "demo_caller")
+            resp_did = did
+            data["type"] = "group_message"
+            data["group_id"] = group_id
+            data["req_did"] = req_did
+            result = self.router.route_request(req_did, resp_did, data)
+            return result
+        
+        # 注册群聊SSE连接端点 - 由agent处理
+        @self.app.get("/agent/group/{did}/{group_id}/connect")
+        async def group_connect(did: str, group_id: str, request: Request):
+            req_did = request.query_params.get("req_did", "demo_caller")
+            resp_did = did
+            data = {"type": "group_connect", "group_id": group_id}
+            data["req_did"] = req_did
+            result = self.router.route_request(req_did, resp_did, data)
+            
+            # 如果agent返回了event_generator函数，则使用它创建SSE响应
+            if result and "event_generator" in result:
+                return StreamingResponse(result["event_generator"], media_type="text/event-stream")
+            return result
+        
+        # 注册群组成员管理路由 - 由agent处理
+        @self.app.post("/agent/group/{did}/{group_id}/members")
+        async def manage_group_members(did: str, group_id: str, request: Request):
+            data = await request.json()
+            req_did = request.query_params.get("req_did", "demo_caller")
+            resp_did = did
+            data["type"] = "group_members"
+            data["group_id"] = group_id
+            data["req_did"] = req_did
+            result = self.router.route_request(req_did, resp_did, data)
+            return result
 
 
+        
+
+        """
+        暂时无用
+        """
         # 注册HTTP POST消息接收路由
         @self.app.post("/api/message")
         async def receive_message(request: Request):
@@ -620,48 +594,6 @@ class ANPSDK:
                 if client_id in self.ws_connections:
                     del self.ws_connections[client_id]
         
-        # 群组消息队列
-        self.group_queues = {}
-        # 群组成员列表
-        self.group_members = {}
-        
-        # 注册群聊消息发送路由 - 由agent处理
-        @self.app.post("/group/{did}/{group_id}/message")
-        async def group_message(did: str, group_id: str, request: Request):
-            data = await request.json()
-            req_did = request.query_params.get("req_did", "demo_caller")
-            resp_did = did
-            data["type"] = "group_message"
-            data["group_id"] = group_id
-            data["req_did"] = req_did
-            result = self.router.route_request(req_did, resp_did, data)
-            return result
-        
-        # 注册群聊SSE连接端点 - 由agent处理
-        @self.app.get("/group/{did}/{group_id}/connect")
-        async def group_connect(did: str, group_id: str, request: Request):
-            req_did = request.query_params.get("req_did", "demo_caller")
-            resp_did = did
-            data = {"type": "group_connect", "group_id": group_id}
-            data["req_did"] = req_did
-            result = self.router.route_request(req_did, resp_did, data)
-            
-            # 如果agent返回了event_generator函数，则使用它创建SSE响应
-            if result and "event_generator" in result:
-                return StreamingResponse(result["event_generator"], media_type="text/event-stream")
-            return result
-        
-        # 注册群组成员管理路由 - 由agent处理
-        @self.app.post("/group/{did}/{group_id}/members")
-        async def manage_group_members(did: str, group_id: str, request: Request):
-            data = await request.json()
-            req_did = request.query_params.get("req_did", "demo_caller")
-            resp_did = did
-            data["type"] = "group_members"
-            data["group_id"] = group_id
-            data["req_did"] = req_did
-            result = self.router.route_request(req_did, resp_did, data)
-            return result
     
     async def _handle_message(self, message: Dict[str, Any]):
         """处理接收到的消息"""
@@ -714,9 +646,14 @@ class ANPSDK:
         import uvicorn
         import threading
 
+        # 从第一个agent中获取host和port，这样通过load不同端口的agent，即可启动不同的服务器
         agent1 = list(self.get_agents())[0]
 
         host, port = self.get_did_host_port_from_did(agent1.id)   
+
+        app_instance = self.app
+        uvicorn.run(app_instance, host="0.0.0.0", port=port)
+
 
         def run_server():
             # 保存uvicorn服务器实例以便后续关闭

@@ -32,7 +32,7 @@ EXEMPT_PATHS = [
     "/docs",
     "/anp-nlp/",
     "/ws/",
-    "/group/*",
+    "/agent/group/*",
     "/redoc", 
     "/openapi.json",
     "/wba/user/*",  # Allow access to DID documents

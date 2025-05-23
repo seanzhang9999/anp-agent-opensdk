@@ -94,11 +94,22 @@ async def get_agent_description(resp_did: str, request: Request) -> Dict:
     user_cfg = get_agent_cfg_by_user_dir(user_dir)
     
     # 获取基础端点
+    # 动态遍历 FastAPI 路由，自动生成 endpoints
     endpoints = {
-        "auth": {"path": "/wba/auth", "description": "WBA 认证端点"},
-        "message": {"path": f"/agent/message/post/{resp_did}", "description": "消息发送端点"},
-        "openapi_yaml": {"path": f"/wba/user/{resp_did}/agent.yaml", "description": "OpenAPI YAML 声明接口"}
     }
+    for route in sdk.app.routes:
+        if hasattr(route, "methods") and hasattr(route, "path"):
+            path = route.path
+            # 只导出 /agent/api/、/agent/message/、/agent/group/、/wba/ 相关路由
+            if not (path.startswith("/agent/api/") or path.startswith("/agent/message/") or path.startswith("/agent/group/") or path.startswith("/wba/")):
+                continue
+            # endpoint 名称自动生成
+            endpoint_name = path.replace("/agent/api/", "api_").replace("/agent/message/", "message_").replace("/agent/group/", "group_").replace("/wba/", "wba_").replace("/", "_").strip("_")
+            endpoints[endpoint_name] = {
+                "path": path,
+                "description": getattr(route, "summary", getattr(route, "name", "相关端点"))
+            }
+   
     for path, _ in agent.api_routes.items():
         endpoint_name = path.replace('/', '_').strip('_')
         endpoints[endpoint_name] = {

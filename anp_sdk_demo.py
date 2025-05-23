@@ -572,6 +572,9 @@ def demo1_1_pre_demo(step_mode: bool = False, fast_mode: bool = False):
         sdk.register_agent(agent)
         
     # 5. 启动服务器
+
+
+    
     step_helper.pause(step_id = "demo1_1_4")
     import threading
     def start_server():

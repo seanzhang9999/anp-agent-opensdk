@@ -40,7 +40,7 @@ async def agent_msg_group_post(sdk, caller_agent: str,     group_hoster:str, gro
     }
     url_params = urlencode(url_params)
     group_hoster = quote(group_hoster)
-    url = f"http://{group_url}/group/{group_hoster}/{group_id}/message?{url_params}"
+    url = f"http://{group_url}/agent/group/{group_hoster}/{group_id}/message?{url_params}"
     
     try:
         async with aiohttp.ClientSession() as session:
@@ -76,7 +76,7 @@ async def agent_msg_group_members(sdk, caller_agent:str, group_hoster:str ,  gro
     }
     url_params = urlencode(url_params)
     group_hoster = quote(group_hoster)
-    url = f"http://{group_url}/group/{group_hoster}/{group_id}/members?{url_params}"
+    url = f"http://{group_url}/agent/group/{group_hoster}/{group_id}/members?{url_params}"
     
     try:
         async with aiohttp.ClientSession() as session:
@@ -112,7 +112,7 @@ async def listen_group_messages(sdk, caller_agent: str, group_hoster:str, group_
     group_hoster = quote(group_hoster)
     try:
         async with aiohttp.ClientSession() as session:
-            url = f"http://{group_url}/group/{group_hoster}/{group_id}/connect?{url_params}"
+            url = f"http://{group_url}/agent/group/{group_hoster}/{group_id}/connect?{url_params}"
             async with session.get(url) as response:
                 async for line in response.content:
                     if line:
