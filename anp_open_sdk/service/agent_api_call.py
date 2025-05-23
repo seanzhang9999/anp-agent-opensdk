@@ -17,6 +17,8 @@
 import sys
 import os
 
+from anp_open_sdk.agent_types import LocalAgent
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..","..")))
 
 import sys
@@ -25,7 +27,7 @@ import json
 from urllib.parse import urlencode, quote
 from loguru import logger
 from anp_open_sdk.config.dynamic_config import dynamic_config
-from anp_open_sdk.anp_sdk import RemoteAgent
+from anp_open_sdk.anp_sdk import RemoteAgent,LocalAgent
 from anp_open_sdk.anp_sdk_utils import handle_response
 from anp_open_sdk.service.agent_auth import agent_auth_two_way
 from anp_open_sdk.service.agent_auth import check_response_DIDAtuhHeader
@@ -79,7 +81,7 @@ async def agent_api_call_post(sdk, caller_agent: str, target_agent: str, api_pat
     response = await handle_response(response)
     return response
 
-async def agent_api_call_get(sdk, caller_agent: str, target_agent: str, api_path: str, params: Optional[Dict] = None) -> Dict:
+async def agent_api_call_get(sdk, caller_agent: str,  target_agent: str, api_path: str, params: Optional[Dict] = None) -> Dict:
     """通过 GET 方式调用智能体的 API
     
     Args:
@@ -92,11 +94,14 @@ async def agent_api_call_get(sdk, caller_agent: str, target_agent: str, api_path
     Returns:
         Dict: API 响应结果
     """
+
+
     caller_agent_obj = sdk.get_agent(caller_agent)
+
     target_agent_obj = RemoteAgent(target_agent)
 
     if caller_agent_obj.get_token_from_remote(target_agent_obj.id) is None:
-        status, error = await agent_auth_two_way(sdk, caller_agent, target_agent)
+        status, error = await agent_auth_two_way(sdk, caller_agent, target_agent )
         if status is False:
             return error
 

@@ -18,7 +18,7 @@ from Crypto.PublicKey import RSA
 import requests
 import os
 import sys
-from time import time
+import time
 from datetime import datetime
 import yaml
 import secrets
@@ -68,91 +68,6 @@ from anp_open_sdk.anp_sdk_utils import get_user_cfg_list
 from anp_open_sdk.config.dynamic_config import dynamic_config
 from anp_open_sdk.config.path_resolver import path_resolver
 import os, json, yaml
-
-
-
-def demo3_1_host_start(args):
-    import uvicorn
-    from fastapi import FastAPI, Request
-    import shutil
-    from anp_open_sdk.anp_sdk import ANPSDK, LocalAgent
-    from anp_open_sdk.config.dynamic_config import dynamic_config
-    from anp_open_sdk.config.path_resolver import path_resolver
-    import os, yaml, json
-
-    # 读取配置文件中的 host, port, did_hoster
-    agent_cfg = dynamic_config.get('anp_sdk.agent', {})
-    did_hoster = agent_cfg.get('did_hoster')
-    host, port = ANPSDK.get_did_host_port_from_did(did_hoster)
-    if not did_hoster:
-        raise RuntimeError('dynamic_config.yaml 缺少 anp_sdk.agent.did_hoster 字段')
-    # 允许命令行参数覆盖 did_hoster
-    if args is not None:
-        did_hoster = args[0]
-    did = did_hoster
-    user_did_path = dynamic_config.get('anp_sdk.user_did_path')
-    user_did_path = path_resolver.resolve_path(user_did_path)
-    # 在 anp_users 目录下查找 did 对应目录
-    user_dir = None
-    for d in os.listdir(user_did_path):
-        did_path = os.path.join(user_did_path, d, 'did_document.json')
-        if os.path.exists(did_path):
-            with open(did_path, 'r', encoding='utf-8') as f:
-                did_doc = json.load(f)
-                if did_doc.get('id') == did:
-                    user_dir = d
-                    break
-    if not user_dir:
-        raise RuntimeError(f'anp_users 目录下未找到 DID={did} 的目录')
-    agent_dir = os.path.join(user_did_path, user_dir)
-    did_path = os.path.join(agent_dir, 'did_document.json')
-    cfg_path = os.path.join(agent_dir, 'agent_cfg.yaml')
-    with open(did_path, 'r', encoding='utf-8') as f:
-        did_document = json.load(f)
-    if os.path.exists(cfg_path):
-        with open(cfg_path, 'r', encoding='utf-8') as f:
-            agent_cfg = yaml.safe_load(f)
-    else:
-        agent_cfg = {}
-    agent_cfg['host_did'] = True
-    with open(cfg_path, 'w', encoding='utf-8') as f:
-        yaml.dump(agent_cfg, f, allow_unicode=True, sort_keys=False)
-    agent_did_host = LocalAgent(id=did_document['id'], user_dir=user_dir)
-    sdk = ANPSDK()
-    sdk.register_agent(agent_did_host)
-    @sdk.app.post("/publish_did")
-    async def publish_did(request: Request):
-        data = await request.json()
-        did_doc = data.get('did_document')
-        ad_json = data.get('ad_json')
-        if not (did_doc and ad_json):
-            return {"error": "缺少 did_document 或 ad_json"}
-        save_dir = os.path.join(user_did_path, user_dir)
-        os.makedirs(save_dir, exist_ok=True)
-        with open(os.path.join(save_dir, 'did_document.json'), 'w', encoding='utf-8') as f:
-            json.dump(did_doc, f, ensure_ascii=False, indent=2)
-        agent_cfg_path = os.path.join(save_dir, 'agent_cfg.yaml')
-        if os.path.exists(agent_cfg_path):
-            with open(agent_cfg_path, 'r', encoding='utf-8') as f:
-                cfg = yaml.safe_load(f)
-        else:
-            cfg = {}
-        cfg['host_did'] = True
-        with open(agent_cfg_path, 'w', encoding='utf-8') as f:
-            yaml.dump(cfg, f, allow_unicode=True, sort_keys=False)
-        return {"msg": "DID文档和ad.json已保存", "path": save_dir}
-
-    import threading
-    def start_server():
-        try:
-            uvicorn.run(sdk.app, host=host, port=port)
-        except Exception as e:
-            print(f"服务器启动错误: {e}")
-    server_thread = threading.Thread(target=start_server)
-    server_thread.daemon = True
-    server_thread.start()
-    import time
-    time.sleep(0.5)
 
 
 
@@ -402,7 +317,7 @@ class StepModeHelper:
 
 
 
-async def demo1_2_demo(sdk, agent1, agent2, agent3, step_mode: bool = False):
+async def demo1_2_api_msg_group(sdk, agent1, agent2, agent3, step_mode: bool = False):
     step_helper = StepModeHelper(step_mode=step_mode)    
     if not all([agent1, agent2, agent3]):
         logger.error("智能体不足，无法执行演示")
@@ -550,7 +465,26 @@ async def demo1_2_demo(sdk, agent1, agent2, agent3, step_mode: bool = False):
         logger.error(f"读取消息文件失败: {e}")
 
 
-def demo1_1_pre_demo(step_mode: bool = False, fast_mode: bool = False):
+def demo1_3_hostdid():
+
+        logger.info("准备申请hosted_did")
+
+        result = asyncio.run( agent1.register_hosted_did(sdk))
+        if result:
+            logger.info(f"申请托管“hosted_did”发送成功")
+        else:
+            logger.info(f"申请托管“hosted_did”发送失败")
+
+        time.sleep(0.5)
+        logger.info("服务器查询托管“hosted_did”申请状态")
+        result = asyncio.run( sdk.check_did_host_request())
+        time.sleep(0.5)
+        logger.info(f"服务器处理hosted情况{result}")
+        result = asyncio.run(agent1.check_hosted_did())
+        logger.info(f"hosted申请查询结果{result}")
+
+
+def demo1_1_init(step_mode: bool = False, fast_mode: bool = False):
     
     step_helper = StepModeHelper(step_mode=step_mode)  
     # 1. 初始化 SDK
@@ -585,7 +519,7 @@ def demo1_1_pre_demo(step_mode: bool = False, fast_mode: bool = False):
     server_thread = threading.Thread(target=start_server)
     server_thread.daemon = True  # 设置为守护线程，确保主程序退出时线程也会退出
     server_thread.start()
-    import time
+
     time.sleep(0.5)
 
     if not fast_mode:
@@ -647,14 +581,11 @@ if __name__ == "__main__":
     parser.add_argument('-d', action='store_true', help='开发者学习模式')
     parser.add_argument('-s', action='store_true', help='启用步骤模式，每个步骤都会暂停等待用户确认')
     parser.add_argument('-f', action='store_true', help='快速模式，跳过所有等待用户确认的步骤')
-    parser.add_argument('-p', nargs='?', metavar='did',
-                        help='启动DID发布专用Agent，参数为：可选DID，未指定时自动读取配置文件 did_hoster 并查找anp_users目录下对应目录')
     args = parser.parse_args()
 
-    if args.p is not None or '-p' in sys.argv:
-        demo3_1_host_start(args.p)
 
-    elif  '-d' in sys.argv:
+
+    if  '-d' in sys.argv:
         step_mode = True
          # 启动开发者交互式学习模式
         step_helper = StepModeHelper(step_mode=step_mode)    
@@ -663,7 +594,7 @@ if __name__ == "__main__":
 
     else:
         # 启动演示服务器
-        sdk , agent1 , agent2 ,agent3  = demo1_1_pre_demo(step_mode=args.s, fast_mode=args.f)
+        sdk , agent1 , agent2 ,agent3  = demo1_1_init(step_mode=args.s, fast_mode=args.f)
          # 6. 启动演示任务
         if all([agent1, agent2, agent3]):
             step_helper = StepModeHelper(step_mode=args.s)
@@ -671,7 +602,7 @@ if __name__ == "__main__":
             import threading
             def run_demo():
                 try:
-                    asyncio.run(demo1_2_demo(sdk, agent1, agent2, agent3, step_mode=args.s,))
+                    asyncio.run(demo1_2_api_msg_group(sdk, agent1, agent2, agent3, step_mode=args.s,))
                 except Exception as e:
                     logger.error(f"演示运行错误: {e}")
             thread = threading.Thread(target=run_demo)
@@ -682,5 +613,14 @@ if __name__ == "__main__":
                 logger.info("用户中断演示")
                 # 这里可以添加清理代码
 
-            step_helper.pause("演示完成")
+    # 测试中新功能 did host
+    # demo1_3_hostdid()
+
+
+
+
+
+  
+
+    step_helper.pause("演示完成")
 

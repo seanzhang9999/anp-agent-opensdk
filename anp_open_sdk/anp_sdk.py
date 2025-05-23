@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from math import lgamma
 import os
 import urllib.parse
 import os
@@ -241,8 +242,163 @@ class ANPSDK:
         self.proxy_mode = False
         self.proxy_task = None
         
-
+    async def check_did_host_request(self):
+        """
+        检查管理邮箱，自动处理 ANP-DID申请开通 邮件并生成托管 DID。
+        """
+        import imaplib
+        import email
+        from email.header import decode_header, make_header
+        import os, json, random, string, socket
+        from pathlib import Path
+        import smtplib
+        from email.mime.text import MIMEText
+        from email.header import Header
+        import socks
+        from urllib.parse import quote
+        from urllib.parse import unquote
+        from urllib.parse import urlencode
         
+        # 设置 SOCKS5 代理
+        socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, "127.0.0.1", 1080)
+        socks.wrapmodule(imaplib)
+
+        # 读取邮箱配置
+        mail_user = os.environ.get('HOSTER_MAIL_USER')
+        mail_pass = os.environ.get('HOSTER_MAIL_PASSWORD')
+       
+        if not (mail_user and mail_pass):
+            raise ValueError('请在环境变量中配置 REGISTER_MAIL_USER/GMAIL_USER/GMAIL_APP_PASSWORD')
+        
+        # 连接Gmail IMAP
+        imap = imaplib.IMAP4_SSL('imap.gmail.com')
+        imap.login(mail_user, mail_pass)
+        imap.select('INBOX')
+        subject = "ANP-DID host request"
+        
+        status, messages = imap.search(None, f'(UNSEEN SUBJECT "{subject}")')
+        if status != 'OK':
+            imap.logout()
+            return 0
+        msg_ids = messages[0].split()
+        count = 0
+        result = "开始处理"
+        for num in msg_ids:
+            status, data = imap.fetch(num, '(RFC822)')
+            if status != 'OK':
+                continue
+            msg = email.message_from_bytes(data[0][1])
+            # 解析正文
+            body = None
+            if msg.is_multipart():
+                for part in msg.walk():
+                    if part.get_content_type() == 'text/plain':
+                        charset = part.get_content_charset() or 'utf-8'
+                        body = part.get_payload(decode=True).decode(charset)
+                        break
+            else:
+                charset = msg.get_content_charset() or 'utf-8'
+                body = msg.get_payload(decode=True).decode(charset)
+            if not body:
+                continue
+            try:
+                did_document = json.loads(body)
+            except Exception as e:
+                logger.error(f"无法解析 did_document: {e}")
+                continue
+            # 检查是否已存在同 id 的 did_document_request.json
+            import secrets
+            hosted_dir = Path(os.environ.get('ANP_USER_HOSTED_PATH', 'anp_open_sdk/anp_users_hosted'))
+            duplicate_found = False
+            for user_req in hosted_dir.glob('user_*/did_document_request.json'):
+                try:
+                    with open(user_req, 'r', encoding='utf-8') as f:
+                        req_doc = json.load(f)
+                    if req_doc.get('id', None) == did_document.get('id', None):
+                        duplicate_found = True
+                        break
+                except Exception as e:
+                    continue
+            if duplicate_found:
+                # 已申请，回复邮件
+                reply = MIMEText('dupplicated request, contact admin', 'plain', 'utf-8')
+                reply['Subject'] = Header('DID已申请', 'utf-8')
+                reply['From'] = mail_user
+                reply['To'] = msg['From']
+                try:
+                    smtp = smtplib.SMTP_SSL('smtp.gmail.com', 465)
+                    smtp.login(mail_user, mail_pass)
+                    smtp.sendmail(mail_user, [msg['From']], reply.as_string())
+                    smtp.quit()
+                except Exception as e:
+                    print(f"回复邮件失败: {e}")
+                imap.store(num, '+FLAGS', '\\Seen')
+                count += 1
+                result = f"{result}\n{msg['From']}DID{did_document.get('id', None)}已申请,退回\n"
+                continue
+            # 生成新 sid
+            sid = secrets.token_hex(8)
+            user_dir = hosted_dir / f"user_{sid}"
+            user_dir.mkdir(parents=True, exist_ok=True)
+            req_path = user_dir / 'did_document_request.json'
+            with open(req_path, 'w', encoding='utf-8') as f:
+                json.dump(did_document, f, ensure_ascii=False, indent=2)
+            # 获取本机主机名和端口
+            hostname = socket.gethostname()
+            hostip = socket.gethostbyname(hostname)
+            hostport = os.environ.get('HOST_DID_PORT', '9527')
+            hostdomain = os.environ.get('HOST_DID_DOMAIN', 'localhost')
+            # 修改 id 字段
+            old_id = did_document['id']
+            parts = old_id.split(':')
+            # 只替换主机和端口部分
+            if len(parts) > 3:
+                parts[2] = f"{hostdomain}%3A{hostport}"
+                parts[-1] = sid
+                new_id = ':'.join(parts)
+                did_document['id'] = new_id
+                # 同步修改 verificationMethod、authentication、service 等字段
+                if 'verificationMethod' in did_document:
+                    for vm in did_document['verificationMethod']:
+                        if 'id' in vm:
+                            vm['id'] = vm['id'].replace(old_id, new_id)
+                        if 'controller' in vm:
+                            vm['controller'] = vm['controller'].replace(old_id, new_id)
+                if 'authentication' in did_document:
+                    did_document['authentication'] = [a.replace(old_id, new_id) for a in did_document['authentication']]
+                if 'service' in did_document:
+                    for svc in did_document['service']:
+                        if 'id' in svc:
+                            svc['id'] = svc['id'].replace(old_id, new_id)
+                        if 'serviceEndpoint' in svc:
+                            svc['serviceEndpoint'] = svc['serviceEndpoint'].replace(hostdomain, hostdomain).replace(hostport, hostport).replace(parts[-2], sid)
+            # 保存到 anp_user_hosted/user_{sid}/did_document.json
+            user_dir2 = hosted_dir / f"user_{sid}"
+            user_dir2.mkdir(parents=True, exist_ok=True)
+            did_path2 = user_dir2 / 'did_document.json'
+            with open(did_path2, 'w', encoding='utf-8') as f:
+                json.dump(did_document, f, ensure_ascii=False, indent=2)
+            logger.info(f"新 Host DID 保存: {did_document['id']}")
+            result = f"{result}\n{msg['From']}DID{did_document['id']}已保存\n"
+
+            # 回复邮件
+            reply = MIMEText(json.dumps(did_document, ensure_ascii=False, indent=2), 'plain', 'utf-8')
+            reply['Subject'] = Header('ANP-DID host request received, waiting for activation', 'utf-8')
+            reply['From'] = mail_user
+            reply['To'] = msg['From']
+            try:
+                smtp = smtplib.SMTP_SSL('smtp.gmail.com', 465)
+                smtp.login(mail_user, mail_pass)
+                smtp.sendmail(mail_user, [msg['From']], reply.as_string())
+                smtp.quit()
+            except Exception as e:
+                print(f"回复邮件失败: {e}")
+            # 标记已读
+            imap.store(num, '+FLAGS', '\\Seen')
+            count += 1
+        imap.logout()
+        return result
+
     def register_agent(self, agent: LocalAgent):
         """注册智能体到路由器
         

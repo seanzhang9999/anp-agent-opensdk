@@ -19,6 +19,7 @@ import os
 from urllib.parse import urlencode, quote
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
+from anp_open_sdk.agent_types import LocalAgent
 from anp_open_sdk.anp_sdk_utils import get_response_DIDAuthHeader_Token
 from anp_open_sdk.auth.did_auth import send_authenticated_request, send_request_with_token, DIDWbaAuthHeader
 from loguru import logger
@@ -91,7 +92,7 @@ async def check_response_DIDAtuhHeader(auth_value: str) -> bool:
 from anp_open_sdk.config.dynamic_config import dynamic_config
 from anp_open_sdk.agent_connect_hotpatch.authentication.did_wba_auth_header import DIDWbaAuthHeader
 
-async def agent_auth_two_way(sdk, caller_agent: str, target_agent: str) -> tuple[bool, str]:
+async def agent_auth_two_way(sdk, caller_agent: str, target_agent: str ) -> tuple[bool, str]:
     """执行智能体之间的认证
     
     Args:
@@ -102,16 +103,21 @@ async def agent_auth_two_way(sdk, caller_agent: str, target_agent: str) -> tuple
     Returns:
         tuple[bool, str]: (认证是否成功, 错误信息)
     """
+
     caller_agent_obj = sdk.get_agent(caller_agent)
+
     target_agent_obj = RemoteAgent(target_agent)
     auth_dir = dynamic_config.get("anp_sdk.auth_virtual_dir")
 
     user_data_manager = sdk.user_data_manager
     user_data = user_data_manager.get_user_data (caller_agent)
+    did_document_path = user_data.did_doc_path
+
+
 
 
     auth_client = DIDWbaAuthHeader(
-        did_document_path=str(user_data.did_doc_path),
+        did_document_path=did_document_path,
         private_key_path=str(user_data.did_private_key_file_path)
     )
 

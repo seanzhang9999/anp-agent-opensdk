@@ -67,8 +67,11 @@ class LocalAgent:
         self.user_dir = user_dir
         self.agent_type = agent_type
         self.key_id = dynamic_config.get('anp_sdk.user_did_key_id')
+
         
         self.did_document_path = user_data.did_doc_path
+
+    
 
         self.private_key_path =user_data.did_private_key_file_path
 
@@ -116,8 +119,10 @@ class LocalAgent:
             self.logger.error(f"LocalAgent {self.id} 资源释放出错: {e}")
 
 
-        # 支持装饰器和函数式注册API
-    
+    def get_host_dids(self):
+        """获取用户目录"""
+        return self.user_dir
+
     # 支持装饰器和函数式注册API
     def expose_api(self, path: str, func: Callable = None, methods=None):
         methods = methods or ["GET", "POST"] 
@@ -399,3 +404,122 @@ class LocalAgent:
             return True
         return False
 
+    async def check_hosted_did(self):
+        """
+        检查邮箱，收到'保存HOST-DID,等待开通' 邮件后，保存DID_document到 user_dir 下，文件名为 host_{host}:{port}_did_document.json
+        """
+        import imaplib
+        import email
+        from email.header import decode_header
+        import os, json, re
+        from pathlib import Path
+
+        import socks
+        
+        # 设置 SOCKS5 代理
+        socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, "127.0.0.1", 1080)
+        socks.wrapmodule(imaplib)
+        # 邮箱配置
+        mail_user = os.environ.get('SENDER_MAIL_USER')
+        mail_pass = os.environ.get('SENDER_PASSWORD')
+        if not (mail_user and mail_pass):
+            raise ValueError('请在环境变量中配置 SENDER_MAIL_USER/SENDER_PASSWORD')
+        # 连接IMAP
+        imap = imaplib.IMAP4_SSL('imap.gmail.com')
+        imap.login(mail_user, mail_pass)
+        imap.select('INBOX')
+        status, messages = imap.search(None, '(UNSEEN SUBJECT "ANP-DID host request received, waiting for activation")')
+        if status != 'OK':
+            imap.logout()
+            return "查询邮件失败"
+        msg_ids = messages[0].split()
+        count = 0
+        for num in msg_ids:
+            status, data = imap.fetch(num, '(RFC822)')
+            if status != 'OK':
+                continue
+            msg = email.message_from_bytes(data[0][1])
+            # 解析正文
+            body = None
+            if msg.is_multipart():
+                for part in msg.walk():
+                    if part.get_content_type() == 'text/plain':
+                        charset = part.get_content_charset() or 'utf-8'
+                        body = part.get_payload(decode=True).decode(charset)
+                        break
+            else:
+                charset = msg.get_content_charset() or 'utf-8'
+                body = msg.get_payload(decode=True).decode(charset)
+            if not body:
+                continue
+            try:
+                did_document = json.loads(body)
+            except Exception as e:
+                logger.info(f"无法解析 did_document: {e}")
+                continue
+            # 提取 host:port
+            did_id = did_document.get('id', '')
+            m = re.search(r'did:wba:([^:]+)%3A(\d+):', did_id)
+            if not m:
+                logger.info(f"无法从id中提取host:port: {did_id}")
+                return "无法从id中提取host:port"
+            host = m.group(1)
+            port = m.group(2)
+            # user_dir 目录名
+            # 存到 LocalAgent 的 user_dir 下
+            user_dir = Path(getattr(self, 'user_dir', '.'))
+            user_dir.mkdir(parents=True, exist_ok=True)
+            fname = f"host_{host}:{port}_did_document.json"
+            fpath = user_dir / fname
+            with open(fpath, 'w', encoding='utf-8') as f:
+                json.dump(did_document, f, ensure_ascii=False, indent=2)
+            imap.store(num, '+FLAGS', '\\Seen')
+            logger.info(f"已保存 did_document 到 {fpath}")
+            count += 1
+        imap.logout()
+        return f"处理{count}封邮件"
+
+    async def register_hosted_did(self,sdk):
+        """注册托管DID，将 did_document 邮件发送到 seanzhang9999@gmail.com 申请开通"""
+        import smtplib
+        from email.mime.text import MIMEText
+        from email.header import Header
+        import json
+        import socks
+                # 设置 SOCKS5 代理
+        socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, "127.0.0.1", 1080)
+        socks.wrapmodule(smtplib)
+        
+        user_data_manager = sdk.user_data_manager
+        user_data = user_data_manager.get_user_data(self.id)
+
+        # 获取 did_document 内容
+        did_document = user_data.did_doc 
+        if did_document is None:
+            raise ValueError("当前 LocalAgent 未包含 did_document")
+        
+        # 邮件正文
+        body = json.dumps(did_document, ensure_ascii=False, indent=2)
+        msg = MIMEText(body, 'plain', 'utf-8')
+        msg['Subject'] = Header('ANP-DID host request')
+        mail_user = os.environ.get('SENDER_MAIL_USER')
+        mail_to = os.environ.get('REGISTER_MAIL_USER')
+        msg['From'] = mail_user
+        msg['To'] = mail_to
+        
+        # 发送邮件（请根据实际环境配置 SMTP 服务器，下面为本地 sendmail 示例）
+        try:
+            # 使用 Gmail SMTP 发送邮件
+            # 需要在 Google 账号后台生成“应用专用密码”
+            app_password = os.environ.get('SENDER_PASSWORD')
+            if not app_password:
+                raise ValueError("请在 .env 或环境变量中设置 GMAIL_APP_PASSWORD（Gmail 应用专用密码）")
+            smtp = smtplib.SMTP_SSL('smtp.gmail.com', 465)
+            smtp.login(os.environ.get('SENDER_MAIL_USER'), app_password)
+            smtp.sendmail(os.environ.get('SENDER_MAIL_USER'), [os.environ.get('REGISTER_MAIL_USER')], msg.as_string())
+            smtp.quit()
+            return True
+        except Exception as e:
+            print(f"发送邮件失败: {e}")
+            return False
+        

@@ -39,6 +39,7 @@ pycryptodome = "^3.22.0"
 aiofiles = "^24.1.0"
 colorama = "^0.4.6"
 nest-asyncio = "^1.6.0"
+pysocks = "^1.7.1"
 
 
 
