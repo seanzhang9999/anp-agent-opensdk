@@ -67,6 +67,7 @@ class LocalUserData:
         self.unique_id = agent_cfg.get("unique_id")
         self.user_dir = user_folder_path
         self.did_doc_path=did_doc_path
+        
         self.did_private_key_file_path=password_paths.get("did_private_key_file_path")
         self.did_public_key_file_path=password_paths.get("did_public_key_file_path")
         self.jwt_private_key_file_path=password_paths.get("jwt_private_key_file_path")

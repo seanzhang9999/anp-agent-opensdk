@@ -40,6 +40,7 @@ class RemoteAgent:
 
 class LocalAgent:
     """本地智能体，代表当前用户的DID身份"""
+
     
     def __init__(self, sdk , id: str, name :str = "未命名",  agent_type: str = "personal"):
         """初始化本地智能体
@@ -53,7 +54,7 @@ class LocalAgent:
         
 
         user_data_manager = sdk.user_data_manager
-        user_data = user_data_manager.get_user_data(id)
+        self.user_data = user_data_manager.get_user_data(id)
         user_dir = user_data.user_dir
 
 
@@ -332,9 +333,9 @@ class LocalAgent:
         else:
             return {"anp_result": {"status": "error", "message": "未知的请求类型"}}
     
-    def store_token_to_remote(self, req_did: str, token: str, expires_delta: int):
+    def store_token_to_remote(self, remote_did: str, token: str, expires_delta: int , hosted_did:str = None):
         """存储颁发给其他方的token信息
-        
+
         Args:
             req_did: 请求方DID
             token: 生成的token
@@ -342,65 +343,74 @@ class LocalAgent:
         """
         from datetime import datetime, timedelta, timezone
         now = datetime.now(timezone.utc)
+        """存储颁发给其他方的token信息
+        
+        Args:
+            remote_did: 请求方DID
+            token: 生成的token
+            expires_delta: 过期时间（秒）
+        """
+        from datetime import datetime, timedelta, timezone
+        now = datetime.now(timezone.utc)
         expires_at = datetime.now(timezone.utc) + timedelta(seconds=expires_delta)
         
-        self.token_to_remote_dict[req_did] = {
+        self.token_to_remote_dict[remote_did] = {
             "token": token,
             "created_at": now.isoformat(),
             "expires_at": expires_at.isoformat(),
             "is_revoked": False,
-            "req_did": req_did
+            "req_did": remote_did
         }
     
-    def get_token_from_remote(self, req_did: str):
+    def get_token_from_remote(self, remote_did: str, hosted_did:str = None):
         """获取从其他方拿到存储在自己空间的token信息
         
         Args:
-            req_did: 请求方DID
+            remote_did: token颁发方
             
         Returns:
             token信息字典，如果不存在则返回None
         """
-        return self.token_from_remote_dict.get(req_did)
+        return self.token_from_remote_dict.get(remote_did)
     
 
-    def store_token_from_remote(self, req_did: str, token: str):
+    def store_token_from_remote(self, remote_did: str, token: str, hosted_did:str = None):
         """存储从其他方拿到的token信息
         
         Args:
-            req_did: 请求方DID
+            remote_did: token颁发方DID
             token: 生成的token
             expires_delta: 过期时间（秒）
         """
         now = datetime.now()
-        self.token_from_remote_dict[req_did] = {
+        self.token_from_remote_dict[remote_did] = {
             "token": token,
             "created_at": now.isoformat(),
-            "req_did": req_did
+            "req_did": remote_did
         }
     
-    def get_token_to_remote(self, req_did: str):
+    def get_token_to_remote(self, remote_did: str, hosted_did:str = None):
         """获取颁发给其他方的token信息
         
         Args:
-            req_did: 请求方DID
+            remote_did: 请求方DID
             
         Returns:
             token信息字典，如果不存在则返回None
         """
-        return self.token_to_remote_dict.get(req_did)
+        return self.token_to_remote_dict.get(remote_did)
     
-    def revoke_token_to_remote(self, req_did: str):
+    def revoke_token_to_remote(self, remote_did: str, hosted_did:str = None):
         """撤销颁发给其他方的token
         
         Args:
-            req_did: 请求方DID
+            remote_did: 请求方DID
             
         Returns:
             是否成功撤销
         """
-        if req_did in self.token_to_remote_dict:
-            self.token_to_remote_dict[req_did]["is_revoked"] = True
+        if remote_did in self.token_to_remote_dict:
+            self.token_to_remote_dict[remote_did]["is_revoked"] = True
             return True
         return False
 
