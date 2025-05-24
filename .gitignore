@@ -1,3 +1,4 @@
+anp_open_sdk/anp_users/user_*/host_*
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

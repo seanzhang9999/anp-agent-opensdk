@@ -479,7 +479,7 @@ class LocalAgent:
             # 存到 LocalAgent 的 user_dir 下
             user_dir = Path(getattr(self, 'user_dir', '.'))
             user_dir.mkdir(parents=True, exist_ok=True)
-            fname = f"host_{host}:{port}_did_document.json"
+            fname = f"host_{host}%3A{port}_did_document.json"
             fpath = user_dir / fname
             with open(fpath, 'w', encoding='utf-8') as f:
                 json.dump(did_document, f, ensure_ascii=False, indent=2)
