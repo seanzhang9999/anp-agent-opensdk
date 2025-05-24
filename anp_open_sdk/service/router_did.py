@@ -76,36 +76,6 @@ async def get_hosted_did_document(user_id: str) -> Dict:
     except Exception as e:
         logging.error(f"Error loading hosted DID document: {e}")
         raise HTTPException(status_code=500, detail="Error loading hosted DID document")
-    """
-    Retrieve a DID document by user ID.
-    
-    Args:
-        user_id: User identifier
-        
-    Returns:
-        Dict: DID document
-    """
-    # 构建DID文档路径 路径和did_router所在目录严重相关 现在did_router在三级目录
-    did_path = Path(dynamic_config.get('anp_sdk.user_did_path'))
-    did_path = did_path.joinpath( f"user_{user_id}" , "did_document.json" )
-    did_path = Path(path_resolver.resolve_path(did_path.as_posix()))
-    # logger.info(f"current_dir: {current_dir}\n did_path = {did_path}" )
-    # did_path = current_dir.joinpath( did_path,f"user_{user_id}" , "did_document.json" )
-
-
-
-    if not did_path.exists():
-        raise HTTPException(status_code=404, detail=f"DID document not found for user {user_id}")
-    
-    # 加载DID文档
-    try:
-        with open(did_path, 'r', encoding='utf-8') as f:
-            did_document = json.load(f)
-        return did_document
-    except Exception as e:
-        logging.error(f"Error loading DID document: {e}")
-        raise HTTPException(status_code=500, detail="Error loading DID document")
-
 
 
 @router.get("/wba/user/{resp_did}/ad.json", summary="Get agent description")
