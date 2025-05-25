@@ -74,7 +74,7 @@ import os, json, yaml
 
 
 # 批量加载本地DID用户并实例化LocalAgent
-def demo1_1_1_load_agents(sdk: ANPSDK):
+def demo_load_agents(sdk: ANPSDK):
     """
     从   dynamic_config.yaml 的 anp_sdk.agent 中读取 demo_agent1, demo_agent2, demo_agent3 字段
     从   anp_users 目录下加载对应的 DID 文档
@@ -109,7 +109,7 @@ def demo1_1_1_load_agents(sdk: ANPSDK):
     return agents
 
 # 注册API和消息处理器
-def demo1_1_2_register_handlers(agents):
+def demo_register_handler(agents):
     if len(agents) < 3:
         logger.error("本地DID用户不足3个，无法完成全部演示")
         return agents, None, None, None
@@ -317,7 +317,7 @@ class StepModeHelper:
 
 
 
-async def demo1_2_api_msg_group(sdk, agent1, agent2, agent3, step_mode: bool = False):
+async def demo_agent_api_msg_group(sdk, agent1, agent2, agent3, step_mode: bool = False):
     step_helper = StepModeHelper(step_mode=step_mode)    
     if not all([agent1, agent2, agent3]):
         logger.error("智能体不足，无法执行演示")
@@ -465,7 +465,20 @@ async def demo1_2_api_msg_group(sdk, agent1, agent2, agent3, step_mode: bool = F
         logger.error(f"读取消息文件失败: {e}")
 
 
-def demo1_3_hostdid():
+def dev_pds():
+
+        step_helper = StepModeHelper(step_mode=False)  
+
+        # 1. 初始化 SDK
+
+        from anp_open_sdk.anp_sdk import ANPSDK
+        sdk = ANPSDK()
+
+        # 2. 加载智能体
+        step_helper.pause(step_id = "demo1_1_1")
+        agents = demo_load_agents(sdk)
+
+        agent1 = agents[0]
 
         logger.info("准备申请hosted_did")
 
@@ -478,13 +491,39 @@ def demo1_3_hostdid():
         time.sleep(0.5)
         logger.info("服务器查询托管“hosted_did”申请状态")
         result = asyncio.run( sdk.check_did_host_request())
-        time.sleep(0.5)
+        time.sleep(2)
         logger.info(f"服务器处理hosted情况{result}")
         result = asyncio.run(agent1.check_hosted_did())
         logger.info(f"hosted申请查询结果{result}")
 
+def dev_hosted_did(sdk):
+    user_data_manager = sdk.user_data_manager
+    user_data_manager.load_users()
+    user_datas = user_data_manager.get_all_users()
+    def find_and_register_hosted_agent(sdk, user_datas):
+        for user_data in user_datas:
+            agent = LocalAgent(sdk, user_data.did)
+            if agent.is_hosted_did:
+                logger.info(f"hosted_did: {agent.id}")
+                logger.info(f"parent_did: {agent.parent_did}")
+                logger.info(f"hosted_info: {agent.hosted_info}")
+                sdk.register_agent(agent)
+                return
+    find_and_register_hosted_agent(sdk, user_datas)
 
-def demo1_1_init(step_mode: bool = False, fast_mode: bool = False):
+    sdk.start_server()
+    input(f"尝试访问{agent.id}的did.json")
+
+
+
+            
+
+
+
+
+
+
+def demo_init(step_mode: bool = False, fast_mode: bool = False):
     
     step_helper = StepModeHelper(step_mode=step_mode)  
     # 1. 初始化 SDK
@@ -494,11 +533,11 @@ def demo1_1_init(step_mode: bool = False, fast_mode: bool = False):
     
     # 2. 加载智能体
     step_helper.pause(step_id = "demo1_1_1")
-    agents = demo1_1_1_load_agents(sdk)
+    agents = demo_load_agents(sdk)
     
     # 3. 注册处理器
     step_helper.pause(step_id = "demo1_1_2")
-    agents, agent1, agent2, agent3 = demo1_1_2_register_handlers(agents)
+    agents, agent1, agent2, agent3 = demo_register_handler(agents)
     
     # 4. 注册智能体到 SDK
     step_helper.pause(step_id = "demo1_1_3")
@@ -578,7 +617,7 @@ import inspect
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description='ANP SDK 演示程序')
-    parser.add_argument('-d', action='store_true', help='开发者学习模式')
+    parser.add_argument('-d', action='store_true', help='新开发功能测试')
     parser.add_argument('-s', action='store_true', help='启用步骤模式，每个步骤都会暂停等待用户确认')
     parser.add_argument('-f', action='store_true', help='快速模式，跳过所有等待用户确认的步骤')
     args = parser.parse_args()
@@ -586,15 +625,16 @@ if __name__ == "__main__":
 
 
     if  '-d' in sys.argv:
-        step_mode = True
-         # 启动开发者交互式学习模式
-        step_helper = StepModeHelper(step_mode=step_mode)    
-        demo2_1(step_helper)
+        step_helper = StepModeHelper(step_mode=args.s)
 
+        # 测试中新功能 did host
+        # dev_pds()
+        sdk = ANPSDK()
+        dev_hosted_did(sdk)
 
     else:
         # 启动演示服务器
-        sdk , agent1 , agent2 ,agent3  = demo1_1_init(step_mode=args.s, fast_mode=args.f)
+        sdk , agent1 , agent2 ,agent3  = demo_init(step_mode=args.s, fast_mode=args.f)
          # 6. 启动演示任务
         if all([agent1, agent2, agent3]):
             step_helper = StepModeHelper(step_mode=args.s)
@@ -602,7 +642,7 @@ if __name__ == "__main__":
             import threading
             def run_demo():
                 try:
-                    asyncio.run(demo1_2_api_msg_group(sdk, agent1, agent2, agent3, step_mode=args.s,))
+                    asyncio.run(demo_agent_api_msg_group(sdk, agent1, agent2, agent3, step_mode=args.s,))
                 except Exception as e:
                     logger.error(f"演示运行错误: {e}")
             thread = threading.Thread(target=run_demo)
@@ -612,15 +652,5 @@ if __name__ == "__main__":
             except KeyboardInterrupt:
                 logger.info("用户中断演示")
                 # 这里可以添加清理代码
-
-    # 测试中新功能 did host
-    # demo1_3_hostdid()
-
-
-
-
-
-  
-
-    step_helper.pause("演示完成")
+            step_helper.pause("演示完成")
 

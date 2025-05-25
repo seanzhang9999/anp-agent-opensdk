@@ -1,11 +1,9 @@
 {
-    // 使用 IntelliSense 了解相关属性。
-    // 悬停以查看现有属性的描述。
+    // 使用 IntelliSense 了解相关属性.
+    // 悬停以查看现有属性的描述.
     // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
-
-
         {
             "name": "win-anp_sdk_demo",
             "type": "debugpy",
@@ -13,16 +11,17 @@
             "python": ".venv/Scripts/python.exe",
             "program": "${workspaceFolder}/anp_sdk_demo.py",
             "console": "integratedTerminal",
-            "justMyCode": true,
-      },
+            "justMyCode": true      
+        },
         {
-            "name": "mac-demo_autorun",
+            "name": "mac-anp_sdk_demo -d",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/demo_autorun.py",
+            "program": "${workspaceFolder}/anp_sdk_demo.py",
             "console": "integratedTerminal",
             "justMyCode": true,
-            "python": "${workspaceFolder}/.venv/bin/python"
+            "python": "${workspaceFolder}/.venv/bin/python",
+            "args": "-d"
         },
         {
             "name": "mac-anp_sdk_demo",
@@ -62,7 +61,7 @@
             "justMyCode": true,
             "python": "${workspaceFolder}/.venv/bin/python"
         },
-       {
+        {
             "name": "Python Debugger: Current File with Arguments all code",
             "type": "debugpy",
             "request": "launch",
@@ -70,7 +69,7 @@
             "console": "integratedTerminal",
             "justMyCode": false,
             "args": "${command:pickArgs}",
-            "preLaunchTask": "activate-venv"
+            "python": "${workspaceFolder}/.venv/bin/python"
         },
         {
             "name": "Python Debugger: Current File with Arguments",
@@ -79,7 +78,7 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "args": "${command:pickArgs}",
-            "preLaunchTask": "activate-venv-and-run-mcp"
+            "python": "${workspaceFolder}/.venv/bin/python"
         }
     ]
 }

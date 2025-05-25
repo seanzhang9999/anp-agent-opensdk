@@ -35,6 +35,7 @@ EXEMPT_PATHS = [
     "/agent/group/*",
     "/redoc", 
     "/openapi.json",
+    "/wba/hostuser/*",
     "/wba/user/*",  # Allow access to DID documents
     "/",           # Allow access to root endpoint
     "/favicon.ico",

@@ -14,7 +14,7 @@ anp_sdk:
   auth_virtual_dir: wba/auth
   user_did_path: anp_open_sdk/anp_users
   user_did_key_id: key-1
-  user_hosted_path: anp_open_sdk/anp_users_hosted
+  user_hosted_path: anp_open_sdk/anp_user_hosted
   group_msg_path: anp_open_sdk
   msg_virtual_dir: /agent/message
   user_did_port_1: 9527
@@ -28,9 +28,10 @@ anp_sdk:
     demo_agent1: 本田
     demo_agent2: 雅马哈
     demo_agent3: 铃木
-  
-
-
+  proxy:
+    enabled: true
+    host: 127.0.0.1
+    port: 1080
 demo_autorun:
   user_did_path: anp_core/anp_users
   user_did_key_id: key-1

@@ -1,0 +1,11 @@
+name: 托管智能体_localhost_9527_e99ce17fd5906fee
+unique_id: e99ce17fd5906fee
+did: did:wba:localhost%3A9527:wba:hostuser:e99ce17fd5906fee
+hosted_config:
+  parent_did: did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1,
+  host: localhost,
+  port: 9527,
+  created_at: 2023-04-21T00:00:00Z,
+  purpose: 对外托管服务 - localhost:9527
+
+

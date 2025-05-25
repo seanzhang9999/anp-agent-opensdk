@@ -80,16 +80,16 @@ class LocalUserDataManager:
     def __init__(self, user_dir: Optional[str] = None):
         self.user_dir = user_dir or dynamic_config.get('anp_sdk.user_did_path')
         self.users: Dict[str, LocalUserData] = {}
-        self._load_users()
+        self.load_users()
 
-    def _load_users(self):
+    def load_users(self):
         """遍历用户目录，加载每个用户的数据"""
         if not os.path.isdir(self.user_dir):
             logger.warning(f"用户目录不存在: {self.user_dir}")
             return
 
         for entry in os.scandir(self.user_dir):
-            if entry.is_dir() and entry.name.startswith('user_'):
+            if entry.is_dir() and (entry.name.startswith('user_') or entry.name.startswith('user_hosted_')):
                 user_folder_path = entry.path
                 folder_name = entry.name
                 try:
@@ -246,159 +246,66 @@ class ANPSDK:
     async def check_did_host_request(self):
         """
         检查管理邮箱，自动处理 ANP-DID申请开通 邮件并生成托管 DID。
+        
+        Returns:
+            str: 处理结果的描述信息
         """
-        import imaplib
-        import email
-        from email.header import decode_header, make_header
-        import os, json, random, string, socket
-        from pathlib import Path
-        import smtplib
-        from email.mime.text import MIMEText
-        from email.header import Header
-        import socks
-        from urllib.parse import quote
-        from urllib.parse import unquote
-        from urllib.parse import urlencode
+        from anp_open_sdk.mail_manager import MailManager
+        from anp_open_sdk.pds_did_manager import DIDManager
         
-        # 设置 SOCKS5 代理
-        socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, "127.0.0.1", 1080)
-        socks.wrapmodule(imaplib)
-
-        # 读取邮箱配置
-        mail_user = os.environ.get('HOSTER_MAIL_USER')
-        mail_pass = os.environ.get('HOSTER_MAIL_PASSWORD')
-       
-        if not (mail_user and mail_pass):
-            raise ValueError('请在环境变量中配置 REGISTER_MAIL_USER/GMAIL_USER/GMAIL_APP_PASSWORD')
-        
-        # 连接Gmail IMAP
-        imap = imaplib.IMAP4_SSL('imap.gmail.com')
-        imap.login(mail_user, mail_pass)
-        imap.select('INBOX')
-        subject = "ANP-DID host request"
-        
-        status, messages = imap.search(None, f'(UNSEEN SUBJECT "{subject}")')
-        if status != 'OK':
-            imap.logout()
-            return 0
-        msg_ids = messages[0].split()
-        count = 0
-        result = "开始处理"
-        for num in msg_ids:
-            status, data = imap.fetch(num, '(RFC822)')
-            if status != 'OK':
-                continue
-            msg = email.message_from_bytes(data[0][1])
-            # 解析正文
-            body = None
-            if msg.is_multipart():
-                for part in msg.walk():
-                    if part.get_content_type() == 'text/plain':
-                        charset = part.get_content_charset() or 'utf-8'
-                        body = part.get_payload(decode=True).decode(charset)
-                        break
-            else:
-                charset = msg.get_content_charset() or 'utf-8'
-                body = msg.get_payload(decode=True).decode(charset)
-            if not body:
-                continue
-            try:
-                did_document = json.loads(body)
-            except Exception as e:
-                logger.error(f"无法解析 did_document: {e}")
-                continue
-            # 检查是否已存在同 id 的 did_document_request.json
-            import secrets
-            hosted_dir = Path(os.environ.get('ANP_USER_HOSTED_PATH', 'anp_open_sdk/anp_users_hosted'))
-            duplicate_found = False
-            for user_req in hosted_dir.glob('user_*/did_document_request.json'):
-                try:
-                    with open(user_req, 'r', encoding='utf-8') as f:
-                        req_doc = json.load(f)
-                    if req_doc.get('id', None) == did_document.get('id', None):
-                        duplicate_found = True
-                        break
-                except Exception as e:
+        try:
+            mail_manager = MailManager()
+            did_manager = DIDManager()
+            
+            # 获取未读的DID请求
+            did_requests = mail_manager.get_unread_did_requests()
+            if not did_requests:
+                return "没有新的DID托管请求"
+            
+            result = "开始处理DID托管请求\n"
+            for request in did_requests:
+                did_document = request['did_document']
+                from_address = request['from_address']
+                message_id = request['message_id']
+                
+                # 检查是否重复
+                if did_manager.is_duplicate_did(did_document):
+                    mail_manager.send_reply_email(
+                        from_address,
+                        "DID已申请",
+                        "重复的DID申请，请联系管理员"
+                    )
+                    mail_manager.mark_message_as_read(message_id)
+                    result += f"{from_address}的DID {did_document.get('id', '')} 已申请，退回\n"
                     continue
-            if duplicate_found:
-                # 已申请，回复邮件
-                reply = MIMEText('dupplicated request, contact admin', 'plain', 'utf-8')
-                reply['Subject'] = Header('DID已申请', 'utf-8')
-                reply['From'] = mail_user
-                reply['To'] = msg['From']
-                try:
-                    smtp = smtplib.SMTP_SSL('smtp.gmail.com', 465)
-                    smtp.login(mail_user, mail_pass)
-                    smtp.sendmail(mail_user, [msg['From']], reply.as_string())
-                    smtp.quit()
-                except Exception as e:
-                    print(f"回复邮件失败: {e}")
-                imap.store(num, '+FLAGS', '\\Seen')
-                count += 1
-                result = f"{result}\n{msg['From']}DID{did_document.get('id', None)}已申请,退回\n"
-                continue
-            # 生成新 sid
-            sid = secrets.token_hex(8)
-            user_dir = hosted_dir / f"user_{sid}"
-            user_dir.mkdir(parents=True, exist_ok=True)
-            req_path = user_dir / 'did_document_request.json'
-            with open(req_path, 'w', encoding='utf-8') as f:
-                json.dump(did_document, f, ensure_ascii=False, indent=2)
-            # 获取本机主机名和端口
-            hostname = socket.gethostname()
-            hostip = socket.gethostbyname(hostname)
-            hostport = os.environ.get('HOST_DID_PORT', '9527')
-            hostdomain = os.environ.get('HOST_DID_DOMAIN', 'localhost')
-            # 修改 id 字段
-            old_id = did_document['id']
-            parts = old_id.split(':')
-            # 只替换主机和端口部分
-            if len(parts) > 3:
-                parts[2] = f"{hostdomain}%3A{hostport}"
-                parts[-1] = sid
-                new_id = ':'.join(parts)
-                did_document['id'] = new_id
-                # 同步修改 verificationMethod、authentication、service 等字段
-                if 'verificationMethod' in did_document:
-                    for vm in did_document['verificationMethod']:
-                        if 'id' in vm:
-                            vm['id'] = vm['id'].replace(old_id, new_id)
-                        if 'controller' in vm:
-                            vm['controller'] = vm['controller'].replace(old_id, new_id)
-                if 'authentication' in did_document:
-                    did_document['authentication'] = [a.replace(old_id, new_id) for a in did_document['authentication']]
-                if 'service' in did_document:
-                    for svc in did_document['service']:
-                        if 'id' in svc:
-                            svc['id'] = svc['id'].replace(old_id, new_id)
-                        if 'serviceEndpoint' in svc:
-                            svc['serviceEndpoint'] = svc['serviceEndpoint'].replace(hostdomain, hostdomain).replace(hostport, hostport).replace(parts[-2], sid)
-            # 保存到 anp_user_hosted/user_{sid}/did_document.json
-            user_dir2 = hosted_dir / f"user_{sid}"
-            user_dir2.mkdir(parents=True, exist_ok=True)
-            did_path2 = user_dir2 / 'did_document.json'
-            with open(did_path2, 'w', encoding='utf-8') as f:
-                json.dump(did_document, f, ensure_ascii=False, indent=2)
-            logger.info(f"新 Host DID 保存: {did_document['id']}")
-            result = f"{result}\n{msg['From']}DID{did_document['id']}已保存\n"
-
-            # 回复邮件
-            reply = MIMEText(json.dumps(did_document, ensure_ascii=False, indent=2), 'plain', 'utf-8')
-            reply['Subject'] = Header('ANP-DID host request received, waiting for activation', 'utf-8')
-            reply['From'] = mail_user
-            reply['To'] = msg['From']
-            try:
-                smtp = smtplib.SMTP_SSL('smtp.gmail.com', 465)
-                smtp.login(mail_user, mail_pass)
-                smtp.sendmail(mail_user, [msg['From']], reply.as_string())
-                smtp.quit()
-            except Exception as e:
-                print(f"回复邮件失败: {e}")
-            # 标记已读
-            imap.store(num, '+FLAGS', '\\Seen')
-            count += 1
-        imap.logout()
-        return result
+                
+                # 存储DID文档
+                success, new_did_doc, error = did_manager.store_did_document(did_document)
+                if success:
+                    mail_manager.send_reply_email(
+                        from_address,
+                        "ANP HOSTED DID RESPONSED",
+                        new_did_doc)
+                    
+                    result += f"{from_address}的DID {new_did_doc['id']} 已保存\n"
+                else:
+                    # 发送失败回复
+                    mail_manager.send_reply_email(
+                        from_address,
+                        "DID托管申请失败",
+                        f"处理DID文档时发生错误: {error}"
+                    )
+                    result += f"{from_address}的DID处理失败: {error}\n"
+                
+                # 标记邮件为已读
+                mail_manager.mark_message_as_read(message_id)
+            
+            return result
+            
+        except Exception as e:
+            error_msg = f"处理DID托管请求时发生错误: {e}"
+            logger.error(error_msg)
+            return error_msg
 
     def register_agent(self, agent: LocalAgent):
         """注册智能体到路由器
