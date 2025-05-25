@@ -41,13 +41,23 @@ router = APIRouter(tags=["did"])
 
 
 @router.get("/wba/user/{user_id}/did.json", summary="Get DID document")
-async def get_did_document(user_id: str) -> Dict:
+async def get_did_document(user_id: str, request: Request) -> Dict:
     """
     Retrieve a DID document by user ID from anp_users.
     """
     did_path = Path(dynamic_config.get('anp_sdk.user_did_path'))
     did_path = did_path.joinpath( f"user_{user_id}" , "did_document.json" )
     did_path = Path(path_resolver.resolve_path(did_path.as_posix()))
+
+
+    sdk = request.app.state.sdk
+    agent = sdk.get_agent(user_id)
+
+    if agent.is_hosted_did:
+        raise HTTPException(status_code=403, detail=f"{user_id} is hosted did")
+    
+    
+    
     if not did_path.exists():
         raise HTTPException(status_code=404, detail=f"DID document not found for user {user_id}")
     try:
@@ -64,6 +74,8 @@ async def get_hosted_did_document(user_id: str) -> Dict:
     """
     Retrieve a DID document by user ID from anp_user_hosted.
     """
+
+    
     did_path = Path(dynamic_config.get('anp_sdk.user_hosted_path', 'anp_user_hosted'))
     did_path = did_path.joinpath( f"user_{user_id}" , "did_document.json" )
     did_path = Path(path_resolver.resolve_path(did_path.as_posix()))
@@ -92,8 +104,10 @@ async def get_agent_description(resp_did: str, request: Request) -> Dict:
     
     sdk = request.app.state.sdk
     agent = sdk.get_agent(resp_did)
-    if agent is None:
-        agent = LocalAgent(did_doc['id'], user_dir)
+
+
+    if agent.is_hosted_did:
+        raise HTTPException(status_code=403, detail=f"{resp_did} is hosted did")
 
     
     from anp_open_sdk.anp_sdk_utils import get_agent_cfg_by_user_dir
@@ -176,6 +190,13 @@ async def get_agent_openapi_yaml(resp_did: str, request: Request):
     if not success:
         raise HTTPException(status_code=404, detail="User not found")
     dquote_did = urllib.parse.quote(resp_did, safe='')
+
+    sdk = request.app.state.sdk
+    agent = sdk.get_agent(resp_did)
+
+    if agent.is_hosted_did:
+        raise HTTPException(status_code=403, detail=f"{resp_did} is hosted did")
+    
     
     user_did_path = dynamic_config.get('anp_sdk.user_did_path')
     user_did_path = path_resolver.resolve_path(user_did_path)

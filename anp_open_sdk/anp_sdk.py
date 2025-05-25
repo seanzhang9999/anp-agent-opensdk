@@ -336,6 +336,9 @@ class ANPSDK:
         # 为每个智能体生成单独的 YAML 文件
         # 遍历所有已注册的本地智能体
         for agent_id, agent in self.router.local_agents.items():
+            if agent.is_hosted_did:
+                continue
+            # 暂时跳过所有hosted did
             # 动态遍历 FastAPI 路由，自动生成 OpenAPI paths
             openapi_spec = {
                 "openapi": "3.0.0",
