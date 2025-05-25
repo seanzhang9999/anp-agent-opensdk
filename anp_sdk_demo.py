@@ -496,28 +496,39 @@ def dev_pds():
         result = asyncio.run(agent1.check_hosted_did())
         logger.info(f"hosted申请查询结果{result}")
 
-def dev_hosted_did(sdk):
+async def dev_hosted_did(sdk):
     user_data_manager = sdk.user_data_manager
     user_data_manager.load_users()
     user_datas = user_data_manager.get_all_users()
-    def find_and_register_hosted_agent(sdk, user_datas):
-        for user_data in user_datas:
-            agent = LocalAgent(sdk, user_data.did)
-            if agent.is_hosted_did:
-                logger.info(f"hosted_did: {agent.id}")
-                logger.info(f"parent_did: {agent.parent_did}")
-                logger.info(f"hosted_info: {agent.hosted_info}")
-                sdk.register_agent(agent)
-                return
-    find_and_register_hosted_agent(sdk, user_datas)
+    
+    agent1 = find_and_register_hosted_agent(sdk, user_datas)
+    sdk.register_agent(agent1)
+    
+    user_data = user_data_manager.get_user_data_by_name("雅马哈")
+    agent2 = LocalAgent(sdk, user_data.did)
+    sdk.register_agent(agent2)
 
-    sdk.start_server()
-    input(f"尝试访问{agent.id}的did.json")
+    run_in_thread(start_server, sdk)
 
+    time.sleep(1)
+   
+
+    resp = await agent_msg_post(sdk, agent1.id, agent2.id, f"你好，我是{agent1.name}")
+    logger.info(f"\n{agent1.name}向{agent2.name}发送消息后收到响应: {resp}")
+
+    resp = await agent_msg_post(sdk, agent2.id, agent1.id, f"你好，我是{agent2.name}")
+    logger.info(f"\n{agent2.name}向{agent1.name}发送消息后收到响应: {resp}")
 
 
             
-
+def find_and_register_hosted_agent(sdk, user_datas):
+    for user_data in user_datas:
+        agent = LocalAgent(sdk, user_data.did)
+        if agent.is_hosted_did:
+            logger.info(f"hosted_did: {agent.id}")
+            logger.info(f"parent_did: {agent.parent_did}")
+            logger.info(f"hosted_info: {agent.hosted_info}")
+            return agent
 
 
 
@@ -547,23 +558,36 @@ def demo_init(step_mode: bool = False, fast_mode: bool = False):
     # 5. 启动服务器
 
 
+
+
     
     step_helper.pause(step_id = "demo1_1_4")
-    import threading
-    def start_server():
-        try:
-            sdk.start_server()
-        except Exception as e:
-            logger.error(f"服务器启动错误: {e}")
-    server_thread = threading.Thread(target=start_server)
-    server_thread.daemon = True  # 设置为守护线程，确保主程序退出时线程也会退出
-    server_thread.start()
+
+    server_thread = run_in_thread(start_server, sdk)
 
     time.sleep(0.5)
 
     if not fast_mode:
         input("服务器已启动，查看'/'了解状态,'/docs'了解基础api,按回车继续....")
     return sdk, agent1, agent2, agent3
+
+
+
+def run_in_thread(target_function, *args, **kwargs):
+    import threading
+
+    """在新线程中运行指定的函数"""
+    thread = threading.Thread(target=target_function, args=args, kwargs=kwargs)
+    thread.daemon = True  # 设置为守护线程  跟随主线程推出
+    thread.start()
+    return thread
+
+def start_server(sdk):
+    try:
+        sdk.start_server()
+    except Exception as e:
+        logger.error(f"服务器启动错误: {e}")
+
 
 def helper_load(lang='zh', step_id=None):
     """从helper.json文件中读取帮助内容
@@ -630,7 +654,7 @@ if __name__ == "__main__":
         # 测试中新功能 did host
         # dev_pds()
         sdk = ANPSDK()
-        dev_hosted_did(sdk)
+        asyncio.run(dev_hosted_did(sdk))
 
     else:
         # 启动演示服务器

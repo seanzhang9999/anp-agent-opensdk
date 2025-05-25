@@ -50,6 +50,7 @@ async def resolve_local_did_document(did: str) -> Optional[Dict]:
             
         path_segments = parts[3:]
         user_id = path_segments[-1]
+        user_dir = path_segments[-2]
         
         # logging.info(f"DID 解析结果 - 主机名: {hostname}, 用户ID: {user_id}")
         
@@ -64,7 +65,7 @@ async def resolve_local_did_document(did: str) -> Optional[Dict]:
             return did_document
         
         # 如果本地未找到，尝试通过HTTP请求获取
-        http_url = f"http://{hostname}/wba/user/{user_id}/did.json"
+        http_url = f"http://{hostname}/wba/{user_dir}/{user_id}/did.json"
 
         
         # 这里使用异步HTTP请求
