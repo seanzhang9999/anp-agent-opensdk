@@ -57,24 +57,6 @@ paths:
             application/json:
               schema:
                 type: object
-  /wba/hostuser/{user_id}/did.json:
-    get:
-      summary: Get Hosted DID document
-      operationId: get__wba_hostuser_user_id_did.json
-      parameters:
-      - name: req_did
-        in: query
-        required: false
-        schema:
-          type: string
-        default: demo_caller
-      responses:
-        '200':
-          description: 成功响应
-          content:
-            application/json:
-              schema:
-                type: object
   /wba/user/{resp_did}/ad.json:
     get:
       summary: Get agent description
@@ -97,6 +79,24 @@ paths:
     get:
       summary: Get agent OpenAPI YAML
       operationId: get__wba_user_resp_did_agent.yaml
+      parameters:
+      - name: req_did
+        in: query
+        required: false
+        schema:
+          type: string
+        default: demo_caller
+      responses:
+        '200':
+          description: 成功响应
+          content:
+            application/json:
+              schema:
+                type: object
+  /wba/hostuser/{user_id}/did.json:
+    get:
+      summary: Get Hosted DID document
+      operationId: get__wba_hostuser_user_id_did.json
       parameters:
       - name: req_did
         in: query

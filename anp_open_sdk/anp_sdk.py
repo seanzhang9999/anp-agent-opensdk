@@ -35,8 +35,8 @@ from anp_open_sdk.anp_sdk_utils import get_user_dir_did_doc_by_did
 from anp_open_sdk.auth.auth_middleware import auth_middleware
 from anp_open_sdk.anp_sdk_utils import path_resolver
 
-# 两个历史遗留路由 用于认证 和 did发布 
-from anp_open_sdk.service import router_auth, router_did
+# 路由模块导入
+from anp_open_sdk.service import router_auth, router_did, router_publisher
 
 
 # 导入ANP核心组件
@@ -545,6 +545,7 @@ class ANPSDK:
 
         self.app.include_router(router_auth.router)
         self.app.include_router(router_did.router)
+        self.app.include_router(router_publisher.router)
         @self.app.get("/", tags=["status"])
         async def root():
             """

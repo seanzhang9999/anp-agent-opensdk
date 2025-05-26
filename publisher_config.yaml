@@ -1,0 +1,39 @@
+agents:
+  - name: "示例公开代理"
+    did: "did:example:123456789abcdef"
+    description: "这是一个公开的示例代理"
+    version: "1.0.0"
+    created_at: "2025-05-26T00:00:00Z"
+    publisher: "open"
+    hosted_config:
+      endpoints:
+        api_endpoint: "/agent/api/did:example:123456789abcdef"
+        message_endpoint: "/agent/message/did:example:123456789abcdef"
+      
+  - name: "示例本地代理"
+    did: "did:example:abcdef123456789"
+    description: "这是一个本地访问的示例代理"
+    version: "1.0.0"
+    created_at: "2025-05-26T00:00:00Z"
+    publisher: "local"
+    allowed_dids:
+      - "did:example:trusted1"
+      - "did:example:trusted2"
+    allowed_domains:
+      - "trusted-domain.com"
+      - "another-trusted.org"
+    hosted_config:
+      endpoints:
+        api_endpoint: "/agent/api/did:example:abcdef123456789"
+        message_endpoint: "/agent/message/did:example:abcdef123456789"
+      
+  - name: "示例私有代理"
+    did: "did:example:private987654321"
+    description: "这是一个私有的示例代理"
+    version: "1.0.0"
+    created_at: "2025-05-26T00:00:00Z"
+    publisher: "self"
+    hosted_config:
+      endpoints:
+        api_endpoint: "/agent/api/did:example:private987654321"
+        message_endpoint: "/agent/message/did:example:private987654321"

@@ -63,25 +63,8 @@ async def get_did_document(user_id: str, request: Request) -> Dict:
         raise HTTPException(status_code=500, detail="Error loading DID document")
 
 
-@router.get("/wba/hostuser/{user_id}/did.json", summary="Get Hosted DID document")
-async def get_hosted_did_document(user_id: str) -> Dict:
-    """
-    Retrieve a DID document by user ID from anp_user_hosted.
-    """
-
-    
-    did_path = Path(dynamic_config.get('anp_sdk.user_hosted_path', 'anp_user_hosted'))
-    did_path = did_path.joinpath( f"user_{user_id}" , "did_document.json" )
-    did_path = Path(path_resolver.resolve_path(did_path.as_posix()))
-    if not did_path.exists():
-        raise HTTPException(status_code=404, detail=f"Hosted DID document not found for user {user_id}")
-    try:
-        with open(did_path, 'r', encoding='utf-8') as f:
-            did_document = json.load(f)
-        return did_document
-    except Exception as e:
-        logging.error(f"Error loading hosted DID document: {e}")
-        raise HTTPException(status_code=500, detail="Error loading hosted DID document")
+# 注意：托管 DID 文档的功能已移至 router_publisher.py
+# 未来对于托管 did-doc/ad.json/yaml 以及消息转发/api转发都将通过 publisher 路由处理
 
 
 @router.get("/wba/user/{resp_did}/ad.json", summary="Get agent description")

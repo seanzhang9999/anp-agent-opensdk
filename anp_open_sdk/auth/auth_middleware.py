@@ -32,6 +32,7 @@ EXEMPT_PATHS = [
     "/docs",
     "/anp-nlp/",
     "/ws/",
+    "/publisher/agents",
     "/agent/group/*",
     "/redoc", 
     "/openapi.json",
