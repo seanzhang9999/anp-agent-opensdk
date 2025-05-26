@@ -20,7 +20,6 @@ from loguru import logger
 from dataclasses import dataclass
 from enum import Enum
 
-
 class RouteType(Enum):
     """路由类型枚举"""
     API_CALL = "api_call"
@@ -28,7 +27,6 @@ class RouteType(Enum):
     GROUP_MESSAGE = "group_message"
     GROUP_CONNECT = "group_connect"
     GROUP_MEMBERS = "group_members"
-
 
 @dataclass
 class LocalRoute:
@@ -40,7 +38,6 @@ class LocalRoute:
     method: str = "POST"
     is_local: bool = True
     latency_ms: float = 0.0
-
 
 class LocalAgentAccelerator:
     """本地智能体加速器
@@ -264,46 +261,106 @@ class LocalAgentAccelerator:
         if not hoster_agent:
             raise ValueError(f"群组主持者不存在: {group_hoster}")
         
+        logger.info(f"执行本地群组操作: operation={operation.value}, group_id={group_id}")
+
+        if operation == RouteType.GROUP_MESSAGE:
+            content = data.get("content", "") if data else ""
+            # 构造消息对象
+            from datetime import datetime
+            message = {
+                "sender": source_did,
+                "content": content,
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "type": "group_message",
+                "group_id": group_id
+            }
+
+            logger.info(f"本地加速器处理群组消息: {source_did} -> {group_id}: {content}")
+            try:
+                # 确保 hoster_agent 有必要的属性
+                if not hasattr(hoster_agent, 'group_queues'):
+                    logger.warning(f"hoster_agent没有group_queues属性，创建新的")
+                    hoster_agent.group_queues = {}
+                if not hasattr(hoster_agent, 'group_members'):
+                    logger.warning(f"hoster_agent没有group_members属性，创建新的")
+                    hoster_agent.group_members = {}
+
+                # 检查群组是否存在
+                if group_id not in hoster_agent.group_queues:
+                    logger.warning(f"群组 {group_id} 不在队列字典中")
+                    return {"status": "error", "message": f"群组 {group_id} 不存在"}
+
+                # 将消息放入所有群组队列（用于本地监听任务）
+                queue_dict = hoster_agent.group_queues[group_id]
+                logger.info(f"群组 {group_id} 当前有 {len(queue_dict)} 个队列")
+
+                if queue_dict:
+                    for client_id, queue in queue_dict.items():
+                        try:
+                            logger.info(f"向队列 {client_id} 放入消息")
+                            await queue.put(message)
+                            logger.info(f"消息已成功放入队列 {client_id}")
+                        except Exception as queue_error:
+                            logger.error(f"放入队列失败 {client_id}: {queue_error}")
+                else:
+                    logger.warning(f"群组 {group_id} 没有活跃的队列")
+                return {
+                    "status": "success",
+                    "message": "消息已通过本地加速器发送",
+                    "group_id": group_id,
+                    "content": content,
+                    "sender": source_did,
+                    "timestamp": message["timestamp"],
+                    "queues_count": len(queue_dict) if queue_dict else 0
+                }
+        
+            except Exception as e:
+                logger.error(f"本地群组消息处理失败: {e}")
+                import traceback
+                traceback.print_exc()
+                return {"status": "error", "message": str(e)}
+
+        # 其它群组操作和原逻辑保持一致
         # 构造请求数据
         request_data = {
             "type": operation.value,
             "group_id": group_id,
             **(data or {})
         }
-        
+
         # 直接调用群组主持者的处理方法
         result = hoster_agent.handle_request(source_did, request_data)
-        
+
         # 更新本地群组成员信息
         if operation == RouteType.GROUP_CONNECT:
             self.group_local_members.setdefault(group_id, set()).add(source_did)
         elif operation == RouteType.GROUP_MEMBERS and data and data.get("action") == "leave":
             if group_id in self.group_local_members:
                 self.group_local_members[group_id].discard(source_did)
-        
+
         return result
-    
-    async def _network_api_call(self, source_did: str, target_did: str, api_path: str, 
+
+    async def _network_api_call(self, source_did: str, target_did: str, api_path: str,
                               method: str, params: Dict[str, Any]) -> Dict[str, Any]:
         """执行网络API调用（回退到原始实现）"""
         # 这里应该调用原始的网络API调用逻辑
         # 为了简化，这里返回一个模拟结果
         logger.warning(f"网络API调用未实现: {source_did} -> {target_did} {api_path}")
         return {"status": "error", "message": "网络API调用未实现"}
-    
+
     async def _network_message(self, source_did: str, target_did: str, message_data: Dict[str, Any]) -> Dict[str, Any]:
         """执行网络消息发送（回退到原始实现）"""
         # 这里应该调用原始的网络消息发送逻辑
         logger.warning(f"网络消息发送未实现: {source_did} -> {target_did}")
         return {"status": "error", "message": "网络消息发送未实现"}
-    
-    async def _network_group_operation(self, source_did: str, group_hoster: str, group_id: str, 
+
+    async def _network_group_operation(self, source_did: str, group_hoster: str, group_id: str,
                                      operation: RouteType, data: Dict[str, Any]) -> Dict[str, Any]:
         """执行网络群组操作（回退到原始实现）"""
         # 这里应该调用原始的网络群组操作逻辑
         logger.warning(f"网络群组操作未实现: {source_did} -> {group_hoster}:{group_id} {operation.value}")
         return {"status": "error", "message": "网络群组操作未实现"}
-    
+
     def _update_local_latency(self, latency_ms: float):
         """更新本地延迟统计"""
         if self.local_requests == 1:
@@ -312,7 +369,7 @@ class LocalAgentAccelerator:
             # 移动平均
             alpha = 0.1
             self.avg_local_latency = alpha * latency_ms + (1 - alpha) * self.avg_local_latency
-    
+
     def _update_network_latency(self, latency_ms: float):
         """更新网络延迟统计"""
         if self.network_requests == 1:
@@ -321,12 +378,12 @@ class LocalAgentAccelerator:
             # 移动平均
             alpha = 0.1
             self.avg_network_latency = alpha * latency_ms + (1 - alpha) * self.avg_network_latency
-    
+
     def get_performance_stats(self) -> Dict[str, Any]:
         """获取性能统计信息"""
         local_ratio = self.local_requests / self.total_requests if self.total_requests > 0 else 0
         network_ratio = self.network_requests / self.total_requests if self.total_requests > 0 else 0
-        
+
         return {
             "total_requests": self.total_requests,
             "local_requests": self.local_requests,
@@ -340,11 +397,11 @@ class LocalAgentAccelerator:
             "hosted_agents": len(self.hosted_agent_mapping),
             "local_groups": len(self.group_local_members)
         }
-    
+
     def get_local_agents_info(self) -> List[Dict[str, Any]]:
         """获取本地智能体信息"""
         agents_info = []
-        
+
         for did, agent in self.local_agents.items():
             info = {
                 "did": did,
@@ -353,22 +410,22 @@ class LocalAgentAccelerator:
                 "host": getattr(agent, 'host', 'localhost'),
                 "port": getattr(agent, 'port', 'unknown')
             }
-            
+
             # 获取托管信息
             if hasattr(agent, '_get_hosted_info'):
                 hosted_info = agent._get_hosted_info()
                 if hosted_info:
                     info.update(hosted_info)
-            
+
             agents_info.append(info)
-        
+
         return agents_info
-    
+
     def optimize_group_routing(self, group_id: str) -> Dict[str, Any]:
         """优化群组路由"""
         local_members = self.group_local_members.get(group_id, set())
         total_members = len(local_members)  # 这里简化，实际应该获取完整成员列表
-        
+
         optimization_info = {
             "group_id": group_id,
             "local_members": list(local_members),
@@ -377,9 +434,9 @@ class LocalAgentAccelerator:
             "local_ratio": len(local_members) / total_members if total_members > 0 else 0,
             "can_optimize": len(local_members) > 1
         }
-        
+
         return optimization_info
-    
+
     def clear_stats(self):
         """清空统计信息"""
         self.total_requests = 0
@@ -393,55 +450,55 @@ class LocalAgentAccelerator:
 
 class AcceleratedANPSDK:
     """带加速功能的ANP SDK包装器"""
-    
+
     def __init__(self, original_sdk, accelerator: LocalAgentAccelerator = None):
         self.original_sdk = original_sdk
         self.accelerator = accelerator or LocalAgentAccelerator()
-        
+
         # 将原始SDK的智能体注册到加速器
         if hasattr(original_sdk, 'local_agents'):
             for did, agent in original_sdk.local_agents.items():
                 self.accelerator.register_agent(agent)
-    
-    async def call_api(self, source_did: str, target_did: str, api_path: str, 
+
+    async def call_api(self, source_did: str, target_did: str, api_path: str,
                       method: str = "GET", params: Dict[str, Any] = None) -> Dict[str, Any]:
         """加速的API调用"""
         return await self.accelerator.route_api_call(source_did, target_did, api_path, method, params)
-    
+
     async def send_message(self, source_did: str, target_did: str, message_data: Dict[str, Any]) -> Dict[str, Any]:
         """加速的消息发送"""
         return await self.accelerator.route_message(source_did, target_did, message_data)
-    
-    async def group_message(self, source_did: str, group_hoster: str, group_id: str, 
+
+    async def group_message(self, source_did: str, group_hoster: str, group_id: str,
                           message: str) -> Dict[str, Any]:
         """加速的群组消息"""
         data = {"content": message}
         return await self.accelerator.route_group_operation(
             source_did, group_hoster, group_id, RouteType.GROUP_MESSAGE, data
         )
-    
+
     async def group_connect(self, source_did: str, group_hoster: str, group_id: str) -> Dict[str, Any]:
         """加速的群组连接"""
         return await self.accelerator.route_group_operation(
             source_did, group_hoster, group_id, RouteType.GROUP_CONNECT
         )
-    
-    async def group_members(self, source_did: str, group_hoster: str, group_id: str, 
+
+    async def group_members(self, source_did: str, group_hoster: str, group_id: str,
                           action: str, member_did: str = None) -> Dict[str, Any]:
         """加速的群组成员管理"""
         data = {"action": action}
         if member_did:
             data["member_did"] = member_did
-        
+
         return await self.accelerator.route_group_operation(
             source_did, group_hoster, group_id, RouteType.GROUP_MEMBERS, data
         )
-    
+
     def get_performance_report(self) -> str:
         """获取性能报告"""
         stats = self.accelerator.get_performance_stats()
         agents_info = self.accelerator.get_local_agents_info()
-        
+
         report = f"""
 === ANP SDK 本地加速性能报告 ===
 
@@ -460,33 +517,144 @@ class AcceleratedANPSDK:
 
 === 本地智能体列表 ===
 """
-        
+
         for agent_info in agents_info:
             report += f"\n- {agent_info['did']}"
             report += f" ({agent_info['type']})"
             if agent_info.get('parent_did'):
                 report += f" -> {agent_info['parent_did']}"
             report += f" @ {agent_info['host']}:{agent_info['port']}"
-        
+
         return report
 
+    async def start_group_listening_local(self, agent, agent_id: str, group_url: str, group_id: str):
+        """启动本地群组监听 - 直接设置本地队列和监听机制"""
+        logger.info(f"启动本地群组监听: {agent_id} -> {group_id}")
+
+        try:
+            # 确保agent具有必要的属性
+            if not hasattr(agent, "group_members"):
+                agent.group_members = {}
+            if not hasattr(agent, "group_queues"):
+                agent.group_queues = {}
+
+            # 初始化群组
+            if group_id not in agent.group_members:
+                agent.group_members[group_id] = set()
+                logger.info(f"创建群组成员列表: {group_id}")
+            if group_id not in agent.group_queues:
+                agent.group_queues[group_id] = {}
+                logger.info(f"创建群组队列字典: {group_id}")
+
+            # 添加当前agent为群组成员
+            agent.group_members[group_id].add(str(agent_id))
+            logger.info(f"添加成员到群组 {group_id}: {agent_id}")
+
+            # 为该agent创建消息队列
+            client_id = f"{group_id}_{agent_id}_{id(agent)}"
+            agent.group_queues[group_id][client_id] = asyncio.Queue()
+            logger.info(f"创建消息队列: {client_id}")
+
+            # 验证队列是否正确创建
+            logger.info(f"当前群组 {group_id} 的队列数量: {len(agent.group_queues[group_id])}")
+            logger.info(f"当前群组 {group_id} 的成员数量: {len(agent.group_members[group_id])}")
+
+            # 创建监听任务
+            task = asyncio.create_task(self._local_group_listening_task(agent, group_id, client_id))
+            logger.info(f"本地群组监听任务已创建: {group_id}")
+            return task
+
+        except Exception as e:
+            logger.error(f"启动本地群组监听失败: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
+
+    async def _local_group_listening_task(self, agent, group_id: str, client_id: str):
+        """本地群组监听任务 - 从队列中获取消息并调用事件处理器"""
+        try:
+            logger.info(f"监听任务开始: 群组={group_id}, 客户端={client_id}")
+
+            # 验证队列存在
+            if not hasattr(agent, 'group_queues') or group_id not in agent.group_queues:
+                logger.error(f"群组队列不存在: {group_id}")
+                return
+
+            if client_id not in agent.group_queues[group_id]:
+                logger.error(f"客户端队列不存在: {client_id}")
+                return
+
+            queue = agent.group_queues[group_id][client_id]
+            logger.info(f"开始监听队列: {client_id}")
+
+            while True:
+                try:
+                    # 从队列中获取消息
+                    logger.debug(f"等待队列消息: {client_id}")
+                    message = await asyncio.wait_for(queue.get(), timeout=30)
+
+                    logger.info(f"从队列收到群组消息: {message}")
+
+                    # 调用群组事件处理器
+                    if hasattr(agent, 'group_event_handlers'):
+                        logger.info(f"找到 {len(agent.group_event_handlers)} 个事件处理器")
+                        for handler_info in agent.group_event_handlers:
+                            handler = handler_info['handler']
+                            handler_group_id = handler_info.get('group_id')
+                            handler_event_type = handler_info.get('event_type')
+
+                            logger.debug(f"检查处理器: group_id={handler_group_id}, event_type={handler_event_type}")
+
+                            # 检查是否应该处理这个群组的消息
+                            if handler_group_id is None or handler_group_id == group_id:
+                                message_event_type = "message"
+                                if handler_event_type is None or handler_event_type == message_event_type:
+                                    logger.info(f"调用事件处理器: {handler}")
+                                    if asyncio.iscoroutinefunction(handler):
+                                        await handler(group_id, message_event_type, message)
+                                    else:
+                                        handler(group_id, message_event_type, message)
+                    else:
+                        logger.warning(f"agent没有group_event_handlers属性")
+
+                except asyncio.TimeoutError:
+                    # 心跳包
+                    logger.debug(f"群组 {group_id} 监听心跳")
+                    continue
+
+        except asyncio.CancelledError:
+            logger.info(f"群组 {group_id} 监听任务被取消")
+            raise
+        except Exception as e:
+            logger.error(f"群组 {group_id} 监听任务错误: {e}")
+            import traceback
+            traceback.print_exc()
+        finally:
+            # 清理资源
+            try:
+                if (hasattr(agent, 'group_queues') and
+                    group_id in agent.group_queues and
+                    client_id in agent.group_queues[group_id]):
+                    del agent.group_queues[group_id][client_id]
+                    logger.info(f"已清理群组队列: {client_id}")
+            except Exception as e:
+                logger.error(f"清理队列时出错: {e}")
 
 if __name__ == "__main__":
     # 测试代码
     import asyncio
-    
     async def test_accelerator():
         print("测试本地智能体加速器...")
-        
+
         accelerator = LocalAgentAccelerator()
-        
+
         # 模拟智能体
         class MockAgent:
             def __init__(self, did, host="localhost", port="9527"):
                 self.id = did
                 self.host = host
                 self.port = port
-            
+
             def handle_request(self, source_did, request_data):
                 return {
                     "status": "success",
@@ -494,14 +662,14 @@ if __name__ == "__main__":
                     "request_type": request_data.get("type"),
                     "source": source_did
                 }
-        
+
         # 注册测试智能体
         agent1 = MockAgent("did:wba:test:agent1")
         agent2 = MockAgent("did:wba:test:agent2")
-        
+
         accelerator.register_agent(agent1)
         accelerator.register_agent(agent2)
-        
+
         # 测试API调用
         result = await accelerator.route_api_call(
             "did:wba:test:agent1",
@@ -511,7 +679,7 @@ if __name__ == "__main__":
             {"param1": "value1"}
         )
         print(f"API调用结果: {result}")
-        
+
         # 测试消息发送
         result = await accelerator.route_message(
             "did:wba:test:agent1",
@@ -519,11 +687,11 @@ if __name__ == "__main__":
             {"message_type": "text", "content": "Hello!"}
         )
         print(f"消息发送结果: {result}")
-        
+
         # 获取性能统计
         stats = accelerator.get_performance_stats()
         print(f"性能统计: {stats}")
-        
+
         print("测试完成")
-    
+
     asyncio.run(test_accelerator())
