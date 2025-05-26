@@ -11,6 +11,8 @@ chat:
   max_process_count: 50
 anp_sdk:
   debugmode: true
+  sdk_host: localhost
+  sdk_port: 9527
   auth_virtual_dir: wba/auth
   user_did_path: anp_open_sdk/anp_users
   user_did_key_id: key-1
@@ -44,3 +46,20 @@ web_api:
     generate_new_did_each_time: true
     webui-host: localhost
     webui-port: 8080
+mail:
+  use_local_backend: true
+  local_backend_path: anp_open_sdk/testuse/mail_local_backend
+  hoster_mail_user: "seanzhang9999@gmail.com"
+  # 注意：密码等敏感信息请在 .env 文件中配置
+  # HOSTER_MAIL_PASSWORD=your_password
+  # SENDER_PASSWORD=your_password
+  sender_mail_user: "seanzhang9999@gmail.com"
+  register_mail_user: "seanzhang9999@gmail.com"
+  smtp_server: "smtp.gmail.com"
+  smtp_port: 587
+  imap_server: "imap.gmail.com"
+  imap_port: 993
+acceleration:
+  enable_local: false
+  performance_monitoring: true
+  cache_size: 1000

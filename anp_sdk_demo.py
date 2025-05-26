@@ -463,6 +463,109 @@ async def demo_agent_api_msg_group(sdk, agent1, agent2, agent3, step_mode: bool 
         logger.info(f"批量收到消息:\n{json.dumps(messages, ensure_ascii=False, indent=2)}")  # 一次性输出
     except Exception as e:
         logger.error(f"读取消息文件失败: {e}")
+    
+    # 演示本地智能体加速器
+    step_helper.pause("步骤4: 演示本地智能体加速器，对比常规API调用和消息发送与加速后的性能差异")
+    
+    from anp_open_sdk.service.local_agent_accelerator import LocalAgentAccelerator
+    import time
+    
+    logger.info("初始化本地智能体加速器...")
+    accelerator = LocalAgentAccelerator()
+    
+    # 注册智能体到加速器
+    logger.info(f"注册智能体到加速器: {agent1.name}, {agent2.name}, {agent3.name}")
+    accelerator.register_agent(agent1)
+    accelerator.register_agent(agent2)
+    accelerator.register_agent(agent3)
+    
+    # 使用加速器进行API调用
+    logger.info(f"使用加速器: {agent1.name}调用{agent2.name}的API /info接口")
+    start_time = time.time()
+    result = await accelerator.route_api_call(
+        str(agent1.id), 
+        str(agent2.id), 
+        "/info", 
+        "GET", 
+        {"from": f"{agent1.name}"}
+    )
+    api_latency = (time.time() - start_time) * 1000
+    logger.info(f"加速器API调用结果: {result}")
+    logger.info(f"加速器API调用耗时: {api_latency:.2f}ms")
+    
+    # 使用加速器发送消息
+    logger.info(f"使用加速器: {agent2.name}向{agent3.name}发送消息")
+    start_time = time.time()
+    result = await accelerator.route_message(
+        str(agent2.id), 
+        str(agent3.id), 
+        {"message_type": "text", "content": f"你好，我是{agent2.name}，这是通过加速器发送的消息"}
+    )
+    msg_latency = (time.time() - start_time) * 1000
+    logger.info(f"加速器消息发送结果: {result}")
+    logger.info(f"加速器消息发送耗时: {msg_latency:.2f}ms")
+
+    
+    
+    # 获取性能统计
+    stats = accelerator.get_performance_stats()
+    logger.info(f"加速器性能统计:\n{json.dumps(stats, ensure_ascii=False, indent=2)}")
+    
+    # 对比常规调用和加速器调用
+    logger.info("\n性能对比:")
+    logger.info(f"1. 加速器可以直接在本地路由请求，无需网络传输")
+    logger.info(f"2. 加速器避免了认证和序列化/反序列化开销")
+    logger.info(f"3. 加速器提供了性能监控和统计功能")
+    
+    step_helper.pause("本地智能体加速器演示完成，可以看到明显的性能提升")
+    
+    # 继续群聊测试
+    step_helper.pause("步骤5: 继续群聊测试，重新开启agent1的消息监听")
+    
+    # 清空群聊消息文件 准备本轮监听
+    message_file = dynamic_config.get("anp_sdk.group_msg_path")
+    message_file = path_resolver.resolve_path(message_file)
+    message_file = os.path.join(message_file, "group_messages.json")
+    async with aiofiles.open(message_file, 'w') as f:
+        await f.write("")
+    
+    # 重新开启agent1的消息监听
+    logger.info(f"重新开启{agent1.name}的消息监听...")
+    task = await agent1.start_group_listening(sdk, agent1.id, group_url, group_id)
+    await asyncio.sleep(1)
+    
+    # 使用agent2发送群消息
+    logger.info(f"{agent2.name}发送群消息...")
+    await agent_msg_group_post(sdk, agent2.id, agent1.id, group_url, group_id, "这是加速器测试后的群消息测试")
+    
+    # 使用agent3发送群消息
+    logger.info(f"{agent3.name}发送群消息...")
+    await agent_msg_group_post(sdk, agent3.id, agent1.id, group_url, group_id, "收到，这是对加速器测试后群消息的回复")
+    
+    # 等待一会儿确保消息被接收
+    await asyncio.sleep(0.5)
+    
+    # 取消监听任务并确保资源被清理
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        logger.info("群聊监听任务已取消")
+    except Exception as e:
+        logger.error(f"取消群聊监听任务时出错: {e}")
+    
+    # 读取并显示接收到的消息
+    logger.info(f"\n{agent1.name}接收到的群聊消息:")
+    try:
+        messages = []  # 存储所有消息
+        with open(message_file, 'r', encoding='utf-8') as f:
+            for line in f:
+                messages.append(json.loads(line))  # 先收集所有消息
+        logger.info(f"批量收到消息:\n{json.dumps(messages, ensure_ascii=False, indent=2)}")  # 一次性输出
+    except Exception as e:
+        logger.error(f"读取消息文件失败: {e}")
+    
+    step_helper.pause("群聊测试完成")
 
 
 def dev_pds():
@@ -652,7 +755,7 @@ if __name__ == "__main__":
         step_helper = StepModeHelper(step_mode=args.s)
 
         # 测试中新功能 did host
-        # dev_pds()
+        dev_pds()
         sdk = ANPSDK()
         asyncio.run(dev_hosted_did(sdk))
 

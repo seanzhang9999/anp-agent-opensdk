@@ -1,0 +1,1 @@
+启动python一律使用 ./.venv/bin/python 

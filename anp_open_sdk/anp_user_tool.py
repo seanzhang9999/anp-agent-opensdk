@@ -21,8 +21,7 @@ ANP用户工具
 这个程序提供了ANP用户管理的基本功能：
 1. 创建新用户 (-n)
 2. 列出所有用户 (-l)
-3. 推送用户文档到服务器 (-p)
-4. 按服务器信息排序显示用户 (-s)
+3. 按服务器信息排序显示用户 (-s)
 """
 
 import os
@@ -130,118 +129,6 @@ def list_users():
         print("---")
 
 
-async def push_user_document(user_dir: str, target_host: str, target_port: int):
-    """推送用户DID文档和ad.json到指定服务器
-    
-    Args:
-        user_dir: 用户目录
-        target_host: 目标服务器主机
-        target_port: 目标服务器端口
-        
-    Returns:
-        bool: 是否成功
-    """
-    user_dirs = dynamic_config.get('anp_sdk.user_did_path')
-    dir_path = os.path.join(user_dirs, user_dir)
-    
-    # 读取DID文档
-    did_path = os.path.join(dir_path, "did_document.json")
-    if not os.path.exists(did_path):
-        logger.error(f"未找到DID文档: {did_path}")
-        return False
-    
-    with open(did_path, 'r', encoding='utf-8') as f:
-        did_document = json.load(f)
-    
-    # 创建ad.json文件（如果不存在）
-    ad_path = os.path.join(dir_path, "ad.json")
-    if not os.path.exists(ad_path):
-        # 从DID文档中提取信息创建简单的ad.json
-        ad_data = {
-            "id": did_document.get("id", ""),
-            "name": did_document.get("name", "Unknown Agent"),
-            "description": "ANP Agent",
-            "version": "1.0.0",
-            "protocols": ["anp/1.0.0"],
-            "services": []
-        }
-        with open(ad_path, 'w', encoding='utf-8') as f:
-            json.dump(ad_data, f, indent=2)
-        print(f"已创建ad.json文件: {ad_path}")
-    
-    # 读取ad.json
-    with open(ad_path, 'r', encoding='utf-8') as f:
-        ad_data = json.load(f)
-    
-    # 推送DID文档到服务器
-    try:
-        async with aiohttp.ClientSession() as session:
-            # 推送DID文档
-            did_url = f"http://{target_host}:{target_port}/did/register"
-            async with session.post(did_url, json=did_document) as response:
-                if response.status != 200:
-                    logger.error(f"推送DID文档失败: {await response.text()}")
-                    return False
-                print(f"成功推送DID文档到 {did_url}")
-            
-            # 推送ad.json
-            # 从DID中提取路径
-            if 'did:wba:' in did_document.get("id", ""):
-                parts = did_document["id"].split(':')[2:]
-                if len(parts) >= 3:
-                    path_segments = parts[2:]
-                    ad_path = "/".join(path_segments)
-                    ad_url = f"http://{target_host}:{target_port}/{ad_path}/ad.json"
-                    async with session.post(ad_url, json=ad_data) as response:
-                        if response.status != 200:
-                            logger.error(f"推送ad.json失败: {await response.text()}")
-                            return False
-                        print(f"成功推送ad.json到 {ad_url}")
-                else:
-                    logger.error("无法从DID中提取路径信息")
-                    return False
-            else:
-                logger.error("DID格式不正确，无法提取路径信息")
-                return False
-        
-        return True
-    except Exception as e:
-        logger.error(f"推送文档时出错: {e}")
-        return False
-
-
-def push_user_documents():
-    """选择用户并推送其文档到服务器"""
-    user_list, name_to_dir = get_user_cfg_list()
-    if not user_list:
-        print("未找到任何用户")
-        return
-    
-    # 显示用户列表
-    print("请选择要推送的用户:")
-    for i, name in enumerate(user_list, 1):
-        print(f"[{i}] {name}")
-    
-    try:
-        choice = int(input("请输入用户编号: "))
-        if choice < 1 or choice > len(user_list):
-            logger.error("无效的选择")
-            return
-        
-        selected_name = user_list[choice-1]
-        user_dir = name_to_dir[selected_name]
-        
-        # 输入目标服务器信息
-        target_host = input("请输入目标服务器主机 (默认: localhost): ") or "localhost"
-        target_port = int(input("请输入目标服务器端口: "))
-        
-        # 推送文档
-        print(f"正在推送用户 {selected_name} 的文档到 {target_host}:{target_port}...")
-        asyncio.run(push_user_document(user_dir, target_host, target_port))
-    except ValueError:
-        logger.error("请输入有效的数字")
-    except Exception as e:
-        logger.error(f"推送文档时出错: {e}")
 
 
 def sort_users_by_server():
@@ -312,7 +199,6 @@ def main():
     parser.add_argument('-n', nargs=5, metavar=('name', 'host', 'port', 'host_dir', 'agent_type'),
                         help='创建新用户，需要提供：用户名 主机名 端口号 主机路径 用户类型')
     parser.add_argument('-l', action='store_true', help='显示所有用户信息，按从新到旧创建顺序排序')
-    parser.add_argument('-p', action='store_true', help='列出用户，选择一个推送did-document和ad.json到指定服务器')
     parser.add_argument('-s', action='store_true', help='显示所有用户信息，按用户服务器 端口 用户类型排序')
     
     args = parser.parse_args()
@@ -322,8 +208,7 @@ def main():
         create_user(args)
     elif args.l:
         list_users()
-    elif args.p:
-        push_user_documents()
+
     elif args.s:
         sort_users_by_server()
     else:

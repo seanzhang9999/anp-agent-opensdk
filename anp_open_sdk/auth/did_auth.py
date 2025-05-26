@@ -401,10 +401,10 @@ async def send_authenticated_request(target_url: str, auth_client: DIDWbaAuthHea
                     return status, response_data,dict(response.headers) ,token
             else:
                 logging.error(f"Unsupported HTTP method: {method}")
-                return 400, {"error": "Unsupported HTTP method"}, None
+                return 400, {"error": "Unsupported HTTP method"}, dict(response.headers) , None
     except Exception as e:
         logging.error(f"Error sending authenticated request: {e}", exc_info=True)
-        return 500, {"error": str(e)}, None
+        return 500, {"error": str(e)}, dict(response.headers) ,None
 
 
 async def send_request_with_token(target_url: str, token: str, sender_did: str, targeter_did:string, method: str = "GET",

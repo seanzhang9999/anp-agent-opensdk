@@ -69,6 +69,30 @@ class DynamicConfig:
         # 当前配置
         self._config = {}
         
+        # 环境变量映射表 - 将环境变量映射到dynamic_config路径
+        # 注意：密码等敏感信息仍然从环境变量读取，不映射到配置文件
+        self._env_mapping = {
+            'USE_LOCAL_MAIL': 'mail.use_local_backend',
+            'HOSTER_MAIL_USER': 'mail.hoster_mail_user',
+            'SENDER_MAIL_USER': 'mail.sender_mail_user', 
+            'REGISTER_MAIL_USER': 'mail.register_mail_user',
+            'ENABLE_LOCAL_ACCELERATION': 'acceleration.enable_local',
+            'ANP_USER_HOSTED_PATH': 'anp_sdk.user_hosted_path',
+            'HOST_DID_PORT': 'anp_sdk.host_did_port',
+            'HOST_DID_DOMAIN': 'anp_sdk.host_did_domain',
+            'AGENT_PORT': 'anp_sdk.agent_port',
+            'AGENT_URL': 'anp_sdk.agent_url',
+            'ANP_DEBUG': 'anp_sdk.debug_mode'
+        }
+        
+        # 仅从环境变量读取的敏感配置项（不映射到配置文件）
+        self._env_only_configs = {
+            'HOSTER_MAIL_PASSWORD',
+            'SENDER_MAIL_PASSWORD',
+            'DATABASE_PASSWORD',
+            'API_SECRET_KEY'
+        }
+        
         # 加载配置
         self.load_config()
         
@@ -144,6 +168,35 @@ class DynamicConfig:
                 return value
             except (KeyError, TypeError):
                 return default
+    
+    def get_env_compatible(self, env_key: str, default: Any = None) -> Any:
+        """环境变量兼容的配置获取方法
+        
+        对于敏感配置项（如密码），直接从环境变量读取；
+        对于其他配置项，优先从dynamic_config获取，回退到环境变量
+        
+        Args:
+            env_key: 环境变量名
+            default: 默认值
+            
+        Returns:
+            配置值
+        """
+        import os
+        
+        # 敏感配置项直接从环境变量读取
+        if env_key in self._env_only_configs:
+            return os.environ.get(env_key, default)
+        
+        # 检查是否有映射的配置路径
+        if env_key in self._env_mapping:
+            config_path = self._env_mapping[env_key]
+            value = self.get(config_path)
+            if value is not None:
+                return value
+        
+        # 回退到环境变量
+        return os.environ.get(env_key, default)
     
     def set(self, key: str, value: Any, save: bool = True) -> bool:
         """设置配置项
@@ -250,3 +303,18 @@ class DynamicConfig:
 
 # 创建全局配置实例
 dynamic_config = DynamicConfig()
+
+# 提供便捷的环境变量兼容函数
+def get_config_value(env_key: str, default: Any = None) -> Any:
+    """获取配置值的便捷函数
+    
+    优先从dynamic_config获取，回退到环境变量
+    
+    Args:
+        env_key: 环境变量名或配置键
+        default: 默认值
+        
+    Returns:
+        配置值
+    """
+    return dynamic_config.get_env_compatible(env_key, default)

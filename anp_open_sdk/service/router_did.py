@@ -49,13 +49,7 @@ async def get_did_document(user_id: str, request: Request) -> Dict:
     did_path = did_path.joinpath( f"user_{user_id}" , "did_document.json" )
     did_path = Path(path_resolver.resolve_path(did_path.as_posix()))
 
-
-    sdk = request.app.state.sdk
-    agent = sdk.get_agent(user_id)
-
-    if agent.is_hosted_did:
-        raise HTTPException(status_code=403, detail=f"{user_id} is hosted did")
-    
+  
     
     
     if not did_path.exists():

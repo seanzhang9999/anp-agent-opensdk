@@ -34,7 +34,18 @@ class DIDManager:
         Returns:
             bool: 是否存在重复的DID
         """
-        did_id = did_document.get('id')
+        def _get_did_id(did_document):
+            if isinstance(did_document, str):  # 可能是 JSON 字符串
+                try:
+                    did_document = json.loads(did_document)  # 解析 JSON
+                except json.JSONDecodeError:
+                    return None  # 解析失败，返回 None
+            if isinstance(did_document, dict):  # 确保是字典
+                return did_document.get('id')  # 取值
+            return None
+
+
+        did_id = _get_did_id(did_document)
         if not did_id:
             return False
             

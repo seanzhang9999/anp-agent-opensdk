@@ -11,7 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+from anp_open_sdk.mail_manager_enhanced import EnhancedMailManager
+from anp_open_sdk.config.dynamic_config import dynamic_config,get_config_value
 import os
 import json
 from datetime import datetime
@@ -23,7 +24,8 @@ from loguru import logger
 
 from anp_open_sdk.anp_sdk_utils import get_user_dir_did_doc_by_did
 from anp_open_sdk.config.dynamic_config import dynamic_config
-
+import asyncio
+import nest_asyncio
 class RemoteAgent:
     """远程智能体，代表其他DID身份"""
     
@@ -286,8 +288,7 @@ class LocalAgent:
             handler = self.message_handlers.get(req_type)
             if handler:
                 try:
-                    import asyncio
-                    import nest_asyncio
+
                     nest_asyncio.apply()
                     if asyncio.iscoroutinefunction(handler):
                         loop = asyncio.get_event_loop() 
@@ -428,100 +429,60 @@ class LocalAgent:
         Returns:
             str: 处理结果的描述信息
         """
-        import imaplib
-        import email
-        from email.header import decode_header
-        import os, json, re
-        from pathlib import Path
-
-        import socks
-        
         try:
-            # 设置 SOCKS5 代理
-            socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, "127.0.0.1", 1080)
-            socks.wrapmodule(imaplib)
-            # 邮箱配置
-            mail_user = os.environ.get('SENDER_MAIL_USER')
-            mail_pass = os.environ.get('SENDER_PASSWORD')
-            if not (mail_user and mail_pass):
-                return "未配置邮箱环境变量 SENDER_MAIL_USER/SENDER_PASSWORD"
+            import re
+            import json
             
-            # 连接IMAP
-            imap = imaplib.IMAP4_SSL('imap.gmail.com')
-            imap.login(mail_user, mail_pass)
-            imap.select('INBOX')
+            # 使用增强的邮件管理器
+            use_local = get_config_value('USE_LOCAL_MAIL', False)
+            logger.info(f"注册邮箱检查前初始化，使用本地文件邮件后端参数设置:{use_local}")
+            mail_manager = EnhancedMailManager(use_local_backend=use_local)
             
-            try:
-                
-                search_result = imap.search(None, '(UNSEEN SUBJECT "ANP HOSTED DID RESPONSED")')
-                if not isinstance(search_result, tuple) or len(search_result) != 2:
-                    logger.error(f"IMAP搜索返回了意外的结果格式: {search_result}")
-                    imap.logout()
-                    return "没有找到匹配的托管 DID 激活邮件"
-                
-                status, messages = search_result
-
-            except Exception as e:
-                logger.error(f"IMAP搜索邮件时出错: {e}")
-                imap.logout()
-                return f"IMAP搜索邮件时出错: {e}"
+            # 获取未读的托管DID响应邮件
+            responses = mail_manager.get_unread_hosted_responses()
             
-            # 检查 imap.search 的返回结果
-            if status != 'OK':
-                imap.logout()
-                return "邮箱搜索失败"
-                
-            if not messages or not messages[0]:
-                imap.logout()
+            if not responses:
                 return "没有找到匹配的托管 DID 激活邮件"
             
-            msg_ids = messages[0].split()
-            if not msg_ids:
-                imap.logout()
-                return "没有未读的托管 DID 激活邮件"
-            
             count = 0
-            for num in msg_ids:
-                status, data = imap.fetch(num, '(RFC822)')
-                if status != 'OK':
-                    continue
-                msg = email.message_from_bytes(data[0][1])
-                # 解析正文
-                body = None
-                if msg.is_multipart():
-                    for part in msg.walk():
-                        if part.get_content_type() == 'text/plain':
-                            charset = part.get_content_charset() or 'utf-8'
-                            body = part.get_payload(decode=True).decode(charset)
-                            break
-                else:
-                    charset = msg.get_content_charset() or 'utf-8'
-                    body = msg.get_payload(decode=True).decode(charset)
-                if not body:
-                    continue
+            for response in responses:
                 try:
-                    did_document = json.loads(body)
+                    body = response.get('content', '')
+                    message_id = response.get('message_id')
+                    
+                    # 尝试解析JSON格式的DID文档
+                    try:
+
+                        if isinstance(body, str):
+                            did_document = json.loads(body)
+                        else:
+                            did_document = body  # Already a dict
+                    except Exception as e:
+                        logger.info(f"无法解析 did_document: {e}")
+                        continue
+                    
+                    # 提取 host:port
+                    did_id = did_document.get('id', '')
+                    m = re.search(r'did:wba:([^:]+)%3A(\d+):', did_id)
+                    if not m:
+                        logger.info(f"无法从id中提取host:port: {did_id}")
+                        continue
+                    
+                    host = m.group(1)
+                    port = m.group(2)
+                    
+                    # 创建托管DID文件夹（复制方案）
+                    success, hosted_dir_name = self._create_hosted_did_folder(host, port, did_document)
+                    if success:
+                        mail_manager.mark_message_as_read(message_id)
+                        logger.info(f"已创建托管DID文件夹: {hosted_dir_name}")
+                        count += 1
+                    else:
+                        logger.error(f"创建托管DID文件夹失败: {host}:{port}")
+                        
                 except Exception as e:
-                    logger.info(f"无法解析 did_document: {e}")
-                    continue
-                # 提取 host:port
-                did_id = did_document.get('id', '')
-                m = re.search(r'did:wba:([^:]+)%3A(\d+):', did_id)
-                if not m:
-                    logger.info(f"无法从id中提取host:port: {did_id}")
-                    continue
-                host = m.group(1)
-                port = m.group(2)
-                # 创建托管DID文件夹（复制方案）
-                success, hosted_dir_name = self._create_hosted_did_folder(host, port, did_document)
-                if success:
-                    imap.store(num, '+FLAGS', '\\Seen')
-                    logger.info(f"已创建托管DID文件夹: {hosted_dir_name}")
-                    count += 1
-                else:
-                    logger.error(f"创建托管DID文件夹失败: {host}:{port}")
+                    logger.error(f"处理邮件时出错: {e}")
             
-            imap.logout()
             if count > 0:
                 return f"成功处理{count}封托管DID邮件"
             else:
@@ -532,47 +493,36 @@ class LocalAgent:
             return f"检查托管DID时发生错误: {e}"
 
     async def register_hosted_did(self,sdk):
-        """注册托管DID，将 did_document 邮件发送到 seanzhang9999@gmail.com 申请开通"""
-        import smtplib
-        from email.mime.text import MIMEText
-        from email.header import Header
-        import json
-        import socks
-                # 设置 SOCKS5 代理
-        socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, "127.0.0.1", 1080)
-        socks.wrapmodule(smtplib)
-        
-        user_data_manager = sdk.user_data_manager
-        user_data = user_data_manager.get_user_data(self.id)
-
-        # 获取 did_document 内容
-        did_document = user_data.did_doc 
-        if did_document is None:
-            raise ValueError("当前 LocalAgent 未包含 did_document")
-        
-        # 邮件正文
-        body = json.dumps(did_document, ensure_ascii=False, indent=2)
-        msg = MIMEText(body, 'plain', 'utf-8')
-        msg['Subject'] = Header('ANP-DID host request')
-        mail_user = os.environ.get('SENDER_MAIL_USER')
-        mail_to = os.environ.get('REGISTER_MAIL_USER')
-        msg['From'] = mail_user
-        msg['To'] = mail_to
-        
-        # 发送邮件（请根据实际环境配置 SMTP 服务器，下面为本地 sendmail 示例）
+        """注册托管DID，将 did_document 邮件发送申请开通"""
         try:
-            # 使用 Gmail SMTP 发送邮件
-            # 需要在 Google 账号后台生成"应用专用密码"
-            app_password = os.environ.get('SENDER_PASSWORD')
-            if not app_password:
-                raise ValueError("请在 .env 或环境变量中设置 GMAIL_APP_PASSWORD（Gmail 应用专用密码）")
-            smtp = smtplib.SMTP_SSL('smtp.gmail.com', 465)
-            smtp.login(os.environ.get('SENDER_MAIL_USER'), app_password)
-            smtp.sendmail(os.environ.get('SENDER_MAIL_USER'), [os.environ.get('REGISTER_MAIL_USER')], msg.as_string())
-            smtp.quit()
-            return True
+            from anp_open_sdk.mail_manager_enhanced import EnhancedMailManager
+            
+            user_data_manager = sdk.user_data_manager
+            user_data = user_data_manager.get_user_data(self.id)
+
+            # 获取 did_document 内容
+            did_document = user_data.did_doc 
+            if did_document is None:
+                raise ValueError("当前 LocalAgent 未包含 did_document")
+            
+            # 使用增强的邮件管理器
+            use_local = get_config_value('USE_LOCAL_MAIL', False)
+            logger.info(f"注册邮箱检查前初始化，使用本地文件邮件后端参数设置:{use_local}")
+            mail_manager = EnhancedMailManager(use_local_backend=use_local)
+            
+            # 发送托管DID申请邮件
+            register_email = os.environ.get('REGISTER_MAIL_USER')
+            success = mail_manager.send_hosted_did_request(did_document, register_email)
+            
+            if success:
+                logger.info("托管DID申请邮件已发送")
+                return True
+            else:
+                logger.error("发送托管DID申请邮件失败")
+                return False
+                
         except Exception as e:
-            print(f"发送邮件失败: {e}")
+            logger.error(f"注册托管DID失败: {e}")
             return False
     
     def _check_if_hosted_did(self) -> bool:
@@ -635,8 +585,13 @@ class LocalAgent:
             did_id = did_document.get('id', '')
             # 提取DID中的随机数部分，格式: did:wba:host%3Aport:wba:user:random_part
             import re
-            did_match = re.search(r'did:wba:[^:]+%3A\d+:wba:user:([^:]+)', did_id)
-            did_suffix = did_match.group(1) if did_match else 'unknown'
+            pattern = r"did:wba:[^:]+:[^:]+:[^:]+:([a-zA-Z0-9]{16})"  # 16位随机数匹配
+            match = re.search(pattern, did_id)
+            if match:
+                did_suffix = match.group(1)
+            else:
+                did_suffix = "无法匹配随机数"
+
             
             # 2. 确定托管文件夹路径（包含随机数避免重名）
             original_user_dir = Path(self.user_dir)
@@ -648,7 +603,7 @@ class LocalAgent:
             hosted_dir.mkdir(parents=True, exist_ok=True)
             
             # 4. 复制密钥文件
-            key_files = ['private_key.pem', 'private_key.pem', 'public_key.pem']
+            key_files = ['key-1_private.pem', 'key-1_public.pem', 'private_key.pem', 'public_key.pem']
             for key_file in key_files:
                 src_path = original_user_dir / key_file
                 dst_path = hosted_dir / key_file

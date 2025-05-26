@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from math import lgamma
+from anp_open_sdk.config.dynamic_config import get_config_value
 import os
 import urllib.parse
 import os
@@ -250,11 +251,15 @@ class ANPSDK:
         Returns:
             str: 处理结果的描述信息
         """
-        from anp_open_sdk.mail_manager import MailManager
-        from anp_open_sdk.pds_did_manager import DIDManager
+        from anp_open_sdk.mail_manager_enhanced import EnhancedMailManager
+        from anp_open_sdk.anp_agent_pulisher import DIDManager
         
         try:
-            mail_manager = MailManager()
+            # 使用增强的邮件管理器
+
+            use_local = get_config_value('USE_LOCAL_MAIL', False)
+            logger.info(f"管理邮箱检查前初始化，使用本地文件邮件后端参数设置:{use_local}")
+            mail_manager = EnhancedMailManager(use_local_backend=use_local)
             did_manager = DIDManager()
             
             # 获取未读的DID请求
@@ -264,10 +269,13 @@ class ANPSDK:
             
             result = "开始处理DID托管请求\n"
             for request in did_requests:
-                did_document = request['did_document']
+                did_document = request['content']
                 from_address = request['from_address']
                 message_id = request['message_id']
                 
+                parsed_json = json.loads(did_document)
+                did_document_dict = dict(parsed_json)
+
                 # 检查是否重复
                 if did_manager.is_duplicate_did(did_document):
                     mail_manager.send_reply_email(
@@ -276,11 +284,12 @@ class ANPSDK:
                         "重复的DID申请，请联系管理员"
                     )
                     mail_manager.mark_message_as_read(message_id)
-                    result += f"{from_address}的DID {did_document.get('id', '')} 已申请，退回\n"
+
+                    result += f"{from_address}的DID {did_document_dict.get('id')} 已申请，退回\n"
                     continue
                 
                 # 存储DID文档
-                success, new_did_doc, error = did_manager.store_did_document(did_document)
+                success, new_did_doc, error = did_manager.store_did_document(did_document_dict)
                 if success:
                     mail_manager.send_reply_email(
                         from_address,
@@ -786,16 +795,33 @@ class ANPSDK:
         Returns:
             API调用结果
         """
-        if not self.agent:
-            self.logger.error("智能体未初始化")
-            return None
-        
-        # 构建API请求URL
-        target_url = get_did_url_from_did(target_did)
-        url = f"http://{target_url}/{api_path}"
-        
-        # 调用API
-        return self.agent.call_api(url, params, method)
+        try:
+            # 如果启用本地加速且目标智能体在本地，使用加速器
+            if hasattr(self, 'enable_local_acceleration') and self.enable_local_acceleration and hasattr(self, 'accelerator') and self.accelerator.is_local_agent(target_did):
+                return self.accelerator.call_api(
+                    from_did=self.agent.id if self.agent else "unknown",
+                    target_did=target_did,
+                    api_path=api_path,
+                    method=method,
+                    data=params,
+                    headers={}
+                )
+            
+            if not self.agent:
+                self.logger.error("智能体未初始化")
+                return None
+            
+            # 构建API请求URL
+            host, port = self.get_did_host_port_from_did(target_did)
+            target_url = f"{host}:{port}"
+            url = f"http://{target_url}/{api_path}"
+            
+            # 调用API
+            return self.agent.call_api(url, params, method)
+            
+        except Exception as e:
+            self.logger.error(f"API调用失败: {e}")
+            return {"error": str(e)}
     
     def expose_api(self, route_path: str, methods: List[str] = None):
         """装饰器，用于暴露API到FastAPI
@@ -835,6 +861,55 @@ class ANPSDK:
             self.message_handlers[message_type or "*"] = func
             return func
         return decorator
+    
+    def send_message(self, target_did: str, message: str, message_type: str = "text") -> bool:
+        """发送消息给其他智能体
+        
+        Args:
+            target_did: 目标智能体的DID
+            message: 消息内容
+            message_type: 消息类型
+            
+        Returns:
+            bool: 发送是否成功
+        """
+        try:
+            # 如果启用本地加速且目标智能体在本地，使用加速器
+            if hasattr(self, 'enable_local_acceleration') and self.enable_local_acceleration and hasattr(self, 'accelerator') and self.accelerator.is_local_agent(target_did):
+                return self.accelerator.send_message(
+                    from_did=self.agent.id if self.agent else "unknown",
+                    target_did=target_did,
+                    message=message,
+                    message_type=message_type
+                )
+            
+            # 查找目标智能体
+            target_agent = self.router.get_agent(target_did)
+            if not target_agent:
+                self.logger.error(f"未找到目标智能体: {target_did}")
+                return False
+            
+            # 构造消息
+            message_data = {
+                "from_did": self.agent.id if self.agent else "unknown",
+                "to_did": target_did,
+                "content": message,
+                "type": message_type,
+                "timestamp": datetime.now().isoformat()
+            }
+            
+            # 发送消息
+            success = target_agent.receive_message(message_data)
+            if success:
+                self.logger.info(f"消息已发送到 {target_did}: {message[:50]}...")
+            else:
+                self.logger.error(f"消息发送失败到 {target_did}")
+            
+            return success
+            
+        except Exception as e:
+            self.logger.error(f"发送消息失败: {e}")
+            return False
     
     async def broadcast_message(self, message: Dict[str, Any]):
         """向所有连接的客户端广播消息
