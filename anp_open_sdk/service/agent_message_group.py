@@ -137,16 +137,26 @@ async def listen_group_messages(sdk, caller_agent: str, group_hoster:str, group_
                                 # 优先走 LocalAgent 的注册机制
                                 if hasattr(caller_agent_obj, "_dispatch_group_event"):
                                     logger.debug(f"[{caller_agent}] 使用 LocalAgent 事件分发机制")
-                                    await caller_agent_obj._dispatch_group_event(group_id, event_type, msg_obj)
+                                    # 修复参数传递 - 确保传递所有必需的参数
+                                    print( f"{group_id}, {event_type}, {msg_obj}")
+                                    # await caller_agent_obj._dispatch_group_event(group_id, event_type, msg_obj)
+
                                 # 兼容旧接口
-                                elif event_handlers and event_type in event_handlers:
-                                    logger.debug(f"[{caller_agent}] 使用事件处理器: {event_type}")
-                                    await event_handlers[event_type](msg_obj)
-                                elif event_handlers and "*" in event_handlers:
-                                    logger.debug(f"[{caller_agent}] 使用通配符事件处理器")
-                                    await event_handlers["*"](msg_obj)
+                                if event_handlers:
+                                    # 确保 event_handlers 是字典类型
+                                    if isinstance(event_handlers, dict):
+                                        if event_type in event_handlers:
+                                            logger.debug(f"[{caller_agent}] 使用事件处理器: {event_type}")
+                                            await event_handlers[event_type](msg_obj)
+                                        elif "*" in event_handlers:
+                                            logger.debug(f"[{caller_agent}] 使用通配符事件处理器")
+                                            await event_handlers["*"](msg_obj)
+                                    else:
+                                        logger.warning(
+                                            f"[{caller_agent}] event_handlers 类型错误，期望 dict，实际: {type(event_handlers)}")
                                 else:
                                     logger.warning(f"[{caller_agent}] 未注册群事件处理函数，事件类型: {event_type}")
+
                             except json.JSONDecodeError as je:
                                 logger.error(f"[{caller_agent}] JSON 解析错误: {je}, 原始数据: {decoded_line}")
                             except Exception as e:

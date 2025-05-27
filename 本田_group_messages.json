@@ -1,23 +1,17 @@
-{"type": "connection_event", "group_id": "demo_group", "member": "did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1", "status": "connected", "timestamp": "2025-05-27 15:26:56"}
-{"sender": "did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1", "content": "大家好，我是本田，现在是2025-05-27 15:26:58", "timestamp": "2025-05-27 15:26:58", "type": "group_message", "group_id": "demo_group"}
-{"type": "member_event", "group_id": "demo_group", "action": "add", "members": ["did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1"], "timestamp": "2025-05-27 15:40:34"}
-{"type": "member_event", "group_id": "demo_group", "action": "add", "members": ["did:wba:localhost%3A9527:wba:user:28cddee0fade0258"], "timestamp": "2025-05-27 15:40:34"}
-{"type": "member_event", "group_id": "demo_group", "action": "add", "members": ["did:wba:localhost%3A9527:wba:user:5fea49e183c6c211"], "timestamp": "2025-05-27 15:40:34"}
-{"type": "member_event", "group_id": "demo_group", "action": "add", "members": ["did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1"], "timestamp": "2025-05-27 15:54:15"}
-{"type": "member_event", "group_id": "demo_group", "action": "add", "members": ["did:wba:localhost%3A9527:wba:user:28cddee0fade0258"], "timestamp": "2025-05-27 15:54:15"}
-{"type": "member_event", "group_id": "demo_group", "action": "add", "members": ["did:wba:localhost%3A9527:wba:user:5fea49e183c6c211"], "timestamp": "2025-05-27 15:54:16"}
-{"type": "member_event", "group_id": "demo_group", "action": "add", "members": ["did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1"], "timestamp": "2025-05-27 16:30:57"}
-{"type": "member_event", "group_id": "demo_group", "action": "add", "members": ["did:wba:localhost%3A9527:wba:user:28cddee0fade0258"], "timestamp": "2025-05-27 16:30:57"}
-{"type": "member_event", "group_id": "demo_group", "action": "add", "members": ["did:wba:localhost%3A9527:wba:user:5fea49e183c6c211"], "timestamp": "2025-05-27 16:30:57"}
-{"type": "member_event", "group_id": "demo_group", "action": "add", "members": ["did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1"], "timestamp": "2025-05-27 16:33:18"}
-{"type": "member_event", "group_id": "demo_group", "action": "add", "members": ["did:wba:localhost%3A9527:wba:user:28cddee0fade0258"], "timestamp": "2025-05-27 16:33:18"}
-{"type": "member_event", "group_id": "demo_group", "action": "add", "members": ["did:wba:localhost%3A9527:wba:user:5fea49e183c6c211"], "timestamp": "2025-05-27 16:33:19"}
-{"type": "member_event", "group_id": "demo_group", "action": "add", "members": ["did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1"], "timestamp": "2025-05-27 16:37:36"}
-{"type": "member_event", "group_id": "demo_group", "action": "add", "members": ["did:wba:localhost%3A9527:wba:user:28cddee0fade0258"], "timestamp": "2025-05-27 16:37:36"}
-{"type": "member_event", "group_id": "demo_group", "action": "add", "members": ["did:wba:localhost%3A9527:wba:user:5fea49e183c6c211"], "timestamp": "2025-05-27 16:37:36"}
-{"type": "member_event", "group_id": "demo_group", "action": "add", "members": ["did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1"], "timestamp": "2025-05-27 16:45:22"}
-{"type": "member_event", "group_id": "demo_group", "action": "add", "members": ["did:wba:localhost%3A9527:wba:user:28cddee0fade0258"], "timestamp": "2025-05-27 16:45:22"}
-{"type": "member_event", "group_id": "demo_group", "action": "add", "members": ["did:wba:localhost%3A9527:wba:user:5fea49e183c6c211"], "timestamp": "2025-05-27 16:45:22"}
-{"type": "member_event", "group_id": "demo_group", "action": "add", "members": ["did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1"], "timestamp": "2025-05-27 17:09:15"}
-{"type": "member_event", "group_id": "demo_group", "action": "add", "members": ["did:wba:localhost%3A9527:wba:user:28cddee0fade0258"], "timestamp": "2025-05-27 17:09:15"}
-{"type": "member_event", "group_id": "demo_group", "action": "add", "members": ["did:wba:localhost%3A9527:wba:user:5fea49e183c6c211"], "timestamp": "2025-05-27 17:09:15"}
+{"type": "member_event", "group_id": "demo_group", "action": "add", "members": ["did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1"], "timestamp": "2025-05-27 22:09:14"}
+{"type": "member_event", "group_id": "demo_group", "action": "add", "members": ["did:wba:localhost%3A9527:wba:user:28cddee0fade0258"], "timestamp": "2025-05-27 22:09:14"}
+{"type": "member_event", "group_id": "demo_group", "action": "add", "members": ["did:wba:localhost%3A9527:wba:user:5fea49e183c6c211"], "timestamp": "2025-05-27 22:09:14"}
+{"type": "connection_event", "group_id": "demo_group", "member": "did:wba:localhost%3A9527:wba:user:28cddee0fade0258", "status": "connected", "timestamp": "2025-05-27 22:09:14"}
+{"type": "connection_event", "group_id": "demo_group", "member": "did:wba:localhost%3A9527:wba:user:5fea49e183c6c211", "status": "connected", "timestamp": "2025-05-27 22:09:14"}
+{"sender": "did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1", "content": "大家好，我是本田，现在是2025-05-27 22:09:18", "timestamp": "2025-05-27 22:09:35", "type": "group_message", "group_id": "demo_group"}
+{"sender": "did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1", "content": "大家好，我是本田，现在是2025-05-27 22:09:18", "timestamp": "2025-05-27 22:09:35", "type": "group_message", "group_id": "demo_group"}
+{"type": "member_event", "group_id": "demo_group", "action": "add", "members": ["did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1"], "timestamp": "2025-05-27 22:26:12"}
+{"type": "member_event", "group_id": "demo_group", "action": "add", "members": ["did:wba:localhost%3A9527:wba:user:28cddee0fade0258"], "timestamp": "2025-05-27 22:26:12"}
+{"type": "member_event", "group_id": "demo_group", "action": "add", "members": ["did:wba:localhost%3A9527:wba:user:5fea49e183c6c211"], "timestamp": "2025-05-27 22:26:12"}
+{"type": "member_event", "group_id": "demo_group", "action": "add", "members": ["did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1"], "timestamp": "2025-05-27 22:26:54"}
+{"type": "member_event", "group_id": "demo_group", "action": "add", "members": ["did:wba:localhost%3A9527:wba:user:28cddee0fade0258"], "timestamp": "2025-05-27 22:26:54"}
+{"type": "member_event", "group_id": "demo_group", "action": "add", "members": ["did:wba:localhost%3A9527:wba:user:5fea49e183c6c211"], "timestamp": "2025-05-27 22:26:54"}
+{"type": "connection_event", "group_id": "demo_group", "member": "did:wba:localhost%3A9527:wba:user:28cddee0fade0258", "status": "connected", "timestamp": "2025-05-27 22:26:54"}
+{"type": "connection_event", "group_id": "demo_group", "member": "did:wba:localhost%3A9527:wba:user:5fea49e183c6c211", "status": "connected", "timestamp": "2025-05-27 22:26:54"}
+{"sender": "did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1", "content": "大家好，我是本田，现在是2025-05-27 22:26:56", "timestamp": "2025-05-27 22:26:56", "type": "group_message", "group_id": "demo_group"}
+{"sender": "did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1", "content": "大家好，我是本田，现在是2025-05-27 22:26:56", "timestamp": "2025-05-27 22:26:56", "type": "group_message", "group_id": "demo_group"}

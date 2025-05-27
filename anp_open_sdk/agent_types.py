@@ -188,6 +188,8 @@ class LocalAgent:
             self.message_handlers[msg_type] = func
             return func
 
+
+
     def register_group_event_handler(self, handler: Callable, group_id: str = None, event_type: str = None):
         """
         注册群事件处理器
@@ -265,11 +267,19 @@ class LocalAgent:
         from anp_open_sdk.service.agent_message_group import listen_group_messages
         import asyncio
         
-        # 创建监听任务
+        # 创建监听任务，传入事件处理器
         task = asyncio.create_task(
-            listen_group_messages(sdk, self.id, group_hoster, group_url, group_id)
+            listen_group_messages(
+                sdk,
+                self.id,
+                group_hoster,
+                group_url,
+                group_id,
+                event_handlers = {
+                    "*": lambda msg_obj: self._dispatch_group_event(group_id, "*", msg_obj)
+            })
         )
-        
+
         self.logger.info(f"已启动群组 {group_id} 的消息监听")
         return task
        

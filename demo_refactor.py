@@ -30,6 +30,7 @@ import json
 import asyncio
 import threading
 from datetime import datetime
+from encodings.punycode import selective_find
 from typing import List, Optional, Dict, Any
 from urllib.parse import quote
 
@@ -38,7 +39,7 @@ import aiofiles
 from colorama import init, Fore, Style
 from loguru import logger
 
-from anp_open_sdk.anp_sdk import ANPSDK, LocalAgent
+from anp_open_sdk.anp_sdk import ANPSDK, LocalAgent, LocalUserDataManager
 from anp_open_sdk.config.dynamic_config import dynamic_config
 from anp_open_sdk.config.path_resolver import path_resolver
 from anp_open_sdk.service.agent_api_call import agent_api_call_post, agent_api_call_get
@@ -46,10 +47,9 @@ from anp_open_sdk.service.agent_message_group import agent_msg_group_post, agent
 from anp_open_sdk.service.agent_message_p2p import agent_msg_post
 from anp_open_sdk.service.local_agent_accelerator import LocalAgentAccelerator
 
-init()
 
 
-class StepModeHelper:
+class DemoToolsStepModeHelper:
     def __init__(self, step_mode: bool = False):
         self.step_mode = step_mode
 
@@ -61,7 +61,8 @@ class StepModeHelper:
             input(f"{Fore.GREEN}--- {step_name} ---{Style.RESET_ALL} "
                   f"{Fore.YELLOW}按任意键继续...{Style.RESET_ALL}")
 
-    def _load_helper_text(self, step_id: str, lang: str = None) -> str:
+    @staticmethod
+    def _load_helper_text(step_id: str, lang: str = None) -> str:
         if lang is None:
             lang = dynamic_config.get("anp_sdk.helper_lang", "zh")
 
@@ -79,9 +80,20 @@ class StepModeHelper:
 
 
 class AgentLoader:
+
+    @staticmethod
+    def find_hosted_agent(sdk: ANPSDK, user_datas) -> Optional[LocalAgent]:
+        for user_data in user_datas:
+            agent = LocalAgent(sdk, user_data.did)
+            if agent.is_hosted_did:
+                logger.info(f"hosted_did: {agent.id}")
+                logger.info(f"parent_did: {agent.parent_did}")
+                logger.info(f"hosted_info: {agent.hosted_info}")
+                return agent
+        return None
     @staticmethod
     def load_demo_agents(sdk: ANPSDK) -> List[LocalAgent]:
-        user_data_manager = sdk.user_data_manager
+        user_data_manager: LocalUserDataManager = sdk.user_data_manager
 
         agent_cfg = dynamic_config.get('anp_sdk.agent', {})
         agent_names = [
@@ -102,22 +114,10 @@ class AgentLoader:
                 agents.append(agent)
             else:
                 logger.warning(f'未找到预设名字={agent_name} 的用户数据')
-
         return agents
 
-    @staticmethod
-    def find_hosted_agent(sdk: ANPSDK, user_datas) -> Optional[LocalAgent]:
-        for user_data in user_datas:
-            agent = LocalAgent(sdk, user_data.did)
-            if agent.is_hosted_did:
-                logger.info(f"hosted_did: {agent.id}")
-                logger.info(f"parent_did: {agent.parent_did}")
-                logger.info(f"hosted_info: {agent.hosted_info}")
-                return agent
-        return None
 
-
-class APIHandlerRegistry:
+class AgentRegistryForAPI:
     @staticmethod
     def register_api_handlers(agents: List[LocalAgent]) -> None:
         if len(agents) < 2:
@@ -126,6 +126,9 @@ class APIHandlerRegistry:
 
         agent1, agent2 = agents[0], agents[1]
 
+
+        # 智能体的第一种API发布方式：装饰器
+        # 使用@agent.expose_api装饰器注册API端点，支持指定路径和HTTP方法
         @agent1.expose_api("/hello", methods=["GET"])
         def hello_api(request):
             return {
@@ -133,34 +136,16 @@ class APIHandlerRegistry:
                 "param": request.get("params")
             }
 
+
+        # 智能体的另一种API发布方式：显式注册
+        # 使用agent.expose_api()方法注册API端点，支持指定路径和HTTP方法
         def info_api(request):
             return {
                 "msg": f"{agent2.name}的/info接口收到请求:",
                 "data": request.get("params")
             }
-
         agent2.expose_api("/info", info_api, methods=["POST", "GET"])
-
-
-class GroupMemberListener:
-    def __init__(self, agent: LocalAgent):
-        self.agent = agent
-
-    async def save_group_message(self, message: Dict[str, Any]):
-        message_file = path_resolver.resolve_path(f"{self.agent.name}_group_messages.json")
-        try:
-            async with aiofiles.open(message_file, 'a', encoding='utf-8') as f:
-                await f.write(json.dumps(message, ensure_ascii=False) + '\n')
-        except Exception as e:
-            logger.error(f"保存群聊消息到文件时出错: {e}")
-
-    async def handle_group_message(self, msg: Dict[str, Any]):
-        await self.save_group_message(msg)
-        logger.info(f"{self.agent.name}收到群聊消息: {msg}")
-        return {"status": "success"}
-
-
-class MessageHandlerRegistry:
+class AgentRegistryForMessage:
     @staticmethod
     def register_message_handlers(agents: List[LocalAgent]) -> None:
         if len(agents) < 3:
@@ -168,15 +153,6 @@ class MessageHandlerRegistry:
             return
 
         agent1, agent2, agent3 = agents[0], agents[1], agents[2]
-
-        # agent1 作为群主，需要处理群聊管理
-        group_manager = GroupChatManager(agent1)
-        group_manager.register_group_handlers()
-
-        # 所有智能体都注册群聊消息监听器
-        for agent in [agent1, agent2, agent3]:
-            group_listener = GroupMemberListener(agent)
-            agent.register_group_event_handler('group_message_received', group_listener.handle_group_message)
 
         @agent1.register_message_handler("text")
         def handle_text1(msg):
@@ -186,7 +162,6 @@ class MessageHandlerRegistry:
         def handle_text2(msg):
             logger.info(f"{agent2.name}收到text消息: {msg}")
             return {"reply": f"{agent2.name}回复:确认收到text消息:{msg.get('content')}"}
-
         agent2.register_message_handler("text", handle_text2)
 
         @agent3.register_message_handler("*")
@@ -197,11 +172,55 @@ class MessageHandlerRegistry:
                          f"{msg.get('message_type')}格式的消息:{msg.get('content')}"
             }
 
+async def demo_show_save_group_msg_to_file(agent:LocalAgent, message: Dict[str, Any]):
+    message_file = path_resolver.resolve_path(f"{agent.name}_group_messages.json")
+    try:
+        # 确保目录存在
+        message_dir = os.path.dirname(message_file)
+        if message_dir and not os.path.exists(message_dir):
+            os.makedirs(message_dir, exist_ok=True)
 
-class GroupChatManager:
+        # 如果文件不存在则创建，存在则追加
+        async with aiofiles.open(message_file, 'a', encoding='utf-8') as f:
+            await f.write(json.dumps(message, ensure_ascii=False) + '\n')
+    except Exception as e:
+        logger.error(f"保存群聊消息到文件时出错: {e}")
+
+class AgentGroupMember:
     def __init__(self, agent: LocalAgent):
         self.agent = agent
+    async def handle_group_message(self, msg: Dict[str, Any]):
+        await demo_show_save_group_msg_to_file(self.agent, msg)
+        logger.info(f"{self.agent.name}收到群聊消息: {msg}")
+        return {"status": "success"}
+
+    async def _my_handler(self, group_id, event_type, event_data):
+        print(f"收到群{group_id}的{event_type}事件，内容：{event_data}")
+        await self.handle_group_message(event_data)
+
+    def register_group_event_handler(self):
+        self.agent.register_group_event_handler(self._my_handler)
+
+
+
+class AgentGroupRunner:
+    """
+    AgentGroupRunner - 群组运行演示类
+
+    这是一个group的运行demo，注册了对group的成员管理、消息接受处理、SSE监听分发的处理函数，
+    在register_group_handlers后一直响应，其实应该也有注销handler的动作
+
+    主要功能：
+    1. 群组成员管理 - 添加/移除成员
+    2. 群组消息处理 - 接收和分发群组消息
+    3. SSE连接管理 - 处理实时消息推送连接
+    4. 事件记录 - 保存群组活动日志
+    """
+    def __init__(self, agent: LocalAgent , group_id):
+        self.agent = agent
         self._ensure_group_attributes()
+        self.group_id = group_id
+
 
     def _ensure_group_attributes(self):
         if not hasattr(self.agent, "group_members"):
@@ -216,11 +235,6 @@ class GroupChatManager:
             return ":".join(parts[:3]) + "%3A" + ":".join(parts[3:])
         return did
 
-    def register_group_handlers(self):
-        self.agent.register_message_handler("group_message", self._group_message_handler)
-        self.agent.register_message_handler("group_connect", self._group_connect_handler)
-        self.agent.register_message_handler("group_members", self._group_members_handler)
-
     async def _group_message_handler(self, data: Dict[str, Any]) -> Dict[str, Any]:
         group_id = data.get("group_id")
         req_did = data.get("req_did", "demo_caller")
@@ -228,7 +242,7 @@ class GroupChatManager:
         if (group_id not in self.agent.group_members or
                 req_did not in self.agent.group_members[group_id]):
             return {"error": "无权在此群组发送消息"}
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         message = {
             "sender": req_did,
             "content": data.get("content", ""),
@@ -236,19 +250,12 @@ class GroupChatManager:
             "type": "group_message",
             "group_id": group_id
         }
-
         if group_id in self.agent.group_queues:
             for queue in self.agent.group_queues[group_id].values():
                 await queue.put(message)
 
         if self.agent.group_members.get(group_id) and req_did in self.agent.group_members[group_id]:
-            message_file = path_resolver.resolve_path(f"{self.agent.name}_group_messages.json")
-            try:
-                async with aiofiles.open(message_file, 'a', encoding='utf-8') as f:
-                    await f.write(json.dumps(message, ensure_ascii=False) + '\n')
-            except Exception as e:
-                logger.error(f"保存消息到文件时出错: {e}")
-
+            await demo_show_save_group_msg_to_file(self.agent, message)
         return {"status": "success"}
 
     async def _group_connect_handler(self, data: Dict[str, Any]) -> Dict[str, Any]:
@@ -265,44 +272,6 @@ class GroupChatManager:
         await self._save_connection_event(group_id, req_did, "connected")
 
         return {"event_generator": self._create_event_generator(group_id, req_did)}
-
-    def _create_event_generator(self, group_id: str, req_did: str):
-        async def event_generator():
-            if group_id not in self.agent.group_queues:
-                self.agent.group_queues[group_id] = {}
-
-            client_id = f"{group_id}_{req_did}_{id(req_did)}"
-            self.agent.group_queues[group_id][client_id] = asyncio.Queue()
-            try:
-                yield f"data: {json.dumps({'status': 'connected', 'group_id': group_id})}\n\n"
-
-                while True:
-                    try:
-                        message = await asyncio.wait_for(
-                            self.agent.group_queues[group_id][client_id].get(),
-                            timeout=30
-                        )
-                        if req_did != list(self.agent.group_members[group_id])[0]:
-                            message_file = path_resolver.resolve_path(f"{self.agent.name}_group_messages.json")
-                            try:
-                                async with aiofiles.open(message_file, 'a', encoding='utf-8') as f:
-                                    await f.write(json.dumps(message, ensure_ascii=False) + '\n')
-                            except Exception as e:
-                                logger.error(f"保存接收消息到文件时出错: {e}")
-                        yield f"data: {json.dumps(message)}\n\n"
-                    except asyncio.TimeoutError:
-                        yield f"data: {json.dumps({'type': 'heartbeat'})}\n\n"
-            except Exception as e:
-                logger.error(f"群组 {group_id} SSE连接错误: {e}")
-                await self._save_connection_event(group_id, req_did, "disconnected")
-            finally:
-                if (group_id in self.agent.group_queues and
-                        client_id in self.agent.group_queues[group_id]):
-                    del self.agent.group_queues[group_id][client_id]
-                if not self.agent.group_queues.get(group_id):
-                    self.agent.group_queues.pop(group_id, None)
-
-        return event_generator()
 
     async def _group_members_handler(self, data: Dict[str, Any]) -> Dict[str, Any]:
         group_id = data.get("group_id")
@@ -343,6 +312,47 @@ class GroupChatManager:
         else:
             return {"error": "不支持的操作"}
 
+    def register_group_handlers(self):
+        self.agent.register_message_handler("group_message", self._group_message_handler)
+        self.agent.register_message_handler("group_connect", self._group_connect_handler)
+        self.agent.register_message_handler("group_members", self._group_members_handler)
+
+
+    def _create_event_generator(self, group_id: str, req_did: str):
+
+        async def event_generator():
+            if group_id not in self.agent.group_queues:
+                self.agent.group_queues[group_id] = {}
+
+            client_id = f"{group_id}_{req_did}_{id(req_did)}"
+            self.agent.group_queues[group_id][client_id] = asyncio.Queue()
+            try:
+                yield f"data: {json.dumps({'status': 'connected', 'group_id': group_id})}\n\n"
+
+                while True:
+                    try:
+                        message = await asyncio.wait_for(
+                            self.agent.group_queues[group_id][client_id].get(),
+                            timeout=30
+                        )
+                        if req_did != list(self.agent.group_members[group_id])[0]:
+                            await demo_show_save_group_msg_to_file(self.agent, message)
+                        yield f"data: {json.dumps(message)}\n\n"
+                    except asyncio.TimeoutError:
+                        yield f"data: {json.dumps({'type': 'heartbeat'})}\n\n"
+            except Exception as e:
+                logger.error(f"群组 {group_id} SSE连接错误: {e}")
+                await self._save_connection_event(group_id, req_did, "disconnected")
+            finally:
+                if (group_id in self.agent.group_queues and
+                        client_id in self.agent.group_queues[group_id]):
+                    del self.agent.group_queues[group_id][client_id]
+                if not self.agent.group_queues.get(group_id):
+                    self.agent.group_queues.pop(group_id, None)
+
+        return event_generator()
+
+
     async def _save_member_event(self, group_id: str, action: str, members: List[str]):
         event = {
             "type": "member_event",
@@ -351,13 +361,7 @@ class GroupChatManager:
             "members": members,
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
-
-        message_file = path_resolver.resolve_path(f"{self.agent.name}_group_messages.json")
-        try:
-            async with aiofiles.open(message_file, 'a', encoding='utf-8') as f:
-                await f.write(json.dumps(event, ensure_ascii=False) + '\n')
-        except Exception as e:
-            logger.error(f"保存成员变更事件到文件时出错: {e}")
+        await demo_show_save_group_msg_to_file(self.agent, event)
 
     async def _save_connection_event(self, group_id: str, req_did: str, status: str):
         event = {
@@ -368,17 +372,12 @@ class GroupChatManager:
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
 
-        message_file = path_resolver.resolve_path(f"{self.agent.name}_group_messages.json")
-        try:
-            async with aiofiles.open(message_file, 'a', encoding='utf-8') as f:
-                await f.write(json.dumps(event, ensure_ascii=False) + '\n')
-        except Exception as e:
-            logger.error(f"保存连接状态事件到文件时出错: {e}")
+        await demo_show_save_group_msg_to_file(self.agent, event)
 
 
-class DemoRunner:
+class DemoPrepare:
     def __init__(self, step_mode: bool = False):
-        self.step_helper = StepModeHelper(step_mode)
+        self.step_helper = DemoToolsStepModeHelper(step_mode)
         self.sdk = None
         self.agents = []
 
@@ -394,7 +393,8 @@ class DemoRunner:
             return None, None, None, None
 
         self.step_helper.pause(step_id="demo1_1_2")
-        self._register_handlers()
+        AgentRegistryForAPI.register_api_handlers(self.agents)
+        AgentRegistryForMessage.register_message_handlers(self.agents)
 
         self.step_helper.pause(step_id="demo1_1_3")
         for agent in self.agents:
@@ -405,10 +405,6 @@ class DemoRunner:
         time.sleep(0.5)
 
         return self.sdk, self.agents[0], self.agents[1], self.agents[2]
-
-    def _register_handlers(self):
-        APIHandlerRegistry.register_api_handlers(self.agents)
-        MessageHandlerRegistry.register_message_handlers(self.agents)
 
     def _start_server(self):
         def start_server_thread():
@@ -424,7 +420,7 @@ class DemoRunner:
 
 
 class DemoTasks:
-    def __init__(self, sdk: ANPSDK, step_helper: StepModeHelper):
+    def __init__(self, sdk: ANPSDK, step_helper: DemoToolsStepModeHelper):
         self.sdk = sdk
         self.step_helper = step_helper
 
@@ -463,9 +459,28 @@ class DemoTasks:
         group_id = "demo_group"
         group_url = f"localhost:{self.sdk.port}"
 
+        group_runner = AgentGroupRunner(agent1, group_id)
+        group_runner.register_group_handlers()
+
+        member2 = AgentGroupMember(agent2)
+        member3 = AgentGroupMember(agent3)
+        member2.register_group_event_handler()
+        member3.register_group_event_handler()
+
         await self._setup_group(agent1, agent2, agent3, group_url, group_id)
 
-        await self._demo_group_messages(agent2, agent3, group_url, group_id)
+        await self._demo_group_messages(agent1, agent2, agent3, group_url, group_id)
+
+
+
+        message_file1 = path_resolver.resolve_path(f"{agent1.name}_group_messages.json")
+        message_file2 = path_resolver.resolve_path(f"{agent2.name}_group_messages.json")
+        message_file3 = path_resolver.resolve_path(f"{agent3.name}_group_messages.json")
+
+        await self._show_received_messages(agent1.name, message_file1)
+        await self._show_received_messages(agent2.name, message_file2)
+        await self._show_received_messages(agent3.name, message_file3)
+
 
     async def run_accelerator_demo(self, agent1: LocalAgent, agent2: LocalAgent, agent3: LocalAgent):
         self.step_helper.pause("步骤4: 演示本地智能体加速器")
@@ -519,6 +534,8 @@ class DemoTasks:
 
     async def _setup_group(self, agent1: LocalAgent, agent2: LocalAgent,
                            agent3: LocalAgent, group_url: str, group_id: str):
+
+
         action = {"action": "add", "did": agent1.id}
         resp = await agent_msg_group_members(self.sdk, agent1.id, agent1.id, group_url, group_id, action)
         logger.info(f"{agent1.name}创建群组响应: {resp}")
@@ -528,17 +545,14 @@ class DemoTasks:
             resp = await agent_msg_group_members(self.sdk, agent1.id, agent1.id, group_url, group_id, action)
             logger.info(f"添加{agent.name}到群组响应: {resp}")
 
-    async def _demo_group_messages(self, agent1: LocalAgent, agent2: LocalAgent,
+    async def _demo_group_messages(self, agent1, agent2: LocalAgent, agent3: LocalAgent,
                                    group_url: str, group_id: str):
-        message_file1 = path_resolver.resolve_path(f"{agent1.name}_group_messages.json")
-        message_file2 = path_resolver.resolve_path(f"{agent2.name}_group_messages.json")
 
-        for file in [message_file1, message_file2]:
-            async with aiofiles.open(file, 'w') as f:
-                await f.write("")
 
-        task1 = await agent1.start_group_listening(self.sdk, agent1.id, group_url, group_id)
-        task2 = await agent2.start_group_listening(self.sdk, agent2.id, group_url, group_id)
+
+
+        task2 = await agent2.start_group_listening(self.sdk, agent1.id, group_url, group_id)
+        task3 = await agent3.start_group_listening(self.sdk, agent1.id, group_url, group_id)
         await asyncio.sleep(2)
 
         try:
@@ -557,20 +571,14 @@ class DemoTasks:
             await asyncio.sleep(3)
 
         finally:
-            for task in [task1, task2]:
+            for task in [ task2,task3 ]:
                 task.cancel()
-                try:
-                    await task
-                except asyncio.CancelledError:
-                    logger.info("群聊监听任务已取消")
+            try:
+                await task
+            except asyncio.CancelledError:
+                logger.info("群聊监听任务已取消")
 
-        await self._show_received_messages(agent1.name, message_file1)
-        await self._show_received_messages(agent2.name, message_file2)
 
-    def _get_group_message_file(self) -> str:
-        message_path = dynamic_config.get("anp_sdk.group_msg_path")
-        message_path = path_resolver.resolve_path(message_path)
-        return os.path.join(message_path, "group_messages.json")
 
     async def _show_received_messages(self, agent_name: str, message_file: str):
         logger.info(f"\n{agent_name}接收到的群聊消息:")
@@ -591,35 +599,31 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(description='ANP SDK 演示程序')
-    parser.add_argument('-d', action='store_true', help='新开发功能测试')
     parser.add_argument('-s', action='store_true', help='启用步骤模式')
     parser.add_argument('-f', action='store_true', help='快速模式')
 
     args = parser.parse_args()
 
-    if args.d:
-        from dev_functions import run_dev_tests
-        run_dev_tests(args.s)
-    else:
-        runner = DemoRunner(step_mode=args.s)
-        sdk, agent1, agent2, agent3 = runner.initialize_sdk_and_agents(fast_mode=args.f)
 
-        if all([agent1, agent2, agent3]):
-            async def run_all_demos():
-                demo_tasks = DemoTasks(sdk, runner.step_helper)
+    runner = DemoPrepare(step_mode=args.s)
+    sdk, agent1, agent2, agent3 = runner.initialize_sdk_and_agents(fast_mode=args.f)
 
-                await demo_tasks.run_api_demo(agent1, agent2)
-                await demo_tasks.run_message_demo(agent2, agent3, agent1)
-                await demo_tasks.run_group_chat_demo(agent1, agent2, agent3)
-                await demo_tasks.run_accelerator_demo(agent1, agent2, agent3)
+    if all([agent1, agent2, agent3]):
+        async def run_all_demos():
+            demo_tasks = DemoTasks(sdk, runner.step_helper)
 
-            try:
-                asyncio.run(run_all_demos())
-                runner.step_helper.pause("演示完成")
-            except KeyboardInterrupt:
-                logger.info("用户中断演示")
-            except Exception as e:
-                logger.error(f"演示运行错误: {e}")
+            await demo_tasks.run_api_demo(agent1, agent2)
+            await demo_tasks.run_message_demo(agent2, agent3, agent1)
+            await demo_tasks.run_group_chat_demo(agent1, agent2, agent3)
+            await demo_tasks.run_accelerator_demo(agent1, agent2, agent3)
+
+        try:
+            asyncio.run(run_all_demos())
+            runner.step_helper.pause("演示完成")
+        except KeyboardInterrupt:
+            logger.info("用户中断演示")
+        except Exception as e:
+            logger.error(f"演示运行错误: {e}")
 
 
 if __name__ == "__main__":
