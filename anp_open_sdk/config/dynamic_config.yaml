@@ -12,11 +12,12 @@ chat:
 anp_sdk:
   debugmode: true
   sdk_host: localhost
+  publisher_config_path: publisher_config.yaml
   sdk_port: 9527
   auth_virtual_dir: wba/auth
   user_did_path: anp_open_sdk/anp_users
   user_did_key_id: key-1
-  user_hosted_path: anp_open_sdk/anp_user_hosted
+  user_hosted_path: anp_open_sdk/anp_users_hosted
   group_msg_path: anp_open_sdk
   msg_virtual_dir: /agent/message
   user_did_port_1: 9527

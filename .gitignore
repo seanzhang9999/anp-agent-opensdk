@@ -1,4 +1,6 @@
-anp_open_sdk/anp_users/user_*/host_*
+anp_open_sdk/anp_users/*
+anp_open_sdk/anp_users_hosted/*
+anp_open_sdk/testuse/*
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -177,3 +179,4 @@ anp_core/did_keys/
 
 
 chat_history.json
+anp_open_sdk/testuse/mail_local_backend/inbox/1748326599996_seanzhang9999_at_gmail.com.json

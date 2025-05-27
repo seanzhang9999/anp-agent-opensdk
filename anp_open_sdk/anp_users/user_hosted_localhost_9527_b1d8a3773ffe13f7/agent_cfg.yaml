@@ -1,9 +1,0 @@
-did: did:wba:localhost%3A9527:wba:hostuser:b1d8a3773ffe13f7
-hosted_config:
-  created_at: '2025-05-26T11:22:08.075430'
-  host: localhost
-  parent_did: did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1
-  port: 9527
-  purpose: 对外托管服务 - localhost:9527
-name: 托管智能体_localhost:9527_b1d8a3773ffe13f7
-unique_id: b1d8a3773ffe13f7

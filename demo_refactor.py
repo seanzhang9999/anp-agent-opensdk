@@ -196,6 +196,13 @@ class MessageHandlerRegistry:
         def handle_text1(msg):
             logger.info(f"{agent1.name}收到text消息: {msg}")
             return {"reply": f"{agent1.name}回复:确认收到text消息:{msg.get('content')}"}
+            
+        # 为agent1和agent2注册群聊管理器和群消息监听器
+        # 为agent1注册群聊管理器和消息监听器
+        group_manager = GroupChatManager(agent1)
+        group_manager.register_group_handlers()
+        group_listener1 = GroupMemberListener(agent1)
+        agent1.register_group_event_handler('group_message', group_listener1.handle_group_message)
 
         # agent2 的消息处理器
         def handle_text2(msg):
@@ -205,7 +212,7 @@ class MessageHandlerRegistry:
         agent2.register_message_handler("text", handle_text2)
         # 为agent2注册群聊消息监听器
         group_listener2 = GroupMemberListener(agent2)
-        agent2.register_message_handler("group_message", group_listener2.handle_group_message)
+        agent2.register_group_event_handler('group_message', group_listener2.handle_group_message)
 
         # agent3 的通配消息处理器
         @agent3.register_message_handler("*")
@@ -217,7 +224,7 @@ class MessageHandlerRegistry:
             }
         # 为agent3注册群聊消息监听器
         group_listener3 = GroupMemberListener(agent3)
-        agent3.register_message_handler("group_message", group_listener3.handle_group_message)
+        agent3.register_group_event_handler('group_message', group_listener3.handle_group_message)
 
 
 class GroupChatManager:
@@ -463,8 +470,8 @@ class DemoRunner:
         self._start_server()
         time.sleep(0.5)
 
-        if not fast_mode:
-            input("服务器已启动，查看'/'了解状态,'/docs'了解基础api,按回车继续....")
+        #if not fast_mode:
+        #    input("服务器已启动，查看'/'了解状态,'/docs'了解基础api,按回车继续....")
 
         return self.sdk, self.agents[0], self.agents[1], self.agents[2]
 
@@ -547,7 +554,7 @@ class DemoTasks:
         await self._setup_group(agent1, agent2, agent3, group_url, group_id)
 
         # 演示群聊消息
-        await self._demo_group_messages(agent1, agent2, group_url, group_id)
+        await self._demo_group_messages(agent2, agent3, group_url, group_id)
 
     async def run_accelerator_demo(self, agent1: LocalAgent, agent2: LocalAgent, agent3: LocalAgent):
         """演示本地智能体加速器"""
@@ -623,13 +630,19 @@ class DemoTasks:
                                    group_url: str, group_id: str):
         """演示群聊消息"""
         # 清空消息文件
-        message_file = self._get_group_message_file()
-        async with aiofiles.open(message_file, 'w') as f:
-            await f.write("")
+        message_file1 = path_resolver.resolve_path(f"{agent1.name}_group_messages.json")
+        message_file2 = path_resolver.resolve_path(f"{agent2.name}_group_messages.json")
+        
+        # 清空两个agent的消息文件
+        for file in [message_file1, message_file2]:
+            async with aiofiles.open(file, 'w') as f:
+                await f.write("")
 
-        # 启动监听
-        task = await agent1.start_group_listening(self.sdk, agent1.id, group_url, group_id)
-        await asyncio.sleep(1)
+        # 启动两个agent的监听
+        task1 = await agent1.start_group_listening(self.sdk, agent1.id, group_url, group_id)
+        task2 = await agent2.start_group_listening(self.sdk, agent2.id, group_url, group_id)
+        # 等待 SSE 连接建立
+        await asyncio.sleep(2)
 
         try:
             # 发送消息
@@ -637,24 +650,31 @@ class DemoTasks:
             message = f"大家好，我是{agent1.name}，现在是{timestamp}"
             await agent_msg_group_post(self.sdk, agent1.id, agent1.id, group_url, group_id, message)
 
-            await asyncio.sleep(1)
+            # 等待第一条消息处理完成
+            await asyncio.sleep(2)
 
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             message = f"大家好，我是{agent2.name}，现在是{timestamp}"
-            await agent_msg_group_post(self.sdk, agent2.id, agent1.id, group_url, group_id, message)
+            await agent_msg_group_post(self.sdk, agent2.id, agent2.id, group_url, group_id, message)
 
-            await asyncio.sleep(0.5)
+            # 等待第二条消息处理完成
+            await asyncio.sleep(2)
+            
+            # 额外等待时间确保消息被完全处理和保存
+            await asyncio.sleep(3)
 
         finally:
             # 清理监听任务
-            task.cancel()
-            try:
-                await task
-            except asyncio.CancelledError:
-                logger.info("群聊监听任务已取消")
+            for task in [task1, task2]:
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    logger.info("群聊监听任务已取消")
 
-        # 显示接收到的消息
-        await self._show_received_messages(agent1.name, message_file)
+        # 显示两个agent接收到的消息
+        await self._show_received_messages(agent1.name, message_file1)
+        await self._show_received_messages(agent2.name, message_file2)
 
     def _get_group_message_file(self) -> str:
         """获取群聊消息文件路径"""

@@ -34,7 +34,7 @@ async def get_hosted_did_document(user_id: str) -> Dict:
     """
     Retrieve a DID document by user ID from anp_user_hosted.
     """
-    did_path = Path(dynamic_config.get('anp_sdk.user_hosted_path', 'anp_user_hosted'))
+    did_path = Path(dynamic_config.get('anp_sdk.user_hosted_path', 'anp_users_hosted'))
     did_path = did_path.joinpath(f"user_{user_id}", "did_document.json")
     did_path = Path(path_resolver.resolve_path(did_path.as_posix()))
     if not did_path.exists():

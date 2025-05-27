@@ -113,13 +113,19 @@ async def listen_group_messages(sdk, caller_agent: str, group_hoster:str, group_
     try:
         async with aiohttp.ClientSession() as session:
             url = f"http://{group_url}/agent/group/{group_hoster}/{group_id}/connect?{url_params}"
+            logger.info(f"[{caller_agent}] 开始建立 SSE 连接: {url}")
             async with session.get(url) as response:
+                if response.status != 200:
+                    logger.error(f"[{caller_agent}] SSE 连接失败: HTTP {response.status}")
+                    return
+                logger.info(f"[{caller_agent}] SSE 连接成功建立")
                 async for line in response.content:
                     if line:
                         try:
                             decoded_line = line.decode("utf-8").strip()
                             if not decoded_line:
                                 continue
+                            logger.debug(f"[{caller_agent}] 收到原始数据: {decoded_line}")
                             # 移除 "data:" 前缀
                             if decoded_line.startswith("data:"):
                                 decoded_line = decoded_line[5:].strip()
@@ -127,37 +133,43 @@ async def listen_group_messages(sdk, caller_agent: str, group_hoster:str, group_
                                 import json
                                 msg_obj = json.loads(decoded_line)
                                 event_type = msg_obj.get("event_type") or msg_obj.get("type") or "*"
+                                logger.info(f"[{caller_agent}] 处理事件类型: {event_type}, 消息内容: {msg_obj}")
                                 # 优先走 LocalAgent 的注册机制
                                 if hasattr(caller_agent_obj, "_dispatch_group_event"):
+                                    logger.debug(f"[{caller_agent}] 使用 LocalAgent 事件分发机制")
                                     await caller_agent_obj._dispatch_group_event(group_id, event_type, msg_obj)
                                 # 兼容旧接口
                                 elif event_handlers and event_type in event_handlers:
+                                    logger.debug(f"[{caller_agent}] 使用事件处理器: {event_type}")
                                     await event_handlers[event_type](msg_obj)
                                 elif event_handlers and "*" in event_handlers:
+                                    logger.debug(f"[{caller_agent}] 使用通配符事件处理器")
                                     await event_handlers["*"](msg_obj)
                                 else:
-                                    logger.debug(f"未注册群事件处理函数")
+                                    logger.warning(f"[{caller_agent}] 未注册群事件处理函数，事件类型: {event_type}")
+                            except json.JSONDecodeError as je:
+                                logger.error(f"[{caller_agent}] JSON 解析错误: {je}, 原始数据: {decoded_line}")
                             except Exception as e:
-                                logger.error(f"消息解析或分发出错: {e}")
+                                logger.error(f"[{caller_agent}] 消息解析或分发出错: {e}")
                         except Exception as e:
-                            logger.error(f"消息处理时出错: {e}")
+                            logger.error(f"[{caller_agent}] 消息处理时出错: {e}")
     except asyncio.CancelledError:
-        logger.info(f"{caller_agent} 的群聊监听已停止")
+        logger.info(f"[{caller_agent}] 群聊监听已停止")
         # 添加资源清理代码
         try:
             # 清理会话资源
             if 'session' in locals() and session is not None:
                 await session.close()
         except Exception as e:
-            logger.error(f"清理资源时出错: {e}")
+            logger.error(f"[{caller_agent}] 清理资源时出错: {e}")
         # 重新抛出异常，让调用者知道任务已取消
         raise
     except Exception as e:
-        logger.error(f"{caller_agent} 的群聊监听发生错误: {e}")
+        logger.error(f"[{caller_agent}] 群聊监听发生错误: {e}")
         # 清理资源
         try:
             if 'session' in locals() and session is not None:
                 await session.close()
         except Exception as cleanup_error:
-            logger.error(f"清理资源时出错: {cleanup_error}")
+            logger.error(f"[{caller_agent}] 清理资源时出错: {cleanup_error}")
         await asyncio.sleep(3)  # 延迟后重连

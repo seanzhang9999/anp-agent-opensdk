@@ -14,6 +14,16 @@
             "justMyCode": true      
         },
         {
+            "name": "win-demo_refactor",
+            "type": "debugpy",
+            "request": "launch",
+            "python": ".venv/Scripts/python.exe",
+            "program": "${workspaceFolder}/demo_refactor.py",
+            "console": "integratedTerminal",
+            "args": "-f",
+            "justMyCode": true      
+        },
+        {
             "name": "mac-anp_sdk_demo -d",
             "type": "debugpy",
             "request": "launch",
