@@ -157,6 +157,28 @@ class APIHandlerRegistry:
         agent2.expose_api("/info", info_api, methods=["POST", "GET"])
 
 
+class GroupMemberListener:
+    """群聊成员消息监听器"""
+
+    def __init__(self, agent: LocalAgent):
+        self.agent = agent
+
+    async def save_group_message(self, message: Dict[str, Any]):
+        """保存群聊消息到成员自己的消息文件"""
+        message_file = path_resolver.resolve_path(f"{self.agent.name}_group_messages.json")
+        try:
+            async with aiofiles.open(message_file, 'a', encoding='utf-8') as f:
+                await f.write(json.dumps(message, ensure_ascii=False) + '\n')
+        except Exception as e:
+            logger.error(f"保存群聊消息到文件时出错: {e}")
+
+    async def handle_group_message(self, msg: Dict[str, Any]):
+        """处理接收到的群聊消息"""
+        await self.save_group_message(msg)
+        logger.info(f"{self.agent.name}收到群聊消息: {msg}")
+        return {"status": "success"}
+
+
 class MessageHandlerRegistry:
     """消息处理器注册管理"""
 
@@ -181,6 +203,9 @@ class MessageHandlerRegistry:
             return {"reply": f"{agent2.name}回复:确认收到text消息:{msg.get('content')}"}
 
         agent2.register_message_handler("text", handle_text2)
+        # 为agent2注册群聊消息监听器
+        group_listener2 = GroupMemberListener(agent2)
+        agent2.register_message_handler("group_message", group_listener2.handle_group_message)
 
         # agent3 的通配消息处理器
         @agent3.register_message_handler("*")
@@ -190,6 +215,9 @@ class MessageHandlerRegistry:
                 "reply": f"{agent3.name}回复:确认收到{msg.get('type')}类型"
                          f"{msg.get('message_type')}格式的消息:{msg.get('content')}"
             }
+        # 为agent3注册群聊消息监听器
+        group_listener3 = GroupMemberListener(agent3)
+        agent3.register_message_handler("group_message", group_listener3.handle_group_message)
 
 
 class GroupChatManager:
@@ -212,13 +240,6 @@ class GroupChatManager:
         self.agent.register_message_handler("group_connect", self._group_connect_handler)
         self.agent.register_message_handler("group_members", self._group_members_handler)
 
-        # 注册群聊事件监听
-        self.agent.register_group_event_handler(
-            self._group_event_handler,
-            group_id=None,
-            event_type=None
-        )
-
     async def _group_message_handler(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """处理群聊消息发送"""
         group_id = data.get("group_id")
@@ -234,13 +255,23 @@ class GroupChatManager:
             "sender": req_did,
             "content": data.get("content", ""),
             "timestamp": timestamp,
-            "type": "group_message"
+            "type": "group_message",
+            "group_id": group_id
         }
 
         # 分发消息到群组队列
         if group_id in self.agent.group_queues:
             for queue in self.agent.group_queues[group_id].values():
                 await queue.put(message)
+
+        # 保存消息到群主的消息文件
+        if self.agent.group_members.get(group_id) and req_did in self.agent.group_members[group_id]:
+            message_file = path_resolver.resolve_path(f"{self.agent.name}_group_messages.json")
+            try:
+                async with aiofiles.open(message_file, 'a', encoding='utf-8') as f:
+                    await f.write(json.dumps(message, ensure_ascii=False) + '\n')
+            except Exception as e:
+                logger.error(f"保存消息到文件时出错: {e}")
 
         return {"status": "success"}
 
@@ -261,6 +292,9 @@ class GroupChatManager:
                 req_did not in self.agent.group_members[group_id]):
             return {"error": "无权订阅此群组消息"}
 
+        # 记录连接状态事件
+        await self._save_connection_event(group_id, req_did, "connected")
+
         return {"event_generator": self._create_event_generator(group_id, req_did)}
 
     def _create_event_generator(self, group_id: str, req_did: str):
@@ -274,6 +308,7 @@ class GroupChatManager:
             self.agent.group_queues[group_id][client_id] = asyncio.Queue()
 
             try:
+                # 发送连接成功消息
                 yield f"data: {json.dumps({'status': 'connected', 'group_id': group_id})}\n\n"
 
                 while True:
@@ -282,11 +317,21 @@ class GroupChatManager:
                             self.agent.group_queues[group_id][client_id].get(),
                             timeout=30
                         )
+                        # 非群主成员接收消息时保存到自己的消息文件
+                        if req_did != list(self.agent.group_members[group_id])[0]:
+                            message_file = path_resolver.resolve_path(f"{self.agent.name}_group_messages.json")
+                            try:
+                                async with aiofiles.open(message_file, 'a', encoding='utf-8') as f:
+                                    await f.write(json.dumps(message, ensure_ascii=False) + '\n')
+                            except Exception as e:
+                                logger.error(f"保存接收消息到文件时出错: {e}")
                         yield f"data: {json.dumps(message)}\n\n"
                     except asyncio.TimeoutError:
                         yield f"data: {json.dumps({'type': 'heartbeat'})}\n\n"
             except Exception as e:
                 logger.error(f"群组 {group_id} SSE连接错误: {e}")
+                # 记录连接断开事件
+                await self._save_connection_event(group_id, req_did, "disconnected")
             finally:
                 # 清理资源
                 if (group_id in self.agent.group_queues and
@@ -320,7 +365,11 @@ class GroupChatManager:
                 self.agent.group_members[group_id].add(req_did)
                 if target_did != req_did:
                     self.agent.group_members[group_id].add(target_did)
+                    # 记录成员变更事件
+                    await self._save_member_event(group_id, "add", [req_did, target_did])
                     return {"status": "success", "message": "成功创建群组并添加了创建者和邀请成员"}
+                # 记录成员变更事件
+                await self._save_member_event(group_id, "add", [req_did])
                 return {"status": "success", "message": "成功创建群组并添加创建者为首个成员"}
             return {"error": "群组不存在"}
 
@@ -330,28 +379,52 @@ class GroupChatManager:
 
         if action == "add":
             self.agent.group_members[group_id].add(target_did)
+            # 记录成员变更事件
+            await self._save_member_event(group_id, "add", [target_did])
             return {"status": "success", "message": "成功添加成员"}
         elif action == "remove":
             if target_did in self.agent.group_members[group_id]:
                 self.agent.group_members[group_id].remove(target_did)
+                # 记录成员变更事件
+                await self._save_member_event(group_id, "remove", [target_did])
                 return {"status": "success", "message": "成功移除成员"}
             return {"error": "成员不存在"}
         else:
             return {"error": "不支持的操作"}
 
-    async def _group_event_handler(self, group_id: str, event_type: str, event_data: Dict[str, Any]):
-        """群聊事件处理器"""
-        print(f"收到群{group_id}的{event_type}事件，内容：{event_data}")
-
-        message_file = dynamic_config.get("anp_sdk.group_msg_path")
-        message_file = path_resolver.resolve_path(message_file)
-        message_file = os.path.join(message_file, "group_messages.json")
-
+    async def _save_member_event(self, group_id: str, action: str, members: List[str]):
+        """保存成员变更事件到消息文件"""
+        event = {
+            "type": "member_event",
+            "group_id": group_id,
+            "action": action,
+            "members": members,
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        
+        message_file = path_resolver.resolve_path(f"{self.agent.name}_group_messages.json")
         try:
             async with aiofiles.open(message_file, 'a', encoding='utf-8') as f:
-                await f.write(json.dumps(event_data, ensure_ascii=False) + '\n')
+                await f.write(json.dumps(event, ensure_ascii=False) + '\n')
         except Exception as e:
-            logger.error(f"保存消息到文件时出错: {e}")
+            logger.error(f"保存成员变更事件到文件时出错: {e}")
+
+    async def _save_connection_event(self, group_id: str, req_did: str, status: str):
+        """保存连接状态事件到消息文件"""
+        event = {
+            "type": "connection_event",
+            "group_id": group_id,
+            "member": req_did,
+            "status": status,
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        
+        message_file = path_resolver.resolve_path(f"{self.agent.name}_group_messages.json")
+        try:
+            async with aiofiles.open(message_file, 'a', encoding='utf-8') as f:
+                await f.write(json.dumps(event, ensure_ascii=False) + '\n')
+        except Exception as e:
+            logger.error(f"保存连接状态事件到文件时出错: {e}")
 
 
 class DemoRunner:
