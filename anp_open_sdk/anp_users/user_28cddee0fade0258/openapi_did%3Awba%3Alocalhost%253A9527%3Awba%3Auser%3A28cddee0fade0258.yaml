@@ -158,6 +158,64 @@ paths:
           application/json:
             schema:
               type: object
+  /agent/group/{did}/{group_id}/join:
+    post:
+      summary: join_group
+      operationId: post__agent_group_did_group_id_join
+      parameters:
+      - name: group_id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: req_did
+        in: query
+        required: false
+        schema:
+          type: string
+        default: demo_caller
+      responses:
+        '200':
+          description: 成功响应
+          content:
+            application/json:
+              schema:
+                type: object
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+  /agent/group/{did}/{group_id}/leave:
+    post:
+      summary: leave_group
+      operationId: post__agent_group_did_group_id_leave
+      parameters:
+      - name: group_id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: req_did
+        in: query
+        required: false
+        schema:
+          type: string
+        default: demo_caller
+      responses:
+        '200':
+          description: 成功响应
+          content:
+            application/json:
+              schema:
+                type: object
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
   /agent/group/{did}/{group_id}/message:
     post:
       summary: group_message
@@ -239,3 +297,25 @@ paths:
           application/json:
             schema:
               type: object
+    get:
+      summary: get_group_members
+      operationId: get__agent_group_did_group_id_members
+      parameters:
+      - name: group_id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: req_did
+        in: query
+        required: false
+        schema:
+          type: string
+        default: demo_caller
+      responses:
+        '200':
+          description: 成功响应
+          content:
+            application/json:
+              schema:
+                type: object

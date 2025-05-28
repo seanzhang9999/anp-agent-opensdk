@@ -15,3 +15,17 @@
 {"type": "connection_event", "group_id": "demo_group", "member": "did:wba:localhost%3A9527:wba:user:5fea49e183c6c211", "status": "connected", "timestamp": "2025-05-27 22:26:54"}
 {"sender": "did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1", "content": "大家好，我是本田，现在是2025-05-27 22:26:56", "timestamp": "2025-05-27 22:26:56", "type": "group_message", "group_id": "demo_group"}
 {"sender": "did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1", "content": "大家好，我是本田，现在是2025-05-27 22:26:56", "timestamp": "2025-05-27 22:26:56", "type": "group_message", "group_id": "demo_group"}
+{"type": "member_event", "group_id": "demo_group", "action": "add", "members": ["did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1"], "timestamp": "2025-05-28 08:40:08"}
+{"type": "member_event", "group_id": "demo_group", "action": "add", "members": ["did:wba:localhost%3A9527:wba:user:28cddee0fade0258"], "timestamp": "2025-05-28 08:40:08"}
+{"type": "member_event", "group_id": "demo_group", "action": "add", "members": ["did:wba:localhost%3A9527:wba:user:5fea49e183c6c211"], "timestamp": "2025-05-28 08:40:08"}
+{"type": "connection_event", "group_id": "demo_group", "member": "did:wba:localhost%3A9527:wba:user:28cddee0fade0258", "status": "connected", "timestamp": "2025-05-28 08:40:08"}
+{"type": "connection_event", "group_id": "demo_group", "member": "did:wba:localhost%3A9527:wba:user:5fea49e183c6c211", "status": "connected", "timestamp": "2025-05-28 08:40:08"}
+{"sender": "did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1", "content": "大家好，我是本田，现在是2025-05-28 08:40:10", "timestamp": "2025-05-28 08:40:10", "type": "group_message", "group_id": "demo_group"}
+{"sender": "did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1", "content": "大家好，我是本田，现在是2025-05-28 08:40:10", "timestamp": "2025-05-28 08:40:10", "type": "group_message", "group_id": "demo_group"}
+{"type": "member_event", "group_id": "demo_group", "action": "add", "members": ["did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1"], "timestamp": "2025-05-28 09:06:47"}
+{"type": "member_event", "group_id": "demo_group", "action": "add", "members": ["did:wba:localhost%3A9527:wba:user:28cddee0fade0258"], "timestamp": "2025-05-28 09:06:47"}
+{"type": "member_event", "group_id": "demo_group", "action": "add", "members": ["did:wba:localhost%3A9527:wba:user:5fea49e183c6c211"], "timestamp": "2025-05-28 09:06:47"}
+{"type": "connection_event", "group_id": "demo_group", "member": "did:wba:localhost%3A9527:wba:user:28cddee0fade0258", "status": "connected", "timestamp": "2025-05-28 09:06:47"}
+{"type": "connection_event", "group_id": "demo_group", "member": "did:wba:localhost%3A9527:wba:user:5fea49e183c6c211", "status": "connected", "timestamp": "2025-05-28 09:06:47"}
+{"sender": "did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1", "content": "大家好，我是本田，现在是2025-05-28 09:06:49", "timestamp": "2025-05-28 09:06:49", "type": "group_message", "group_id": "demo_group"}
+{"sender": "did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1", "content": "大家好，我是本田，现在是2025-05-28 09:06:49", "timestamp": "2025-05-28 09:06:49", "type": "group_message", "group_id": "demo_group"}
