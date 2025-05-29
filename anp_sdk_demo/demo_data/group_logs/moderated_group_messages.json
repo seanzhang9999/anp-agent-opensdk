@@ -172,5 +172,63 @@
     "group_id": "moderated_group",
     "timestamp": "2025-05-29 22:49:46",
     "content": "雅马哈 left the moderated chat"
+  },
+  {
+    "type": "join",
+    "agent_id": "did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1",
+    "agent_name": "本田",
+    "role": "moderator",
+    "group_id": "moderated_group",
+    "timestamp": "2025-05-29 22:55:05",
+    "content": "本田 joined as moderator"
+  },
+  {
+    "type": "join",
+    "agent_id": "did:wba:localhost%3A9527:wba:user:28cddee0fade0258",
+    "agent_name": "雅马哈",
+    "role": "member",
+    "group_id": "moderated_group",
+    "timestamp": "2025-05-29 22:55:05",
+    "content": "雅马哈 joined as member"
+  },
+  {
+    "type": "message",
+    "sender": "did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1",
+    "content": "This is a normal message",
+    "timestamp": "2025-05-29 22:55:06",
+    "group_id": "moderated_group",
+    "metadata": {}
+  },
+  {
+    "type": "message_blocked",
+    "sender": "did:wba:localhost%3A9527:wba:user:28cddee0fade0258",
+    "content": "This message contains spam content",
+    "reason": "banned_words: spam",
+    "timestamp": "2025-05-29 22:55:06",
+    "group_id": "moderated_group"
+  },
+  {
+    "type": "message",
+    "sender": "did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1",
+    "content": "Back to normal conversation",
+    "timestamp": "2025-05-29 22:55:07",
+    "group_id": "moderated_group",
+    "metadata": {}
+  },
+  {
+    "type": "leave",
+    "agent_id": "did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1",
+    "agent_name": "本田",
+    "group_id": "moderated_group",
+    "timestamp": "2025-05-29 22:55:09",
+    "content": "本田 left the moderated chat"
+  },
+  {
+    "type": "leave",
+    "agent_id": "did:wba:localhost%3A9527:wba:user:28cddee0fade0258",
+    "agent_name": "雅马哈",
+    "group_id": "moderated_group",
+    "timestamp": "2025-05-29 22:55:09",
+    "content": "雅马哈 left the moderated chat"
   }
 ]

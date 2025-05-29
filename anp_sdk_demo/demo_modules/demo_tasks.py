@@ -17,7 +17,7 @@ from anp_open_sdk.service.agent_message_group import agent_msg_group_post, agent
 from anp_open_sdk.service.agent_message_p2p import agent_msg_post
 
 from .step_helper import DemoStepHelper
-from .group_runner import DemoGroupRunner, DemoGroupMember
+
 
 
 from anp_sdk_demo.demo_modules.customized_group_member import (
@@ -61,8 +61,7 @@ class DemoTaskRunner:
 
             await self.run_api_demo(agent1, agent2)
             await self.run_message_demo(agent2, agent3, agent1)
-            await self.run_group_chat_demo(agent1, agent2, agent3)
-            await self.run_enhanced_group_chat_demo(agent1, agent2,agent3)
+            await self.run_group_chat_demo(agent1, agent2,agent3)
             self.step_helper.pause("所有演示完成")
             
         except Exception as e:
@@ -104,41 +103,7 @@ class DemoTaskRunner:
         resp = await agent_msg_post(self.sdk, agent3.id, agent1.id, f"你好，我是{agent3.name}")
         logger.info(f"{agent3.name}向{agent1.name}发送消息响应: {resp}")
     
-    async def run_group_chat_demo(self, agent1: LocalAgent, agent2: LocalAgent, agent3: LocalAgent):
-        """群聊功能演示"""
-        self.step_helper.pause("步骤3: 演示群聊功能")
-
-        group_id = "demo_group"
-        group_url = f"localhost:{self.sdk.port}"
-
-        # 创建群组运行器和成员
-        group_runner = DemoGroupRunner(agent1, group_id)
-        group_runner.register_group_handlers()
-
-        member2 = DemoGroupMember(agent2)
-        member3 = DemoGroupMember(agent3)
-        member2.register_group_event_handler()
-        member3.register_group_event_handler()
-
-        # 设置群组和发送消息
-        await self._setup_group(agent1, agent2, agent3, group_url, group_id)
-        await self._demo_group_messages(agent1, agent2, agent3, group_url, group_id)
-
-        # 显示接收到的消息
-        message_files = [
-            path_resolver.resolve_path(f"anp_sdk_demo/demo_data/{agent.name}_group_messages.json") 
-            for agent in [agent1, agent2, agent3]
-        ]
-        
-        for agent, message_file in zip([agent1, agent2, agent3], message_files):
-            await self._show_received_messages(agent.name, message_file)
-            # 清空消息文件
-            try:
-                async with aiofiles.open(message_file, 'w', encoding='utf-8') as f:
-                    await f.write("")
-                logger.info(f"已清空 {agent.name} 的消息文件")
-            except Exception as e:
-                logger.warning(f"清空 {agent.name} 消息文件失败: {e}")
+   
 
     async def run_development_features(self):
         """开发模式特有功能"""
@@ -172,69 +137,8 @@ class DemoTaskRunner:
             except Exception as e:
                 logger.error(f"获取{agent.name}信息失败: {e}")
 
-    async def _setup_group(self, agent1: LocalAgent, agent2: LocalAgent,
-                           agent3: LocalAgent, group_url: str, group_id: str):
-        """设置群组"""
-        self.step_helper.pause("建群拉人步骤")
-        
-        # 创建群组并添加agent1
-        action = {"action": "add", "did": agent1.id}
-        resp = await agent_msg_group_members(self.sdk, agent1.id, agent1.id, group_url, group_id, action)
-        logger.info(f"{agent1.name}创建群组响应: {resp}")
-
-        # 添加其他成员
-        for agent in [agent2, agent3]:
-            action = {"action": "add", "did": agent.id}
-            resp = await agent_msg_group_members(self.sdk, agent1.id, agent1.id, group_url, group_id, action)
-            logger.info(f"添加{agent.name}到群组响应: {resp}")
-
-    async def _demo_group_messages(self, agent1, agent2: LocalAgent, agent3: LocalAgent,
-                                   group_url: str, group_id: str):
-        """演示群组消息"""
-        self.step_helper.pause("开始群聊消息演示")
-        
-        # 清空消息文件
-        for agent in [agent1, agent2, agent3]:
-            message_file = path_resolver.resolve_path(f"anp_sdk_demo/demo_data/{agent.name}_group_messages.json")
-            try:
-                async with aiofiles.open(message_file, 'w', encoding='utf-8') as f:
-                    await f.write("")
-            except Exception as e:
-                logger.warning(f"清空{agent.name}消息文件失败: {e}")
-
-        # 启动监听
-        task2 = await agent2.start_group_listening(self.sdk, agent1.id, group_url, group_id)
-        task3 = await agent3.start_group_listening(self.sdk, agent1.id, group_url, group_id)
-        await asyncio.sleep(2)
-
-        try:
-            # 发送消息
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            message = f"大家好，我是{agent1.name}，现在是{timestamp}"
-            await agent_msg_group_post(self.sdk, agent1.id, agent1.id, group_url, group_id, message)
-            logger.info(f"{agent1.name}发送群聊消息")
-
-            await asyncio.sleep(2)
-
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            message = f"大家好，我是{agent2.name}，现在是{timestamp}"
-            await agent_msg_group_post(self.sdk, agent2.id, agent2.id, group_url, group_id, message)
-            logger.info(f"{agent2.name}发送群聊消息")
-
-            await asyncio.sleep(3)
-
-        finally:
-            # 取消监听任务
-            for task in [task2, task3]:
-                task.cancel()
-            try:
-                await asyncio.gather(task2, task3, return_exceptions=True)
-            except Exception as e:
-                logger.warning(f"取消监听任务时出现异常: {e}")
-            logger.info("群聊监听任务已取消")
-
-
-    async def run_enhanced_group_chat_demo(self, agent1: LocalAgent, agent2: LocalAgent, agent3: LocalAgent):
+  
+    async def run_group_chat_demo(self, agent1: LocalAgent, agent2: LocalAgent, agent3: LocalAgent):
         """使用新的 GroupRunner SDK 运行群聊演示"""
         print("\n" + "=" * 60)
         print("🚀 运行增强群聊演示 (使用增强的 GroupMember 与 GroupRunner)")

@@ -32,5 +32,22 @@
     "group_id": "sample_group",
     "timestamp": "2025-05-29 22:49:46",
     "extra_data": {}
+  },
+  {
+    "event_type": "join",
+    "agent_id": "did:wba:localhost%3A9527:wba:user:5fea49e183c6c211",
+    "group_id": "sample_group",
+    "timestamp": "2025-05-29 22:55:02",
+    "extra_data": {
+      "name": "铃木",
+      "metadata": {}
+    }
+  },
+  {
+    "event_type": "leave",
+    "agent_id": "did:wba:localhost%3A9527:wba:user:5fea49e183c6c211",
+    "group_id": "sample_group",
+    "timestamp": "2025-05-29 22:55:09",
+    "extra_data": {}
   }
 ]
