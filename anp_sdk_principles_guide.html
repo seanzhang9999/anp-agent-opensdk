@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ANP Open SDK 架构理念实践指南</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.8;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 15px;
+        }
+        h2 {
+            color: #34495e;
+            margin-top: 35px;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 10px;
+        }
+        h3 {
+            color: #4a5568;
+            margin-top: 25px;
+        }
+        .principle-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .principle-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .implementation-box {
+            background-color: #f8f9fa;
+            border-left: 4px solid #3498db;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        .example-code {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+            margin: 15px 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            line-height: 1.5;
+            border: 1px solid #e0e0e0;
+        }
+        .value-highlight {
+            background-color: #e8f8f5;
+            border: 1px solid #27ae60;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        .comparison-table th {
+            background-color: #3498db;
+            color: white;
+            padding: 12px;
+            text-align: left;
+        }
+        .comparison-table td {
+            padding: 12px;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        .comparison-table tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        .diagram {
+            background-color: #fff;
+            border: 2px solid #3498db;
+            border-radius: 10px;
+            padding: 30px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .check-mark {
+            color: #27ae60;
+            font-size: 20px;
+        }
+        .cross-mark {
+            color: #e74c3c;
+            font-size: 20px;
+        }
+        .workflow {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 20px 0;
+        }
+        .workflow-step {
+            flex: 1;
+            text-align: center;
+            padding: 20px;
+            background-color: #ecf0f1;
+            margin: 0 10px;
+            border-radius: 10px;
+        }
+        .workflow-arrow {
+            font-size: 30px;
+            color: #3498db;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>ANP Open SDK 架构理念实践指南</h1>
+        
+        <div style="background-color: #e8f4f8; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+            <h3 style="margin-top: 0;">文档概述</h3>
+            <p>本指南展示了ANP Open SDK如何遵循关键架构理念，每个理念都配有具体实现示例和价值说明。</p>
+        </div>
+
+        <h2>一、当前架构符合性检查</h2>
+        
+        <table class="comparison-table">
+            <tr>
+                <th>架构理念</th>
+                <th>符合程度</th>
+                <th>当前实现</th>
+                <th>改进建议</th>
+            </tr>
+            <tr>
+                <td>框架无关性</td>
+                <td><span class="check-mark">✓</span> 部分符合</td>
+                <td>TransportRouter抽象了传输层</td>
+                <td>需要进一步抽象HTTP框架</td>
+            </tr>
+            <tr>
+                <td>存储抽象化</td>
+                <td><span class="check-mark">✓</span> 完全符合</td>
+                <td>SecureStorageProvider提供了存储抽象</td>
+                <td>-</td>
+            </tr>
+            <tr>
+                <td>依赖注入</td>
+                <td><span class="check-mark">✓</span> 部分符合</td>
+                <td>AgentBuilder提供了构建器模式</td>
+                <td>可以增加更灵活的DI容器</td>
+            </tr>
+            <tr>
+                <td>协议分离</td>
+                <td><span class="check-mark">✓</span> 完全符合</td>
+                <td>协议层与传输层完全分离</td>
+                <td>-</td>
+            </tr>
+            <tr>
+                <td>场景适配</td>
+                <td><span class="check-mark">✓</span> 完全符合</td>
+                <td>ProfileManager支持多场景</td>
+                <td>-</td>
+            </tr>
+        </table>
+
+        <h2>二、核心理念详解与实践</h2>
+
+        <div class="principle-card">
+            <div class="principle-title">理念1：框架无关性</div>
+            <div>"让业务逻辑独立于具体实现框架"</div>
+        </div>
+
+        <div class="implementation-box">
+            <h3>实施方法</h3>
+            <p>通过适配器模式将框架特定的代码与核心业务逻辑分离：</p>
+            
+            <div class="example-code">
+# 1. 定义框架无关的接口
+class HttpFrameworkAdapter(ABC):
+    @abstractmethod
+    async def handle_request(self, request_data: Dict) -> AgentRequest:
+        pass
+
+# 2. 为特定框架实现适配器
+class FastAPIAdapter(HttpFrameworkAdapter):
+    async def handle_request(self, request_data: Dict) -> AgentRequest:
+        # FastAPI特定的实现
+        return AgentRequest(...)
+
+class FlaskAdapter(HttpFrameworkAdapter):
+    async def handle_request(self, request_data: Dict) -> AgentRequest:
+        # Flask特定的实现
+        return AgentRequest(...)
+
+# 3. 核心SDK只依赖接口
+class LocalAgent:
+    def __init__(self, http_adapter: HttpFrameworkAdapter):
+        self.http_adapter = http_adapter
+    
+    async def process_request(self, raw_request):
+        # 使用适配器转换请求
+        agent_request = await self.http_adapter.handle_request(raw_request)
+        # 执行业务逻辑（与框架无关）
+        return self.handle_business_logic(agent_request)
+            </div>
+        </div>
+
+        <div class="value-highlight">
+            <h4>价值体现</h4>
+            <ul>
+                <li><strong>可移植性</strong>：同一套SDK可以在FastAPI、Flask、Django等多个框架中使用</li>
+                <li><strong>可测试性</strong>：可以轻松模拟不同框架进行测试</li>
+                <li><strong>维护性</strong>：框架升级不影响业务逻辑</li>
+            </ul>
+        </div>
+
+        <div class="principle-card">
+            <div class="principle-title">理念2：存储抽象化</div>
+            <div>"让数据存储方式对业务逻辑透明"</div>
+        </div>
+
+        <div class="implementation-box">
+            <h3>实施方法</h3>
+            <p>使用存储提供者模式，支持多种存储后端：</p>
+            
+            <div class="workflow">
+                <div class="workflow-step">
+                    <h4>业务逻辑</h4>
+                    <p>agent.store_data()</p>
+                </div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">
+                    <h4>存储抽象</h4>
+                    <p>SecureStorageProvider</p>
+                </div>
+                <div class="workflow-arrow">→</div>
+                <div class="workflow-step">
+                    <h4>具体实现</h4>
+                    <p>Local/S3/Redis</p>
+                </div>
+            </div>
+
+            <div class="example-code">
+# 场景示例：开发环境使用本地文件，生产环境使用S3
+
+# 开发环境
+dev_agent = await create_agent(
+    mode=DeploymentMode.SINGLE_LOCAL,
+    storage_config=SecureStorageConfig(
+        security_level=SecurityLevel.PLAIN,
+        provider="local",
+        config={"path": "./dev-data"}
+    )
+)
+
+# 生产环境 - 只需改变配置
+prod_agent = await create_agent(
+    mode=DeploymentMode.PUBLIC_SERVICE,
+    storage_config=SecureStorageConfig(
+        security_level=SecurityLevel.ENCRYPTED,
+        provider="s3",
+        config={
+            "bucket": "anp-prod-storage",
+            "region": "us-east-1"
+        }
+    )
+)
+
+# 使用方式完全相同
+await dev_agent.store_did_document(did_doc)
+await prod_agent.store_did_document(did_doc)
+            </div>
+        </div>
+
+        <div class="value-highlight">
+            <h4>价值体现</h4>
+            <ul>
+                <li><strong>灵活部署</strong>：同一套代码可以部署在不同环境</li>
+                <li><strong>成本优化</strong>：开发用本地存储，生产用云存储</li>
+                <li><strong>性能优化</strong>：可以根据需求选择最适合的存储方案</li>
+            </ul>
+        </div>
+
+        <div class="principle-card">
+            <div class="principle-title">理念3：智能路由与传输分离</div>
+            <div>"让通信方式的选择变得智能且透明"</div>
+        </div>
+
+        <div class="implementation-box">
+            <h3>实施方法</h3>
+            <p>TransportRouter智能选择最优传输路径：</p>
+            
+            <div class="diagram">
+                <h4>智能路由决策示例</h4>
+                <svg width="600" height="300" viewBox="0 0 600 300">
+                    <!-- Agent A -->
+                    <circle cx="100" cy="150" r="40" fill="#3498db"/>
+                    <text x="100" y="155" text-anchor="middle" fill="white">Agent A</text>
+                    
+                    <!-- TransportRouter -->
+                    <rect x="200" y="120" width="120" height="60" fill="#e74c3c" rx="5"/>
+                    <text x="260" y="155" text-anchor="middle" fill="white">Router</text>
+                    
+                    <!-- Local Agent B -->
+                    <circle cx="450" cy="80" r="40" fill="#27ae60"/>
+                    <text x="450" y="85" text-anchor="middle" fill="white">Agent B</text>
+                    <text x="450" y="130" text-anchor="middle" font-size="12">(本地)</text>
+                    
+                    <!-- Remote Agent C -->
+                    <circle cx="450" cy="220" r="40" fill="#f39c12"/>
+                    <text x="450" y="225" text-anchor="middle" fill="white">Agent C</text>
+                    <text x="450" y="270" text-anchor="middle" font-size="12">(远程)</text>
+                    
+                    <!-- Connections -->
+                    <line x1="140" y1="150" x2="200" y2="150" stroke="#333" stroke-width="2" marker-end="url(#arrow)"/>
+                    <line x1="320" y1="140" x2="410" y2="90" stroke="#27ae60" stroke-width="2" marker-end="url(#arrow)"/>
+                    <text x="365" y="110" font-size="12" fill="#27ae60">Local(0ms)</text>
+                    <line x1="320" y1="160" x2="410" y2="210" stroke="#f39c12" stroke-width="2" marker-end="url(#arrow)"/>
+                    <text x="365" y="190" font-size="12" fill="#f39c12">HTTP(50ms)</text>
+                    
+                    <defs>
+                        <marker id="arrow" markerWidth="10" markerHeight="10" refX="10" refY="5" orient="auto">
+                            <path d="M0,0 L10,5 L0,10" fill="#333"/>
+                        </marker>
+                    </defs>
+                </svg>
+            </div>
+
+            <div class="example-code">
+# 使用场景：Agent A 需要调用其他Agent的API
+
+# 对调用者完全透明
+result1 = await agent_a.call_api("did:anp:agent_b", "/api/process")
+# Router检测到agent_b在本地，使用Local传输（0延迟）
+
+result2 = await agent_a.call_api("did:anp:agent_c", "/api/process")  
+# Router检测到agent_c在远程，自动选择HTTP传输
+
+# 高级场景：根据内容类型优化传输
+await agent_a.send_message("did:anp:agent_d", large_file)
+# Router检测到大文件，自动选择WebSocket分片传输
+
+# 性能统计
+stats = agent_a.transport_router.get_performance_stats()
+print(f"本地调用: {stats['local_requests']} 次, 平均延迟: {stats['avg_local_latency']}ms")
+print(f"网络调用: {stats['network_requests']} 次, 平均延迟: {stats['avg_network_latency']}ms")
+print(f"加速比: {stats['speedup_factor']}x")
+            </div>
+        </div>
+
+        <div class="value-highlight">
+            <h4>价值体现</h4>
+            <ul>
+                <li><strong>性能优化</strong>：本地调用零延迟，自动选择最快路径</li>
+                <li><strong>透明切换</strong>：Agent位置改变时无需修改代码</li>
+                <li><strong>智能降级</strong>：主路径失败时自动切换备用传输</li>
+            </ul>
+        </div>
+
+        <div class="principle-card">
+            <div class="principle-title">理念4：场景自适应</div>
+            <div>"一套SDK，多种部署场景"</div>
+        </div>
+
+        <div class="implementation-box">
+            <h3>实施方法</h3>
+            <p>通过场景配置自动调整组件和行为：</p>
+            
+            <table class="comparison-table">
+                <tr>
+                    <th>场景</th>
+                    <th>自动配置</th>
+                    <th>示例代码</th>
+                </tr>
+                <tr>
+                    <td>单机开发</td>
+                    <td>
+                        • 无网络组件<br>
+                        • 本地存储<br>
+                        • 明文保存
+                    </td>
+                    <td><code>create_agent(SINGLE_LOCAL)</code></td>
+                </tr>
+                <tr>
+                    <td>移动设备</td>
+                    <td>
+                        • SSE监听器<br>
+                        • 反向代理<br>
+                        • 轻量存储
+                    </td>
+                    <td><code>create_agent(ROAMING_DEVICE)</code></td>
+                </tr>
+                <tr>
+                    <td>企业服务</td>
+                    <td>
+                        • HTTPS服务<br>
+                        • 认证系统<br>
+                        • 加密存储
+                    </td>
+                    <td><code>create_agent(PUBLIC_SERVICE)</code></td>
+                </tr>
+            </table>
+
+            <div class="example-code">
+# 场景1：个人开发者快速原型
+async def quick_prototype():
+    # 一行代码启动
+    agent = await create_agent(DeploymentMode.SINGLE_LOCAL)
+    # 立即可用，无需配置
+    
+# 场景2：创业团队的渐进式扩展
+async def startup_growth():
+    # 第一阶段：本地多Agent
+    agents = []
+    for i in range(3):
+        agent = await create_agent(
+            DeploymentMode.LOCAL_CLUSTER,
+            name=f"worker_{i}"
+        )
+        agents.append(agent)
+    
+    # 第二阶段：添加远程能力（只需改模式）
+    main_agent = await create_agent(
+        DeploymentMode.HYBRID_CLIENT,
+        registry_url="https://registry.startup.com"
+    )
+    
+    # 第三阶段：公开服务（配置增强但接口不变）
+    public_agent = await create_agent(
+        DeploymentMode.PUBLIC_SERVICE,
+        did="did:anp:startup",
+        ssl_cert="./certs/server.pem"
+    )
+
+# 场景3：物联网设备的智能适配
+async def iot_device():
+    agent = await create_agent(
+        DeploymentMode.ROAMING_DEVICE,
+        # 自动配置NAT穿透和低功耗模式
+        power_mode="low",
+        reverse_proxy_config={
+            "server": "wss://iot-gateway.com",
+            "reconnect_interval": 30
+        }
+    )
+            </div>
+        </div>
+
+        <div class="value-highlight">
+            <h4>价值体现</h4>
+            <ul>
+                <li><strong>降低门槛</strong>：新手一行代码即可开始</li>
+                <li><strong>平滑升级</strong>：从原型到生产无需重写</li>
+                <li><strong>最佳实践</strong>：每个场景自动应用最佳配置</li>
+            </ul>
+        </div>
+
+        <div class="principle-card">
+            <div class="principle-title">理念5：协议互操作性</div>
+            <div>"让不同协议的Agent能够无缝协作"</div>
+        </div>
+
+        <div class="implementation-box">
+            <h3>实施方法</h3>
+            <p>通过协议适配器实现多协议支持：</p>
+            
+            <div class="example-code">
+# 场景：企业需要集成多种AI服务
+
+async def enterprise_integration():
+    agent = await create_agent(DeploymentMode.HYBRID_CLIENT)
+    
+    # 1. 使用MCP协议调用Claude的工具
+    mcp_result = await agent.use_mcp_tool(
+        "claude-server",
+        "code_analysis",
+        {"code": "def hello(): pass"}
+    )
+    
+    # 2. 通过A2A协议委派任务给专业Agent
+    a2a_result = await agent.send_task(
+        "did:a2a:translator",
+        task_type="translate",
+        input_data={"text": mcp_result["analysis"], "to": "zh"}
+    )
+    
+    # 3. 使用ANP协议与其他企业Agent协作
+    anp_result = await agent.call_api(
+        "did:anp:partner_agent",
+        "/api/process",
+        {"data": a2a_result["translated_text"]}
+    )
+    
+    # 所有协议的调用对业务逻辑透明
+    return {
+        "mcp_analysis": mcp_result,
+        "a2a_translation": a2a_result,
+        "anp_processing": anp_result
+    }
+
+# 协议能力自动发现
+capabilities = agent.get_protocol_capabilities()
+print("支持的协议：")
+for protocol_type, protocols in capabilities.items():
+    print(f"  {protocol_type}: {', '.join(protocols)}")
+            </div>
+        </div>
+
+        <h2>三、实践建议</h2>
+
+        <div style="background-color: #f8f9fa; padding: 25px; border-radius: 10px;">
+            <h3>渐进式采用路径</h3>
+            
+            <ol style="line-height: 2;">
+                <li>
+                    <strong>第一步：选择合适的部署模式</strong>
+                    <ul>
+                        <li>个人项目：SINGLE_LOCAL</li>
+                        <li>团队协作：LOCAL_CLUSTER → HYBRID_CLIENT</li>
+                        <li>公开服务：PUBLIC_SERVICE</li>
+                    </ul>
+                </li>
+                
+                <li>
+                    <strong>第二步：根据需求启用功能</strong>
+                    <ul>
+                        <li>需要持久化：配置存储适配器</li>
+                        <li>需要高性能：启用传输路由优化</li>
+                        <li>需要互操作：添加协议适配器</li>
+                    </ul>
+                </li>
+                
+                <li>
+                    <strong>第三步：监控和优化</strong>
+                    <ul>
+                        <li>使用内置的性能统计</li>
+                        <li>根据实际负载调整配置</li>
+                        <li>逐步迁移到更高级的部署模式</li>
+                    </ul>
+                </li>
+            </ol>
+        </div>
+
+        <h2>四、总结</h2>
+
+        <div style="background-color: #e8f8f5; padding: 25px; border-radius: 10px; margin-top: 30px;">
+            <h3>理念价值总结</h3>
+            <p>ANP Open SDK 通过这些架构理念实现了：</p>
+            <ul>
+                <li>✅ <strong>低门槛</strong>：简单场景一行代码启动</li>
+                <li>✅ <strong>高天花板</strong>：支持复杂的企业级部署</li>
+                <li>✅ <strong>平滑过渡</strong>：从原型到生产的无缝升级</li>
+                <li>✅ <strong>技术中立</strong>：不绑定特定框架或云服务</li>
+                <li>✅ <strong>面向未来</strong>：易于扩展新协议和新场景</li>
+            </ul>
+        </div>
+
+        <hr>
+        <p style="text-align: center; color: #666; margin-top: 40px;">
+            ANP Open SDK 架构理念实践指南<br>
+            "简单的开始，强大的未来"
+        </p>
+    </div>
+</body>
+</html>
