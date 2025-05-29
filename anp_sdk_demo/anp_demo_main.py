@@ -11,6 +11,8 @@ import time
 import traceback
 from loguru import logger
 
+
+
 # 配置日志
 logger.remove()  # 移除默认处理器
 logger.add(sys.stderr, level="INFO", format="{time} | {level} | {message}")
@@ -20,13 +22,13 @@ print(f"Python版本: {sys.version}")
 print(f"工作目录: {sys.path[0]}")
 try:
     print("导入模块...")
-    from anp_sdk_demo.demo_modules.step_helper import DemoStepHelper
-    from anp_sdk_demo.demo_modules.agent_loader import DemoAgentLoader
-    from anp_sdk_demo.demo_modules.agent_registry import DemoAgentRegistry
-    from anp_sdk_demo.demo_modules.demo_tasks import DemoTaskRunner
-    from anp_sdk_demo.services.dns_service import DemoDNSService
-    from anp_sdk_demo.services.sdk_manager import DemoSDKManager
-    from anp_sdk_demo.utils.config_helper import DemoConfigHelper
+    from demo_modules.step_helper import DemoStepHelper
+    from demo_modules.agent_loader import DemoAgentLoader
+    from demo_modules.agent_registry import DemoAgentRegistry
+    from demo_modules.demo_tasks import DemoTaskRunner
+    from services.dns_service import DemoDNSService
+    from services.sdk_manager import DemoSDKManager
+    from utils.config_helper import DemoConfigHelper
     print("✓ 所有模块导入成功")
 except ImportError as e:
     print(f"✗ 模块导入失败: {e}")

@@ -1,5 +1,9 @@
 import json
 import os
+import sys
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))  # 根据需要调整路径深度
+sys.path.append(project_root)
+
 from colorama import init, Fore, Style
 from loguru import logger
 from anp_open_sdk.config.dynamic_config import dynamic_config

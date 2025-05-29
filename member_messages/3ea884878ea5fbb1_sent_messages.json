@@ -1,0 +1,122 @@
+[
+  {
+    "type": "text",
+    "content": "Hello from 本田!",
+    "timestamp": "2025-05-29 21:21:52",
+    "group_id": "sample_group",
+    "sender": "did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1",
+    "metadata": {}
+  },
+  {
+    "type": "text",
+    "content": "This is a normal message",
+    "timestamp": "2025-05-29 21:21:55",
+    "group_id": "moderated_group",
+    "sender": "did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1",
+    "metadata": {}
+  },
+  {
+    "type": "text",
+    "content": "Back to normal conversation",
+    "timestamp": "2025-05-29 21:21:56",
+    "group_id": "moderated_group",
+    "sender": "did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1",
+    "metadata": {}
+  },
+  {
+    "type": "text",
+    "content": "Hello from 本田!",
+    "timestamp": "2025-05-29 21:23:58",
+    "group_id": "sample_group",
+    "sender": "did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1",
+    "metadata": {}
+  },
+  {
+    "type": "text",
+    "content": "This is a normal message",
+    "timestamp": "2025-05-29 21:24:01",
+    "group_id": "moderated_group",
+    "sender": "did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1",
+    "metadata": {}
+  },
+  {
+    "type": "text",
+    "content": "Back to normal conversation",
+    "timestamp": "2025-05-29 21:24:02",
+    "group_id": "moderated_group",
+    "sender": "did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1",
+    "metadata": {}
+  },
+  {
+    "type": "text",
+    "content": "Hello from 本田!",
+    "timestamp": "2025-05-29 21:42:28",
+    "group_id": "sample_group",
+    "sender": "did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1",
+    "metadata": {}
+  },
+  {
+    "type": "text",
+    "content": "This is a normal message",
+    "timestamp": "2025-05-29 21:42:31",
+    "group_id": "moderated_group",
+    "sender": "did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1",
+    "metadata": {}
+  },
+  {
+    "type": "text",
+    "content": "Back to normal conversation",
+    "timestamp": "2025-05-29 21:42:32",
+    "group_id": "moderated_group",
+    "sender": "did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1",
+    "metadata": {}
+  },
+  {
+    "type": "text",
+    "content": "Hello from 本田!",
+    "timestamp": "2025-05-29 21:50:57",
+    "group_id": "sample_group",
+    "sender": "did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1",
+    "metadata": {}
+  },
+  {
+    "type": "text",
+    "content": "This is a normal message",
+    "timestamp": "2025-05-29 21:51:00",
+    "group_id": "moderated_group",
+    "sender": "did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1",
+    "metadata": {}
+  },
+  {
+    "type": "text",
+    "content": "Back to normal conversation",
+    "timestamp": "2025-05-29 21:51:01",
+    "group_id": "moderated_group",
+    "sender": "did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1",
+    "metadata": {}
+  },
+  {
+    "type": "text",
+    "content": "Hello from 本田!",
+    "timestamp": "2025-05-29 22:16:16",
+    "group_id": "sample_group",
+    "sender": "did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1",
+    "metadata": {}
+  },
+  {
+    "type": "text",
+    "content": "This is a normal message",
+    "timestamp": "2025-05-29 22:16:19",
+    "group_id": "moderated_group",
+    "sender": "did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1",
+    "metadata": {}
+  },
+  {
+    "type": "text",
+    "content": "Back to normal conversation",
+    "timestamp": "2025-05-29 22:16:20",
+    "group_id": "moderated_group",
+    "sender": "did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1",
+    "metadata": {}
+  }
+]

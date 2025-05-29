@@ -4,8 +4,8 @@ import threading
 from pydantic.v1.networks import host_regex
 
 from anp_open_sdk.anp_sdk import ANPSDK
-from anp_open_sdk.group_sdk import GroupRunner, Message, MessageType, Agent
-from anp_open_sdk.group_member_sdk import GroupMemberSDK
+from anp_open_sdk.anp_sdk_group_runner import GroupRunner, Message, MessageType, Agent
+from anp_open_sdk.anp_sdk_group_member import GroupMemberSDK
 from anp_open_sdk.agent_types import LocalAgent
 from anp_sdk_demo import demo_load_agents
 import time  # 添加缺失的导入
@@ -183,3 +183,4 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+

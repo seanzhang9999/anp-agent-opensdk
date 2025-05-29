@@ -1,0 +1,42 @@
+[
+  {
+    "type": "text",
+    "content": "Greetings from 铃木!",
+    "timestamp": "2025-05-29 21:21:53",
+    "group_id": "sample_group",
+    "sender": "did:wba:localhost%3A9527:wba:user:5fea49e183c6c211",
+    "metadata": {}
+  },
+  {
+    "type": "text",
+    "content": "Greetings from 铃木!",
+    "timestamp": "2025-05-29 21:23:59",
+    "group_id": "sample_group",
+    "sender": "did:wba:localhost%3A9527:wba:user:5fea49e183c6c211",
+    "metadata": {}
+  },
+  {
+    "type": "text",
+    "content": "Greetings from 铃木!",
+    "timestamp": "2025-05-29 21:42:29",
+    "group_id": "sample_group",
+    "sender": "did:wba:localhost%3A9527:wba:user:5fea49e183c6c211",
+    "metadata": {}
+  },
+  {
+    "type": "text",
+    "content": "Greetings from 铃木!",
+    "timestamp": "2025-05-29 21:50:58",
+    "group_id": "sample_group",
+    "sender": "did:wba:localhost%3A9527:wba:user:5fea49e183c6c211",
+    "metadata": {}
+  },
+  {
+    "type": "text",
+    "content": "Greetings from 铃木!",
+    "timestamp": "2025-05-29 22:16:17",
+    "group_id": "sample_group",
+    "sender": "did:wba:localhost%3A9527:wba:user:5fea49e183c6c211",
+    "metadata": {}
+  }
+]

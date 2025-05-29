@@ -11,7 +11,6 @@ class DemoAgentLoader:
     def load_demo_agents(sdk: ANPSDK) -> List[LocalAgent]:
         """加载演示用的智能体"""
         user_data_manager: LocalUserDataManager = sdk.user_data_manager
-
         agent_cfg = dynamic_config.get('anp_sdk.agent', {})
         agent_names = [
             agent_cfg.get('demo_agent1'),

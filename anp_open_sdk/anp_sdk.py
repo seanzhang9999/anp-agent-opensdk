@@ -50,7 +50,7 @@ from anp_open_sdk.agent_types import RemoteAgent
 from anp_open_sdk.agent_types import LocalAgent
 
 # Group SDK
-from anp_open_sdk.group_sdk import GroupManager, GroupRunner, Message, MessageType, Agent
+from anp_open_sdk.anp_sdk_group_runner import GroupManager, GroupRunner, Message, MessageType, Agent
 
 class LocalUserData:
     """存储单个用户的配置、DID文档和密码文件路径"""
