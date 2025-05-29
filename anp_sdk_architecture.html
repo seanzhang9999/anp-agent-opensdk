@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ANP Open SDK 架构图 v3.0 - 基于实际代码结构</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.6.1/mermaid.min.js"></script>
+<style>
+body {
+font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+margin: 0;
+padding: 20px;
+background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+min-height: 100vh;
+}
+.container {
+max-width: 1600px;
+margin: 0 auto;
+background: white;
+border-radius: 20px;
+box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+overflow: hidden;
+}
+.header {
+background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+color: white;
+padding: 30px;
+text-align: center;
+}
+.header h1 {
+margin: 0;
+font-size: 2.5em;
+font-weight: 700;
+text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+.header p {
+margin: 10px 0 0 0;
+font-size: 1.2em;
+opacity: 0.9;
+}
+.content {
+padding: 40px;
+}
+.diagram-container {
+background: #f8f9fa;
+border-radius: 15px;
+padding: 30px;
+margin-bottom: 40px;
+box-shadow: inset 0 2px 10px rgba(0,0,0,0.05);
+}
+.features {
+display: grid;
+grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+gap: 30px;
+margin-top: 40px;
+}
+.feature-card {
+background: white;
+border-radius: 15px;
+padding: 30px;
+box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+border-left: 5px solid;
+transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.feature-card:hover {
+transform: translateY(-5px);
+box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+}
+.feature-card.core { border-left-color: #4caf50; }
+.feature-card.service { border-left-color: #03a9f4; }
+.feature-card.auth { border-left-color: #9c27b0; }
+.feature-card.config { border-left-color: #ff9800; }
+.feature-card h3 {
+margin: 0 0 15px 0;
+font-size: 1.4em;
+font-weight: 600;
+}
+.feature-card ul {
+margin: 0;
+padding-left: 20px;
+}
+.feature-card li {
+margin-bottom: 8px;
+line-height: 1.6;
+}
+.code-block {
+background: #1e1e1e;
+color: #d4d4d4;
+border-radius: 12px;
+padding: 25px;
+margin: 25px 0;
+font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+font-size: 14px;
+line-height: 1.6;
+overflow-x: auto;
+box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+position: relative;
+white-space: pre-wrap;
+}
+.code-block::before {
+content: '🐍 Python';
+position: absolute;
+top: 8px;
+right: 15px;
+background: #007acc;
+color: white;
+padding: 4px 8px;
+border-radius: 4px;
+font-size: 12px;
+font-weight: 500;
+}
+.code-block .comment {
+color: #6a9955;
+}
+.code-block .keyword {
+color: #569cd6;
+}
+.code-block .string {
+color: #ce9178;
+}
+.code-block .function {
+color: #dcdcaa;
+}
+.code-block .decorator {
+color: #4ec9b0;
+}
+.highlight {
+background: linear-gradient(45deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
+padding: 20px;
+border-radius: 15px;
+margin: 30px 0;
+border-left: 5px solid #e91e63;
+}
+.highlight h3 {
+margin: 0 0 15px 0;
+color: #c2185b;
+}
+#mermaid-diagram {
+text-align: center;
+}
+.mermaid {
+background: white;
+border-radius: 10px;
+}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="header">
+<h1>🚀 ANP Open SDK 架构 v3.0</h1>
+<p>基于实际代码结构的完整架构图</p>
+</div>
+<div class="content">
+<div class="highlight">
+<h3>🎯 基于实际代码的架构设计</h3>
+<p><strong>核心SDK：</strong>anp_sdk.py, anp_agent_publisher.py, group_sdk.py<br>
+<strong>服务层：</strong>service/ 目录下的各种Agent服务<br>
+<strong>认证层：</strong>auth/ 目录下的DID和JWT认证<br>
+<strong>配置层：</strong>config/ 目录下的动态配置管理</p>
+</div>
+<div class="diagram-container">
+<div id="mermaid-diagram">
+<div class="mermaid">
+%%{init: {'htmlLabels': true}}%%
+graph TB
+    %% 开发者应用层
+    subgraph DEV["🔧 开发者应用层"]
+        BA["业务 Agent<br>💼 使用 anp_sdk.py"]
+        PA["发布 Agent<br>📡 使用 anp_agent_publisher.py"]
+        GA["群组 Agent<br>👥 使用 group_sdk.py"]
+    end
+
+    %% ANP Open SDK 核心
+    subgraph SDK["📦 anp_open_sdk 核心包"]
+        %% 核心SDK模块
+        subgraph CORE_SDK["🎯 核心SDK模块"]
+            ANP_SDK["anp_sdk.py<br>🔑 主要SDK入口<br>📡 Agent核心功能"]
+            AGENT_PUB["anp_agent_publisher.py<br>📢 Agent发布服务<br>🌐 对外接口管理"]
+            GROUP_SDK["group_sdk.py<br>👥 群组管理<br>💬 群组消息处理"]
+            GROUP_MEMBER["group_member_sdk.py<br>👤 群组成员管理<br>🎭 角色权限控制"]
+            USER_TOOL["anp_user_tool.py<br>🛠️ 用户工具集<br>⚙️ 实用功能"]
+            MAIL_MGR["mail_manager.py<br>📧 邮件管理<br>📨 增强邮件功能"]
+        end
+
+        %% 服务层
+        subgraph SERVICE_LAYER["🚀 service 服务层"]
+            AGENT_API["agent_api_call.py<br>📞 Agent API调用<br>🔗 外部接口集成"]
+            AGENT_AUTH["agent_auth.py<br>🔐 Agent认证服务<br>🛡️ 安全验证"]
+            MSG_GROUP["agent_message_group.py<br>👥 群组消息服务<br>📢 群组通信"]
+            MSG_P2P["agent_message_p2p.py<br>💬 P2P消息服务<br>🤝 点对点通信"]
+            LOCAL_ACC["local_agent_accelerator.py<br>⚡ 本地加速器<br>🚀 性能优化"]
+            ROUTER_AGENT["router_agent.py<br>🔄 Agent路由<br>📡 消息路由"]
+            ROUTER_AUTH["router_auth.py<br>🔐 路由认证<br>🛡️ 路由安全"]
+            ROUTER_DID["router_did.py<br>🆔 DID路由<br>📋 身份路由"]
+            ROUTER_PUB["router_publisher.py<br>📢 发布路由<br>🌐 发布管理"]
+        end
+
+        %% 认证层
+        subgraph AUTH_LAYER["🔐 auth 认证层"]
+            AUTH_MW["auth_middleware.py<br>🛡️ 认证中间件<br>🔒 请求拦截"]
+            DID_AUTH["did_auth.py<br>🆔 DID认证<br>📜 去中心化身份"]
+            TOKEN_AUTH["token_auth.py<br>🎫 Token认证<br>🔑 令牌管理"]
+            JWT_KEYS["jwt_keys.py<br>🔐 JWT密钥<br>🗝️ 密钥管理"]
+            DID_RESOLVER["custom_did_resolver.py<br>🔍 DID解析器<br>📋 身份解析"]
+            VC_HELPER["vc_helper.py<br>📜 可验证凭证<br>✅ 凭证助手"]
+        end
+
+        %% 配置层
+        subgraph CONFIG_LAYER["⚙️ config 配置层"]
+            CONFIG_CORE["config.py<br>⚙️ 核心配置<br>📋 基础设置"]
+            DYN_CONFIG["dynamic_config.py<br>🔄 动态配置<br>📝 运行时配置"]
+            PATH_RESOLVER["path_resolver.py<br>📂 路径解析<br>🗂️ 文件路径管理"]
+        end
+
+        %% 连接热补丁
+        subgraph HOTPATCH["🔧 agent_connect_hotpatch"]
+            DID_WBA["did_wba.py<br>🌐 WBA认证<br>🔗 Web-based认证"]
+            WBA_HEADER["did_wba_auth_header.py<br>📋 WBA认证头<br>🏷️ 认证标头"]
+        end
+    end
+
+    %% 外部工具和配置
+    subgraph EXTERNAL["🛠️ 外部工具和配置"]
+        UTILS["utils/log_base.py<br>📝 日志基础<br>🔍 日志管理"]
+        CONFIG_FILES["配置文件<br>📄 .env, .yaml<br>⚙️ 环境配置"]
+        EXAMPLES["examples<br>📚 使用示例<br>💡 最佳实践"]
+    end
+
+    %% 定义节点之间的关系（从各子图中选取代表节点）
+    BA --> ANP_SDK
+    AGENT_PUB --> AGENT_API
+    ANP_SDK --> AUTH_MW
+    USER_TOOL --> CONFIG_CORE
+    DID_WBA --> DID_AUTH
+    CONFIG_FILES --> CONFIG_CORE
+    UTILS --> ANP_SDK
+
+</div>
+</div>
+</div>
+
+<div class="code-block"><span class="comment"># 🎯 基于实际代码结构的SDK使用示例</span>
+<span class="keyword">from</span> anp_open_sdk.anp_sdk <span class="keyword">import</span> ANPSDKCore
+<span class="keyword">from</span> anp_open_sdk.anp_agent_publisher <span class="keyword">import</span> AgentPublisher
+<span class="keyword">from</span> anp_open_sdk.group_sdk <span class="keyword">import</span> GroupSDK
+<span class="keyword">from</span> anp_open_sdk.config.config <span class="keyword">import</span> ANPConfig
+<span class="keyword">from</span> anp_open_sdk.config.dynamic_config <span class="keyword">import</span> DynamicConfig
+
+<span class="comment"># 动态配置管理</span>
+config = <span class="function">DynamicConfig</span>()
+config.<span class="function">load_from_yaml</span>(<span class="string">"anp_open_sdk/config/dynamic_config.yaml"</span>)
+
+<span class="comment"># 核心SDK初始化</span>
+sdk = <span class="function">ANPSDKCore</span>(config)
+
+<span class="comment"># Agent发布服务</span>
+publisher = <span class="function">AgentPublisher</span>(sdk)
+
+<span class="comment"># 群组管理</span>
+group_sdk = <span class="function">GroupSDK</span>(sdk)
+
+<span class="comment"># 使用service层的各种服务</span>
+<span class="keyword">from</span> anp_open_sdk.service.agent_api_call <span class="keyword">import</span> AgentAPICall
+<span class="keyword">from</span> anp_open_sdk.service.agent_message_group <span class="keyword">import</span> GroupMessageService
+<span class="keyword">from</span> anp_open_sdk.service.local_agent_accelerator <span class="keyword">import</span> LocalAgentAccelerator
+
+<span class="comment"># API调用服务</span>
+api_service = <span class="function">AgentAPICall</span>(sdk)
+
+<span class="comment"># 群组消息服务</span>
+group_msg_service = <span class="function">GroupMessageService</span>(sdk)
+
+<span class="comment"># 本地加速器</span>
+accelerator = <span class="function">LocalAgentAccelerator</span>(sdk)
+
+<span class="comment"># 认证服务</span>
+<span class="keyword">from</span> anp_open_sdk.auth.did_auth <span class="keyword">import</span> DIDAuth
+<span class="keyword">from</span> anp_open_sdk.auth.token_auth <span class="keyword">import</span> TokenAuth
+
+did_auth = <span class="function">DIDAuth</span>(config)
+token_auth = <span class="function">TokenAuth</span>(config)
+
+<span class="comment"># 消息处理示例</span>
+<span class="decorator">@sdk.on_message</span>
+<span class="keyword">async def</span> <span class="function">handle_message</span>(from_did, message):
+    <span class="comment"># 使用群组消息服务处理</span>
+    result = <span class="keyword">await</span> group_msg_service.<span class="function">process_message</span>(from_did, message)
+    <span class="keyword">return</span> result
+
+<span class="comment"># API发布示例</span>
+<span class="decorator">@publisher.publish_api</span>(<span class="string">"/api/my_service"</span>)
+<span class="keyword">async def</span> <span class="function">my_api_handler</span>(request):
+    <span class="comment"># 使用API调用服务</span>
+    response = <span class="keyword">await</span> api_service.<span class="function">call_external_api</span>(request)
+    <span class="keyword">return</span> response
+
+<span class="comment"># 群组创建示例</span>
+<span class="keyword">async def</span> <span class="function">create_group_example</span>():
+    group = <span class="keyword">await</span> group_sdk.<span class="function">create_group</span>(
+        group_name=<span class="string">"我的群组"</span>,
+        description=<span class="string">"群组描述"</span>
+    )
+    <span class="keyword">return</span> group
+
+<span class="keyword">await</span> sdk.<span class="function">start</span>()</div>
+
+<div class="features">
+<div class="feature-card core">
+<h3>🎯 核心SDK模块</h3>
+<ul>
+<li><strong>anp_sdk.py:</strong> 主要SDK入口和核心功能</li>
+<li><strong>anp_agent_publisher.py:</strong> Agent发布服务</li>
+<li><strong>group_sdk.py:</strong> 群组管理核心</li>
+<li><strong>group_member_sdk.py:</strong> 群组成员管理</li>
+<li><strong>anp_user_tool.py:</strong> 用户工具集</li>
+</ul>
+</div>
+
+<div class="feature-card service">
+<h3>🚀 service/ 服务层</h3>
+<ul>
+<li><strong>agent_api_call.py:</strong> Agent API调用服务</li>
+<li><strong>agent_message_*.py:</strong> 群组和P2P消息服务</li>
+<li><strong>local_agent_accelerator.py:</strong> 本地性能加速</li>
+<li><strong>router_*.py:</strong> 各种路由服务（Agent、认证、DID、发布）</li>
+</ul>
+</div>
+
+<div class="feature-card auth">
+<h3>🔐 auth/ 认证层</h3>
+<ul>
+<li><strong>did_auth.py:</strong> DID去中心化身份认证</li>
+<li><strong>token_auth.py:</strong> Token令牌认证</li>
+<li><strong>jwt_keys.py:</strong> JWT密钥管理</li>
+<li><strong>custom_did_resolver.py:</strong> 自定义DID解析</li>
+<li><strong>vc_helper.py:</strong> 可验证凭证助手</li>
+</ul>
+</div>
+
+<div class="feature-card config">
+<h3>⚙️ config/ 配置层</h3>
+<ul>
+<li><strong>config.py:</strong> 核心配置管理</li>
+<li><strong>dynamic_config.py:</strong> 动态配置支持</li>
+<li><strong>path_resolver.py:</strong> 路径解析和文件管理</li>
+<li><strong>dynamic_config.yaml:</strong> YAML配置文件</li>
+</ul>
+</div>
+</div>
+
+<div class="highlight">
+<h3>🎯 实际代码架构特点</h3>
+<p><strong>1. 模块化设计:</strong> 核心SDK、服务层、认证层、配置层清晰分离<br>
+<strong>2. 服务丰富:</strong> service/ 目录包含9个专门服务模块<br>
+<strong>3. 认证完整:</strong> auth/ 目录提供完整的DID和JWT认证体系<br>
+<strong>4. 配置灵活:</strong> 支持动态配置和路径解析<br>
+<strong>5. 热补丁支持:</strong> agent_connect_hotpatch/ 提供连接增强</p>
+</div>
+
+</div>
+</div>
+
+<script>
+mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    themeVariables: {
+        primaryColor: '#4facfe',
+        primaryTextColor: '#333',
+        primaryBorderColor: '#4facfe',
+        lineColor: '#666',
+        secondaryColor: '#00f2fe',
+        tertiaryColor: '#f8f9fa',
+        background: '#ffffff',
+        mainBkg: '#ffffff',
+        secondBkg: '#f8f9fa',
+        tertiaryBkg: '#e3f2fd'
+    },
+    flowchart: {
+        htmlLabels: true,
+        curve: 'basis',
+        nodeSpacing: 50,
+        rankSpacing: 80
+    }
+});
+</script>
+</body>
+</html>
