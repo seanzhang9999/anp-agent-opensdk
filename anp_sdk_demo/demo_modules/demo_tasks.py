@@ -126,21 +126,19 @@ class DemoTaskRunner:
 
         # 显示接收到的消息
         message_files = [
-            path_resolver.resolve_path(f"{agent.name}_group_messages.json") 
+            path_resolver.resolve_path(f"anp_sdk_demo/demo_data/{agent.name}_group_messages.json") 
             for agent in [agent1, agent2, agent3]
         ]
         
         for agent, message_file in zip([agent1, agent2, agent3], message_files):
             await self._show_received_messages(agent.name, message_file)
-
-        
-        # 清空消息文件
-        try:
-            async with aiofiles.open(message_file, 'w', encoding='utf-8') as f:
-                await f.write("")
-            logger.info(f"已清空 {agent.name} 的消息文件")
-        except Exception as e:
-            logger.warning(f"清空 {agent.name} 消息文件失败: {e}")
+            # 清空消息文件
+            try:
+                async with aiofiles.open(message_file, 'w', encoding='utf-8') as f:
+                    await f.write("")
+                logger.info(f"已清空 {agent.name} 的消息文件")
+            except Exception as e:
+                logger.warning(f"清空 {agent.name} 消息文件失败: {e}")
 
     async def run_development_features(self):
         """开发模式特有功能"""
@@ -197,7 +195,7 @@ class DemoTaskRunner:
         
         # 清空消息文件
         for agent in [agent1, agent2, agent3]:
-            message_file = path_resolver.resolve_path(f"{agent.name}_group_messages.json")
+            message_file = path_resolver.resolve_path(f"anp_sdk_demo/demo_data/{agent.name}_group_messages.json")
             try:
                 async with aiofiles.open(message_file, 'w', encoding='utf-8') as f:
                     await f.write("")
@@ -347,8 +345,8 @@ class DemoTaskRunner:
             print("\n📋 显示群组运行日志:")
             print("-" * 40)
             group_log_files = [
-                path_resolver.resolve_path("group_logs/sample_group_messages.json"),
-                path_resolver.resolve_path("group_logs/moderated_group_messages.json")
+                path_resolver.resolve_path("anp_sdk_demo/demo_data/group_logs/sample_group_messages.json"),
+                path_resolver.resolve_path("anp_sdk_demo/demo_data/group_logs/moderated_group_messages.json")
             ]
             for group_name, log_file in zip(["普通群聊", "审核群聊"], group_log_files):
                 await self._show_group_logs(group_name, log_file)
@@ -371,7 +369,7 @@ class DemoTaskRunner:
 
             for agent, agent_prefix, agent_type in storage_agents:
                 if agent_type in ["GroupMemberWithStorage", "GroupMemberComplete"]:
-                    message_file = path_resolver.resolve_path(f"member_messages/{agent_prefix}_group_messages.json")
+                    message_file = path_resolver.resolve_path(f"anp_sdk_demo/demo_data/member_messages/{agent_prefix}_group_messages.json")
                     await self._show_received_group_messages(agent.name, message_file)
                      # 清空对应文件
                     try:

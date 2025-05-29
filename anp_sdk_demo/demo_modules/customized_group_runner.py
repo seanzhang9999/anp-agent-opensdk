@@ -12,7 +12,7 @@ class FileLoggingGroupRunner(GroupRunner):
 
     def __init__(self, group_id: str):
         super().__init__(group_id)
-        self.log_dir = path_resolver.resolve_path("group_logs")
+        self.log_dir = path_resolver.resolve_path("anp_sdk_demo/demo_data/group_logs")
         os.makedirs(self.log_dir, exist_ok=True)
 
     async def save_message_to_file(self, message_data: Dict[str, Any]):

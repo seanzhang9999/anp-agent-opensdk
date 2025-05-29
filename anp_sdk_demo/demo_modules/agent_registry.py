@@ -78,7 +78,7 @@ class DemoAgentRegistry:
     @staticmethod
     async def _save_group_message_to_file(agent: LocalAgent, message: Dict[str, Any]):
         """保存群聊消息到文件"""
-        message_file = path_resolver.resolve_path(f"{agent.name}_group_messages.json")
+        message_file = path_resolver.resolve_path(f"anp_sdk_demo/demo_data/{agent.name}_group_messages.json")
         try:
             # 确保目录存在
             message_dir = os.path.dirname(message_file)

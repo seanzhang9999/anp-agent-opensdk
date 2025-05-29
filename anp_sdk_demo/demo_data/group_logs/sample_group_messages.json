@@ -1,0 +1,218 @@
+[
+  {
+    "type": "join",
+    "agent_id": "did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1",
+    "agent_name": "本田",
+    "group_id": "sample_group",
+    "timestamp": "2025-05-29 22:44:35",
+    "content": "本田 joined the chat"
+  },
+  {
+    "type": "join",
+    "agent_id": "did:wba:localhost%3A9527:wba:user:28cddee0fade0258",
+    "agent_name": "雅马哈",
+    "group_id": "sample_group",
+    "timestamp": "2025-05-29 22:44:35",
+    "content": "雅马哈 joined the chat"
+  },
+  {
+    "type": "join",
+    "agent_id": "did:wba:localhost%3A9527:wba:user:5fea49e183c6c211",
+    "agent_name": "铃木",
+    "group_id": "sample_group",
+    "timestamp": "2025-05-29 22:44:35",
+    "content": "铃木 joined the chat"
+  },
+  {
+    "type": "message",
+    "sender": "did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1",
+    "content": "Hello from 本田!",
+    "timestamp": "2025-05-29 22:44:36",
+    "group_id": "sample_group",
+    "metadata": {}
+  },
+  {
+    "type": "message",
+    "sender": "did:wba:localhost%3A9527:wba:user:28cddee0fade0258",
+    "content": "Hi everyone, this is 雅马哈",
+    "timestamp": "2025-05-29 22:44:37",
+    "group_id": "sample_group",
+    "metadata": {}
+  },
+  {
+    "type": "message",
+    "sender": "did:wba:localhost%3A9527:wba:user:5fea49e183c6c211",
+    "content": "Greetings from 铃木!",
+    "timestamp": "2025-05-29 22:44:37",
+    "group_id": "sample_group",
+    "metadata": {}
+  },
+  {
+    "type": "leave",
+    "agent_id": "did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1",
+    "agent_name": "本田",
+    "group_id": "sample_group",
+    "timestamp": "2025-05-29 22:44:42",
+    "content": "本田 left the chat"
+  },
+  {
+    "type": "leave",
+    "agent_id": "did:wba:localhost%3A9527:wba:user:28cddee0fade0258",
+    "agent_name": "雅马哈",
+    "group_id": "sample_group",
+    "timestamp": "2025-05-29 22:44:42",
+    "content": "雅马哈 left the chat"
+  },
+  {
+    "type": "leave",
+    "agent_id": "did:wba:localhost%3A9527:wba:user:5fea49e183c6c211",
+    "agent_name": "铃木",
+    "group_id": "sample_group",
+    "timestamp": "2025-05-29 22:44:42",
+    "content": "铃木 left the chat"
+  },
+  {
+    "type": "join",
+    "agent_id": "did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1",
+    "agent_name": "本田",
+    "group_id": "sample_group",
+    "timestamp": "2025-05-29 22:45:20",
+    "content": "本田 joined the chat"
+  },
+  {
+    "type": "join",
+    "agent_id": "did:wba:localhost%3A9527:wba:user:28cddee0fade0258",
+    "agent_name": "雅马哈",
+    "group_id": "sample_group",
+    "timestamp": "2025-05-29 22:45:20",
+    "content": "雅马哈 joined the chat"
+  },
+  {
+    "type": "join",
+    "agent_id": "did:wba:localhost%3A9527:wba:user:5fea49e183c6c211",
+    "agent_name": "铃木",
+    "group_id": "sample_group",
+    "timestamp": "2025-05-29 22:45:20",
+    "content": "铃木 joined the chat"
+  },
+  {
+    "type": "message",
+    "sender": "did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1",
+    "content": "Hello from 本田!",
+    "timestamp": "2025-05-29 22:45:21",
+    "group_id": "sample_group",
+    "metadata": {}
+  },
+  {
+    "type": "message",
+    "sender": "did:wba:localhost%3A9527:wba:user:28cddee0fade0258",
+    "content": "Hi everyone, this is 雅马哈",
+    "timestamp": "2025-05-29 22:45:22",
+    "group_id": "sample_group",
+    "metadata": {}
+  },
+  {
+    "type": "message",
+    "sender": "did:wba:localhost%3A9527:wba:user:5fea49e183c6c211",
+    "content": "Greetings from 铃木!",
+    "timestamp": "2025-05-29 22:45:22",
+    "group_id": "sample_group",
+    "metadata": {}
+  },
+  {
+    "type": "leave",
+    "agent_id": "did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1",
+    "agent_name": "本田",
+    "group_id": "sample_group",
+    "timestamp": "2025-05-29 22:45:28",
+    "content": "本田 left the chat"
+  },
+  {
+    "type": "leave",
+    "agent_id": "did:wba:localhost%3A9527:wba:user:28cddee0fade0258",
+    "agent_name": "雅马哈",
+    "group_id": "sample_group",
+    "timestamp": "2025-05-29 22:45:28",
+    "content": "雅马哈 left the chat"
+  },
+  {
+    "type": "leave",
+    "agent_id": "did:wba:localhost%3A9527:wba:user:5fea49e183c6c211",
+    "agent_name": "铃木",
+    "group_id": "sample_group",
+    "timestamp": "2025-05-29 22:45:28",
+    "content": "铃木 left the chat"
+  },
+  {
+    "type": "join",
+    "agent_id": "did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1",
+    "agent_name": "本田",
+    "group_id": "sample_group",
+    "timestamp": "2025-05-29 22:49:39",
+    "content": "本田 joined the chat"
+  },
+  {
+    "type": "join",
+    "agent_id": "did:wba:localhost%3A9527:wba:user:28cddee0fade0258",
+    "agent_name": "雅马哈",
+    "group_id": "sample_group",
+    "timestamp": "2025-05-29 22:49:39",
+    "content": "雅马哈 joined the chat"
+  },
+  {
+    "type": "join",
+    "agent_id": "did:wba:localhost%3A9527:wba:user:5fea49e183c6c211",
+    "agent_name": "铃木",
+    "group_id": "sample_group",
+    "timestamp": "2025-05-29 22:49:39",
+    "content": "铃木 joined the chat"
+  },
+  {
+    "type": "message",
+    "sender": "did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1",
+    "content": "Hello from 本田!",
+    "timestamp": "2025-05-29 22:49:40",
+    "group_id": "sample_group",
+    "metadata": {}
+  },
+  {
+    "type": "message",
+    "sender": "did:wba:localhost%3A9527:wba:user:28cddee0fade0258",
+    "content": "Hi everyone, this is 雅马哈",
+    "timestamp": "2025-05-29 22:49:41",
+    "group_id": "sample_group",
+    "metadata": {}
+  },
+  {
+    "type": "message",
+    "sender": "did:wba:localhost%3A9527:wba:user:5fea49e183c6c211",
+    "content": "Greetings from 铃木!",
+    "timestamp": "2025-05-29 22:49:41",
+    "group_id": "sample_group",
+    "metadata": {}
+  },
+  {
+    "type": "leave",
+    "agent_id": "did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1",
+    "agent_name": "本田",
+    "group_id": "sample_group",
+    "timestamp": "2025-05-29 22:49:46",
+    "content": "本田 left the chat"
+  },
+  {
+    "type": "leave",
+    "agent_id": "did:wba:localhost%3A9527:wba:user:28cddee0fade0258",
+    "agent_name": "雅马哈",
+    "group_id": "sample_group",
+    "timestamp": "2025-05-29 22:49:46",
+    "content": "雅马哈 left the chat"
+  },
+  {
+    "type": "leave",
+    "agent_id": "did:wba:localhost%3A9527:wba:user:5fea49e183c6c211",
+    "agent_name": "铃木",
+    "group_id": "sample_group",
+    "timestamp": "2025-05-29 22:49:46",
+    "content": "铃木 left the chat"
+  }
+]

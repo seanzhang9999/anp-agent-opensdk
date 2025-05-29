@@ -12,7 +12,7 @@ chat:
 anp_sdk:
   debugmode: true
   sdk_host: localhost
-  publisher_config_path: publisher_config.yaml
+  publisher_config_path: /anp_open_sdk/config/publisher_config.yaml
   sdk_port: 9527
   auth_virtual_dir: wba/auth
   user_did_path: anp_open_sdk/anp_users

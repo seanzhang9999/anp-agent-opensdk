@@ -14,7 +14,7 @@ class GroupMemberWithStorage(GroupMemberSDK):
     def __init__(self, agent_id: str, port: int, base_url: str = "http://localhost",
                  use_local_optimization: bool = True,
                  enable_storage: bool = True,
-                 storage_dir: str = "member_messages"):
+                 storage_dir: str = "anp_sdk_demo/demo_data/member_messages"):
         super().__init__(agent_id, port, base_url, use_local_optimization)
 
         self.enable_storage = enable_storage
@@ -28,7 +28,7 @@ class GroupMemberWithStorage(GroupMemberSDK):
             return
 
         agent_name = self.agent_id.split(":")[-1] if ":" in self.agent_id else self.agent_id
-        message_file = os.path.join(self.storage_dir, f"{agent_name}_group_messages.json")
+        message_file = os.path.join(self.storage_dir, f"anp_sdk_demo/demo_data/{agent_name}_group_messages.json")
 
         message_data = {
             "type": message.type.value,
@@ -292,7 +292,7 @@ class GroupMemberComplete(GroupMemberWithStorage):
     def __init__(self, agent_id: str, port: int, base_url: str = "http://localhost",
                  use_local_optimization: bool = True,
                  enable_storage: bool = True,
-                 storage_dir: str = "member_messages"):
+                 storage_dir: str = "anp_sdk_demo/demo_data/member_messages"):
         super().__init__(agent_id, port, base_url, use_local_optimization, enable_storage, storage_dir)
 
         # 添加统计功能
