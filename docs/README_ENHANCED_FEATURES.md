@@ -22,7 +22,7 @@
 #### 基本使用
 
 ```python
-from anp_open_sdk.mail_manager_enhanced import EnhancedMailManager
+from anp_open_sdk.anp_sdk_publisher_mail_backend import EnhancedMailManager
 
 # 使用 Gmail 后端（生产环境）
 mail_manager = EnhancedMailManager(use_local_backend=False)

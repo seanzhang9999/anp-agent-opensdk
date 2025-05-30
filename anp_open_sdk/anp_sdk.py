@@ -31,9 +31,9 @@ import yaml
 import pathlib
 
 # 安全中间件
-from anp_open_sdk.anp_sdk_utils import get_user_dir_did_doc_by_did
+from anp_open_sdk.anp_sdk_tool import get_user_dir_did_doc_by_did
 from anp_open_sdk.auth.auth_middleware import auth_middleware
-from anp_open_sdk.anp_sdk_utils import path_resolver
+from anp_open_sdk.anp_sdk_tool import path_resolver
 
 # 路由模块导入
 from anp_open_sdk.service import router_auth, router_did, router_publisher
@@ -46,8 +46,8 @@ from fastapi.responses import StreamingResponse
 # 配置日志
 from loguru import logger
 
-from anp_open_sdk.agent_types import RemoteAgent
-from anp_open_sdk.agent_types import LocalAgent
+from anp_open_sdk.anp_sdk_agent import RemoteAgent
+from anp_open_sdk.anp_sdk_agent import LocalAgent
 
 # Group SDK
 from anp_open_sdk.anp_sdk_group_runner import GroupManager, GroupRunner, Message, MessageType, Agent
@@ -251,8 +251,8 @@ class ANPSDK:
         return self.group_manager.list_groups()
 
     async def check_did_host_request(self):
-        from anp_open_sdk.mail_manager_enhanced import EnhancedMailManager
-        from anp_open_sdk.anp_agent_pulisher import DIDManager
+        from anp_open_sdk.anp_sdk_publisher_mail_backend import EnhancedMailManager
+        from anp_open_sdk.anp_sdk_publisher import DIDManager
         
         try:
             use_local = get_config_value('USE_LOCAL_MAIL', False)
@@ -961,3 +961,46 @@ class ANPSDK:
         if not host or not port:
             return "localhost", 9527
         return host, int(port)
+
+    def unregister_agent(self, agent_id: str):
+        """
+        Unregister an agent from the router by its ID
+
+        Args:
+            agent_id: The ID of the agent to unregister
+
+        Returns:
+            bool: True if the agent was successfully unregistered, False otherwise
+        """
+        try:
+            # Check if the agent exists in the router
+            if agent_id not in self.router.local_agents:
+                self.logger.warning(f"Agent {agent_id} not found in the router")
+                return False
+
+            # Remove the agent from the router
+            agent = self.router.local_agents.pop(agent_id, None)
+
+            # Clean up related resources
+            # 1. Remove from API registry if exists
+            if agent_id in self.api_registry:
+                del self.api_registry[agent_id]
+
+            # 2. Remove from group managers if the agent is in any groups
+            for group_id in self.list_groups():
+                runner = self.get_group_runner(group_id)
+                if runner and runner.is_member(agent_id):
+                    runner.remove_member(agent_id)
+
+            # Log the successful removal
+            self.logger.info(f"Successfully unregistered agent: {agent_id}")
+
+            # If this was the last agent, consider stopping the server
+            if not self.router.local_agents:
+                self.logger.info(f"No agents remaining in the router")
+
+            return True
+
+        except Exception as e:
+            self.logger.error(f"Failed to unregister agent {agent_id}: {e}")
+            return False

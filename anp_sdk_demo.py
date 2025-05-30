@@ -33,11 +33,12 @@ from anp_open_sdk.service.agent_message_p2p import agent_msg_post  # 已迁移�
 
 # 已迁移到 anp_utils.py
 
+from anp_open_sdk.service.agent_message_group import agent_msg_group_post, agent_msg_group_members, listen_group_messages  # 已迁移到 anp_group.py
 
 from colorama import init
 init()  # 初始化 colorama
 
-from anp_open_sdk.anp_sdk_tool import create_jwt, verify_jwt, get_response_DIDAuthHeader_Token, handle_response,did_create_user
+from anp_open_sdk.anp_sdk_utils import create_jwt, verify_jwt, get_response_DIDAuthHeader_Token, handle_response,did_create_user
 
 
 
@@ -63,7 +64,7 @@ from loguru import logger
 from urllib.parse import urlencode, quote
 
 from anp_open_sdk.anp_sdk import ANPSDK, LocalAgent, RemoteAgent
-from anp_open_sdk.anp_sdk_tool import get_user_cfg_list
+from anp_open_sdk.anp_sdk_utils import get_user_cfg_list
 from anp_open_sdk.config.dynamic_config import dynamic_config
 from anp_open_sdk.config.path_resolver import path_resolver
 import os, json, yaml
@@ -112,37 +113,37 @@ def demo_register_handler(agents):
     if len(agents) < 3:
         logger.error("本地DID用户不足3个，无法完成全部演示")
         return agents, None, None, None
-
+    
     agent1, agent2, agent3 = agents[0], agents[1], agents[2]
-
+    
     # 为agent1注册API 装饰器方式
     @agent1.expose_api("/hello",methods=["GET"])
     def hello_api(request):
         return {"msg": f" {agent1.name}的/hello接口收到请求:", "param": request.get("params")}
-
+    
     # 为agent2注册API 函数注册方式
     def info_api(request):
         return {"msg": f"{agent2.name}的/info接口收到请求:", "data": request.get("params")}
     agent2.expose_api("/info", info_api,  methods=["POST","GET"])
-
+    
     # 为agent1注册消息处理器 装饰器方式
     @agent1.register_message_handler("text")
     def handle_text1(msg):
         logger.info(f"{agent1.name}收到text消息: {msg}")
         return {"reply": f"{agent1.name}回复:确认收到text消息:{msg.get('content')}"}
-
+    
     # 为agent2注册消息处理器 函数注册方式
     def handle_text2(msg):
         logger.info(f"{agent2.name}收到text消息: {msg}")
         return {"reply": f"{agent2.name}回复:确认收到text消息:{msg.get('content')}"}
     agent2.register_message_handler("text", handle_text2)
-
+    
     # 为agent3注册通配消息处理器 装饰器方式
     @agent3.register_message_handler("*")
     def handle_any(msg):
         logger.info(f"{agent3.name}收到*类型消息: {msg}")
         return {"reply": f"{agent3.name}回复:确认收到{msg.get('type')}类型{msg.get('message_type')}格式的消息:{msg.get('content')}"}
-
+    
     # 为agent1 注册群聊消息监听处理 函数注册方式
     async def my_handler(group_id, event_type, event_data):
         print(f"收到群{group_id}的{event_type}事件，内容：{event_data}")
@@ -157,22 +158,22 @@ def demo_register_handler(agents):
             logger.error(f"保存消息到文件时出错: {e}")
             return
     agent1.register_group_event_handler(my_handler, group_id=None, event_type=None)
-
+    
     # 为agent1注册群组消息发送处理函数
     async def group_message_handler(data):
         group_id = data.get("group_id")
         req_did = data.get("req_did", "demo_caller")
-
+        
         # 初始化群组成员列表
         if not hasattr(agent1, "group_members"):
             agent1.group_members = {}
         if not hasattr(agent1, "group_queues"):
             agent1.group_queues = {}
-
+            
         # 验证发送者权限
         if group_id not in agent1.group_members or req_did not in agent1.group_members[group_id]:
             return {"error": "无权在此群组发送消息"}
-
+        
         time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         # 构造消息
@@ -182,25 +183,25 @@ def demo_register_handler(agents):
             "timestamp": time,
             "type": "group_message"
         }
-
+        
         # 将消息发送到群组队列
         if group_id in agent1.group_queues:
             for queue in agent1.group_queues[group_id].values():
                 await queue.put(message)
-
+        
         return {"status": "success"}
-
+    
     # 为agent1注册群组连接处理函数
     async def group_connect_handler(data):
         group_id = data.get("group_id")
         req_did = data.get("req_did")
-
+        
         # 初始化群组成员列表
         if not hasattr(agent1, "group_members"):
             agent1.group_members = {}
         if not hasattr(agent1, "group_queues"):
             agent1.group_queues = {}
-
+            
         if req_did and req_did.find("%3A") == -1:
             parts = req_did.split(":", 4)  # 分割 4 份 把第三个冒号替换成%3A
             req_did = ":".join(parts[:3]) + "%3A" + ":".join(parts[3:])
@@ -210,20 +211,20 @@ def demo_register_handler(agents):
         # 验证订阅者权限
         if group_id not in agent1.group_members or req_did not in agent1.group_members[group_id]:
             return {"error": "无权订阅此群组消息"}
-
+        
         async def event_generator():
             # 初始化群组
             if group_id not in agent1.group_queues:
                 agent1.group_queues[group_id] = {}
-
+            
             # 为该客户端创建消息队列
             client_id = f"{group_id}_{req_did}_{id(req_did)}"
             agent1.group_queues[group_id][client_id] = asyncio.Queue()
-
+            
             try:
                 # 发送初始连接成功消息
                 yield f"data: {json.dumps({'status': 'connected', 'group_id': group_id})}\n\n"
-
+                
                 # 保持连接打开并等待消息
                 while True:
                     try:
@@ -243,31 +244,31 @@ def demo_register_handler(agents):
                     del agent1.group_queues[group_id][client_id]
                     if not agent1.group_queues[group_id]:
                         del agent1.group_queues[group_id]
-
+        
         return {"event_generator": event_generator()}
-
+    
     # 为agent1注册群组成员管理处理函数
     async def group_members_handler(data):
         group_id = data.get("group_id")
         action = data.get("action")
         target_did = data.get("did")
         req_did = data.get("req_did")
-
+        
         # 初始化群组成员列表
         if not hasattr(agent1, "group_members"):
             agent1.group_members = {}
-
+            
         if req_did and req_did.find("%3A") == -1:
             parts = req_did.split(":", 3)  # 只分割前 3 个
             req_did = ":".join(parts[:2]) + "%3A" + ":".join(parts[2:])
-
+            
         if not all([action, target_did, req_did]):
             return {"error": "缺少必要参数"}
-
+        
         # 初始化群组成员列表
         if group_id not in agent1.group_members:
             agent1.group_members[group_id] = set()
-
+        
         # 如果是空群组，第一个加入的人自动成为成员
         if not agent1.group_members[group_id]:
             if action == "add":
@@ -277,11 +278,11 @@ def demo_register_handler(agents):
                     return {"status": "success", "message": "成功创建群组并添加了创建者和创建者邀请的成员"}
                 return {"status": "success", "message": "成功创建群组并添加创建者为首个成员"}
             return {"error": "群组不存在"}
-
+        
         # 验证请求者是否是群组成员
         if req_did not in agent1.group_members[group_id]:
             return {"error": "无权管理群组成员"}
-
+        
         if action == "add":
             agent1.group_members[group_id].add(target_did)
             return {"status": "success", "message": "成功添加成员"}
@@ -292,13 +293,13 @@ def demo_register_handler(agents):
             return {"error": "成员不存在"}
         else:
             return {"error": "不支持的操作"}
-
+    
     # 注册群组处理函数
     agent1.register_message_handler("group_message", group_message_handler)
     agent1.register_message_handler("group_connect", group_connect_handler)
     agent1.register_message_handler("group_members", group_members_handler)
 
-
+    
     return agents, agent1, agent2, agent3,
 
 
@@ -315,10 +316,268 @@ class StepModeHelper:
             input(f"{Fore.GREEN}--- {step_name} ---{Style.RESET_ALL} {Fore.YELLOW}按任意键继续...{Style.RESET_ALL}")
 
 
-def dev_pds(sdk):
+
+async def demo_agent_api_msg_group(sdk, agent1, agent2, agent3, step_mode: bool = False):
+    step_helper = StepModeHelper(step_mode=step_mode)    
+    if not all([agent1, agent2, agent3]):
+        logger.error("智能体不足，无法执行演示")
+        return
+    """演示智能体之间的消息和API调用"""
+
+    
+
+
+     # 获取每个agent的ad.json
+    step_helper.pause("获取每个agent的ad.json,查看其endpoints和name")
+    
+
+
+    for agent in [agent1, agent2, agent3]:
+        host, port = ANPSDK.get_did_host_port_from_did(agent.id)
+        user_id = str(agent.id)
+        user_id = quote(user_id)
+        url = f"http://{host}:{port}/wba/user/{user_id}/ad.json"
+        resp = requests.get(url)
+
+        try:
+            data = resp.json()  # 尝试解析 JSON
+        except ValueError:
+            data = resp.text  # 如果解析失败，返回文本数据
+
+        print(resp.status_code)  # 获取 HTTP 状态码
+        print(data)  # 获取响应文本
+        enpoints= data.get("ad:endpoints")
+
+        logger.info(f"{agent.name}的ad.json信息:")
+        logger.info(f"name: {data['name']}")
+        logger.info(f"ad:endpoints: {enpoints}\n")
+
+    # 演示API调用
+    step_helper.pause("步骤1: 演示API调用,第一次请求会包含did双向认证和颁发token,log比较长")
+ 
+
+    resp = await agent_api_call_post(sdk, agent1.id, agent2.id, "/info", {"from": f"{agent1.name}"})
+    logger.info(f"{agent1.name}get调用{agent2.name}的/info接口后收到响应: {resp}")
+
+    step_helper.pause("post请求到/info接口,header提交authorization认证头,url提交req_did,resp_did,body传输params")
+
+          
+    logger.info(f"演示agent1:{agent1.name}get调用agent2:{agent2.name}的API /info接口")
+    resp = await agent_api_call_get(sdk, agent1.id, agent2.id, "/info", {"from": f"{agent1.name}"})
+    logger.info(f"{agent1.name}get调用{agent2.name}的/info接口后收到响应: {resp}")
+   
+    step_helper.pause("get请求到/info接口,header提交authorization认证头,url提交req_did,resp_did,params")
+
+    # 演示消息发送
+    step_helper.pause("步骤2: 演示消息发送,双方第一次消息发送会包含did双向认证和颁发token,注意观察")
+    
+    logger.info(f"演示：agent2:{agent2.name}向agent3:{agent3.name}发送消息 ...")
+    # agent2 向 agent3 发送消息
+    resp = await agent_msg_post(sdk, agent2.id, agent3.id, f"你好，我是{agent2.name}")
+    logger.info(f"\n{agent2.name}向{agent3.name}发送消息后收到响应: {resp}")
+    step_helper.pause("post请求发送消息,使用token认证,body传递消息,接收方注册消息回调接口收消息回复，请比对")
+
+    
+    # agent3 向 agent1 发送消息
+    logger.info(f"演示agent3:{agent3.name}向agent1:{agent1.name}发送消息 ...")
+    resp = await agent_msg_post(sdk, agent3.id, agent1.id, f"你好，我是{agent3.name}")
+    logger.info(f"{agent3.name}向{agent1.name}发送消息后收到响应: {resp}")
+    step_helper.pause("post请求发送消息,使用token认证,body传递消息,接收方注册消息回调接口收消息回复，请比对")
+
+    # 演示群聊功能
+    step_helper.pause("步骤3: 演示群聊功能,群聊当前未加入认证,未来计划用did-vc模式,即创建群组者给其他用户颁发vc,加入者使用vc认证加入群聊")
+    group_id = "demo_group"
+    group_url = f"localhost:{sdk.port}"  #理论上群聊可以在任何地方# Replace with your group URL and port numbe
+    step_helper.pause(f"群聊演示分三步:建群拉人,发消息,{agent1.name}后台sse长连接接收群聊消息存到本地后加载显示")
+   
+    # 创建群组并添加 agent1（创建者自动成为成员）
+    action = {"action": "add", "did": agent1.id}
+    resp = await agent_msg_group_members(sdk, agent1.id,agent1.id, group_url, group_id, action)
+    logger.info(f"{agent1.name}创建群组{group_id}并添加{agent1.name},服务响应为: {resp}")
+    step_helper.pause(f"验证群组逻辑:第一个访问群并加人的自动成为成员")
+
+    # 添加 agent2 到群组
+    action = {"action": "add", "did": agent2.id}
+    resp = await agent_msg_group_members(sdk, agent1.id,agent1.id, group_url, group_id, action)
+    logger.info(f"{agent1.name}邀请{agent2.name}的响应: {resp}")
+    step_helper.pause(f"验证群组逻辑:创建人成员可以拉人")
+
+    # 添加 agent3 到群组
+    action = {"action": "add", "did": agent3.id}
+    resp = await agent_msg_group_members(sdk, agent2.id,agent1.id, group_url, group_id, action)
+    logger.info(f"{agent2.name}邀请{agent3.name}的响应: {resp}")
+    step_helper.pause(f"验证群组逻辑:其他成员也可以拉人，群组逻辑可以自定义")
+
+    # 清空群聊消息文件 准备本轮监听
+    message_file = dynamic_config.get("anp_sdk.group_msg_path")
+    message_file = path_resolver.resolve_path(message_file)
+    message_file = os.path.join(message_file, "group_messages.json")
+    async with aiofiles.open(message_file, 'w') as f:
+        await f.write("")
+
+    #启动agent1的监听任务，返回一个Task object
+    task = await agent1.start_group_listening(sdk, agent1.id,group_url, group_id)
+    await asyncio.sleep(1)
+    step_helper.pause(f"建群拉人结束，{agent1.name} 开始启动子线程，用于监听群聊 {group_id} 存储消息到json记录文件")
+
+    # agent1 发送群聊消息
+    time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    logger.info(f"\n演示：{agent1.name}在{time}“发送群聊消息...")
+    message = f"大家好，我是{agent1.name}，现在是{time},欢迎来到群聊！"
+    resp = await agent_msg_group_post(sdk, agent1.id, agent1.id,group_url, group_id, message)
+    logger.info(f"{agent1.name}发送群聊消息的响应: {resp}")
+    step_helper.pause(f"{agent1.name} 向 {group_id} 发消息,所有成员可以通过sse长连接接收消息")
+    
+    # agent2 发送群聊消息
+    await asyncio.sleep(2)
+    time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    logger.info(f"\n演示:{agent2.name}等待2秒后在{time}发送群聊消息...")
+    message = f"大家好，我是{agent2.name}，现在是{time},欢迎来到群聊！"
+    resp = await agent_msg_group_post(sdk, agent2.id, agent1.id,group_url, group_id, message)
+    logger.info(f"{agent2.name}发送群聊消息的响应: {resp}")
+    step_helper.pause(f"{agent2.name} 向 {group_id} 发消息,所有成员可以通过sse长连接接收消息")
+    
+    # 等待一会儿确保消息被接收
+    await asyncio.sleep(0.5)
+    step_helper.pause(f"{agent1.name}将停止监听，加载json文件显示sse长连接群聊收到的信息,注意观察时间戳")
+   
+    # 取消监听任务并确保资源被清理
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        logger.info("群聊监听任务已取消")
+    except Exception as e:
+        logger.error(f"取消群聊监听任务时出错: {e}")
+    finally:
+        # 确保任何资源都被清理
+        logger.info("群聊监听资源已清理")
+    
+    # 读取并显示接收到的消息
+    logger.info(f"\n{agent1.name}接收到的群聊消息:")
+    try:
+        messages = []  # 存储所有消息
+        with open(message_file, 'r', encoding='utf-8') as f:
+            for line in f:
+                messages.append(json.loads(line))  # 先收集所有消息
+        logger.info(f"批量收到消息:\n{json.dumps(messages, ensure_ascii=False, indent=2)}")  # 一次性输出
+    except Exception as e:
+        logger.error(f"读取消息文件失败: {e}")
+    
+    # 演示本地智能体加速器
+    step_helper.pause("步骤4: 演示本地智能体加速器，对比常规API调用和消息发送与加速后的性能差异")
+    
+    from anp_open_sdk.service.local_agent_accelerator import LocalAgentAccelerator
+    import time
+    
+    logger.info("初始化本地智能体加速器...")
+    accelerator = LocalAgentAccelerator()
+    
+    # 注册智能体到加速器
+    logger.info(f"注册智能体到加速器: {agent1.name}, {agent2.name}, {agent3.name}")
+    accelerator.register_agent(agent1)
+    accelerator.register_agent(agent2)
+    accelerator.register_agent(agent3)
+    
+    # 使用加速器进行API调用
+    logger.info(f"使用加速器: {agent1.name}调用{agent2.name}的API /info接口")
+    start_time = time.time()
+    result = await accelerator.route_api_call(
+        str(agent1.id), 
+        str(agent2.id), 
+        "/info", 
+        "GET", 
+        {"from": f"{agent1.name}"}
+    )
+    api_latency = (time.time() - start_time) * 1000
+    logger.info(f"加速器API调用结果: {result}")
+    logger.info(f"加速器API调用耗时: {api_latency:.2f}ms")
+    
+    # 使用加速器发送消息
+    logger.info(f"使用加速器: {agent2.name}向{agent3.name}发送消息")
+    start_time = time.time()
+    result = await accelerator.route_message(
+        str(agent2.id), 
+        str(agent3.id), 
+        {"message_type": "text", "content": f"你好，我是{agent2.name}，这是通过加速器发送的消息"}
+    )
+    msg_latency = (time.time() - start_time) * 1000
+    logger.info(f"加速器消息发送结果: {result}")
+    logger.info(f"加速器消息发送耗时: {msg_latency:.2f}ms")
+
+    
+    
+    # 获取性能统计
+    stats = accelerator.get_performance_stats()
+    logger.info(f"加速器性能统计:\n{json.dumps(stats, ensure_ascii=False, indent=2)}")
+    
+    # 对比常规调用和加速器调用
+    logger.info("\n性能对比:")
+    logger.info(f"1. 加速器可以直接在本地路由请求，无需网络传输")
+    logger.info(f"2. 加速器避免了认证和序列化/反序列化开销")
+    logger.info(f"3. 加速器提供了性能监控和统计功能")
+    
+    step_helper.pause("本地智能体加速器演示完成，可以看到明显的性能提升")
+    
+    # 继续群聊测试
+    step_helper.pause("步骤5: 继续群聊测试，重新开启agent1的消息监听")
+    
+    # 清空群聊消息文件 准备本轮监听
+    message_file = dynamic_config.get("anp_sdk.group_msg_path")
+    message_file = path_resolver.resolve_path(message_file)
+    message_file = os.path.join(message_file, "group_messages.json")
+    async with aiofiles.open(message_file, 'w') as f:
+        await f.write("")
+    
+    # 重新开启agent1的消息监听
+    logger.info(f"重新开启{agent1.name}的消息监听...")
+    task = await agent1.start_group_listening(sdk, agent1.id, group_url, group_id)
+    await asyncio.sleep(1)
+    
+    # 使用agent2发送群消息
+    logger.info(f"{agent2.name}发送群消息...")
+    await agent_msg_group_post(sdk, agent2.id, agent1.id, group_url, group_id, "这是加速器测试后的群消息测试")
+    
+    # 使用agent3发送群消息
+    logger.info(f"{agent3.name}发送群消息...")
+    await agent_msg_group_post(sdk, agent3.id, agent1.id, group_url, group_id, "收到，这是对加速器测试后群消息的回复")
+    
+    # 等待一会儿确保消息被接收
+    await asyncio.sleep(0.5)
+    
+    # 取消监听任务并确保资源被清理
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        logger.info("群聊监听任务已取消")
+    except Exception as e:
+        logger.error(f"取消群聊监听任务时出错: {e}")
+    
+    # 读取并显示接收到的消息
+    logger.info(f"\n{agent1.name}接收到的群聊消息:")
+    try:
+        messages = []  # 存储所有消息
+        with open(message_file, 'r', encoding='utf-8') as f:
+            for line in f:
+                messages.append(json.loads(line))  # 先收集所有消息
+        logger.info(f"批量收到消息:\n{json.dumps(messages, ensure_ascii=False, indent=2)}")  # 一次性输出
+    except Exception as e:
+        logger.error(f"读取消息文件失败: {e}")
+    
+    step_helper.pause("群聊测试完成")
+
+
+def dev_pds():
 
         step_helper = StepModeHelper(step_mode=False)  
 
+        # 1. 初始化 SDK
+
+        from anp_open_sdk.anp_sdk import ANPSDK
+        sdk = ANPSDK()
+
+        # 2. 加载智能体
         step_helper.pause(step_id = "demo1_1_1")
         agents = demo_load_agents(sdk)
 
@@ -345,27 +604,17 @@ async def dev_hosted_did(sdk):
     user_data_manager.load_users()
     user_datas = user_data_manager.get_all_users()
     
-    agents = find_and_register_hosted_agent(sdk, user_datas)
-    agent1 = agents[0]
+    agent1 = find_and_register_hosted_agent(sdk, user_datas)
     sdk.register_agent(agent1)
     
     user_data = user_data_manager.get_user_data_by_name("雅马哈")
     agent2 = LocalAgent(sdk, user_data.did)
     sdk.register_agent(agent2)
 
-
-    user_data = user_data_manager.get_user_data_by_name("托管智能体_did:wba:agent-did.com:test:public")
-    agent3 = LocalAgent(sdk,user_data.did)
-    sdk.register_agent(agent3)
-
     run_in_thread(start_server, sdk)
 
     time.sleep(1)
-
-    resp = await agent_msg_post(sdk,agent3.id,agent1.id, f"你好，我是{agent3.name}")
-    logger.info(f"\n{agent3.name}向{agent1.name}发送消息后收到响应: {resp}")
-
-
+   
 
     resp = await agent_msg_post(sdk, agent1.id, agent2.id, f"你好，我是{agent1.name}")
     logger.info(f"\n{agent1.name}向{agent2.name}发送消息后收到响应: {resp}")
@@ -376,17 +625,14 @@ async def dev_hosted_did(sdk):
 
             
 def find_and_register_hosted_agent(sdk, user_datas):
-    hosted_agents = []
     for user_data in user_datas:
         agent = LocalAgent(sdk, user_data.did)
         if agent.is_hosted_did:
             logger.info(f"hosted_did: {agent.id}")
             logger.info(f"parent_did: {agent.parent_did}")
             logger.info(f"hosted_info: {agent.hosted_info}")
-            hosted_agents.append(agent)
+            return agent
 
-    # Return the first hosted agent if any were found, otherwise None
-    return hosted_agents if hosted_agents else None
 
 
 
@@ -507,20 +753,31 @@ if __name__ == "__main__":
 
     if  '-d' in sys.argv:
         step_helper = StepModeHelper(step_mode=args.s)
-        # 1. 初始化 SDK
 
-        from anp_open_sdk.anp_sdk import ANPSDK
-        sdk = ANPSDK()
         # 测试中新功能 did host
-        # dev_pds(sdk)
-
-
-    else:
-
-
+        dev_pds()
         sdk = ANPSDK()
         asyncio.run(dev_hosted_did(sdk))
 
-        step_helper = StepModeHelper(step_mode=args.s)
-        step_helper.pause("演示完成")
+    else:
+        # 启动演示服务器
+        sdk , agent1 , agent2 ,agent3  = demo_init(step_mode=args.s, fast_mode=args.f)
+         # 6. 启动演示任务
+        if all([agent1, agent2, agent3]):
+            step_helper = StepModeHelper(step_mode=args.s)
+            step_helper.pause("准备完成:启动演示任务")
+            import threading
+            def run_demo():
+                try:
+                    asyncio.run(demo_agent_api_msg_group(sdk, agent1, agent2, agent3, step_mode=args.s,))
+                except Exception as e:
+                    logger.error(f"演示运行错误: {e}")
+            thread = threading.Thread(target=run_demo)
+            thread.start()
+            try:
+                thread.join()  # 等待线程完成
+            except KeyboardInterrupt:
+                logger.info("用户中断演示")
+                # 这里可以添加清理代码
+            step_helper.pause("演示完成")
 

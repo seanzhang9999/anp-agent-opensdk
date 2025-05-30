@@ -2,9 +2,18 @@ import asyncio
 import time
 import os
 import json
+from dotenv import load_dotenv
+load_dotenv()  # 这会加载项目根目录下的 .env 文件
+
 from datetime import datetime
-from typing import List
+from sys import exception
+from typing import List, Dict, Any
 from urllib.parse import quote
+from pathlib import Path
+
+import requests
+import aiofiles
+from loguru import logger
 
 import requests
 import aiofiles
@@ -13,8 +22,8 @@ from loguru import logger
 from anp_open_sdk.anp_sdk import ANPSDK, LocalAgent
 from anp_open_sdk.config.path_resolver import path_resolver
 from anp_open_sdk.service.agent_api_call import agent_api_call_post, agent_api_call_get
-from anp_open_sdk.service.agent_message_group import agent_msg_group_post, agent_msg_group_members
 from anp_open_sdk.service.agent_message_p2p import agent_msg_post
+from anp_open_sdk.service.anp_tool import ANPTool
 
 from .step_helper import DemoStepHelper
 
@@ -54,13 +63,11 @@ class DemoTaskRunner:
         agent1, agent2, agent3 = self.agents[0], self.agents[1], self.agents[2]
 
         try:
-            # 运行基础演示
-            # 开发模式特有的功能
-            #if self.dev_mode:
-            #    await self.run_development_features()
 
             await self.run_api_demo(agent1, agent2)
             await self.run_message_demo(agent2, agent3, agent1)
+            await self.run_agent_lifecycle_demo(agent1,agent2,agent3)
+            await self.run_anp_tool_crawler_agent_search_ai_ad_jason(agent1, agent2)
             await self.run_group_chat_demo(agent1, agent2,agent3)
             self.step_helper.pause("所有演示完成")
             
@@ -89,6 +96,136 @@ class DemoTaskRunner:
         )
         logger.info(f"{agent1.name}GET调用{agent2.name}的/info接口响应: {resp}")
 
+    async def run_agent_lifecycle_demo(self, agent1,agent2,agent3):
+        # 导入必要的模块
+        from anp_open_sdk.anp_sdk_tool import did_create_user, get_user_dir_did_doc_by_did
+        from anp_open_sdk.anp_sdk_agent import LocalAgent
+        from anp_open_sdk.config.dynamic_config import dynamic_config
+        from pathlib import Path
+        import os
+        import shutil
+        import yaml
+        import json
+
+        temp_agent = None
+        temp_user_dir = None
+
+        try:
+            logger.info("=== 开始消息演示（包含临时用户创建） ===")
+
+            # 1. 创建临时用户
+            logger.info("步骤1: 创建临时用户")
+            temp_user_params = {
+                'name': '智能体创建删除示范用户',
+                'host': 'localhost',
+                'port': 9527,  # 演示在同一台服务器，使用相同端口
+                'dir': 'wba', # 理论上可以自定义，当前由于did 路由的did.json服务在wba/user，所以要保持一致
+                'type': 'user'# 用户可以自定义did 路由的did.json服务在路径，确保和did名称路径一致即可
+            }
+
+            did_document = did_create_user(temp_user_params)
+            if not did_document:
+                logger.error("临时用户创建失败")
+                return
+
+            logger.info(f"临时用户创建成功，DID: {did_document['id']}")
+
+            # 创建LocalAgent实例
+            temp_agent = LocalAgent(self.sdk,
+                id = did_document['id'],
+                name = temp_user_params['name']
+            )
+
+            # 注册到SDK
+            self.sdk.register_agent(temp_agent)
+            logger.info(f"临时智能体 {temp_agent.name} 注册成功")
+
+            # 3. 为临时智能体注册消息监听函数
+            logger.info("步骤3: 注册消息监听函数")
+
+
+            @temp_agent.register_message_handler("*")
+            def handle_temp_message(msg):
+                """临时智能体的消息处理函数"""
+                logger.info(f"[{temp_agent.name}] 收到消息: {msg}")
+
+                # 自动回复消息
+                reply_content = f"这是来自临时智能体 {temp_agent.name} 的自动回复,确认收到消息{msg.get('content')}"
+                reply_message = {
+                    "reply": reply_content,
+                }
+                return  reply_message
+
+            logger.info(f"临时智能体 {temp_agent.name} 消息监听函数注册完成")
+
+            # 4. 与其他智能体进行消息交互
+            logger.info("步骤4: 开始消息交互演示")
+
+            # 临时智能体向agent2发送消息
+            logger.info(f"=== {temp_agent.name} -> {agent2.name} ===")
+            resp = await agent_msg_post(self.sdk, temp_agent.id, agent2.id, f"你好，我是{temp_agent.name}")
+            logger.info(f"[{temp_agent.name}] 已发送消息给 {agent2.name},响应: {resp}")
+
+
+            # 临时智能体向agent3发送消息
+            logger.info(f"=== {temp_agent.name} -> {agent3.name} ===")
+            resp = await agent_msg_post(self.sdk, temp_agent.id, agent3.id, f"你好，我是{temp_agent.name}")
+            logger.info(f"[{temp_agent.name}] 已发送消息给 {agent3.name},响应: {resp}")
+
+
+            # agent1向临时智能体发送消息
+            logger.info(f"=== {agent1.name} -> {temp_agent.name} ===")
+            resp = await agent_msg_post(self.sdk, agent1.id, temp_agent.id, f"你好，我是{agent1.name}")
+            logger.info(f"[{agent1.name}] 已发送消息给 {temp_agent.name},响应: {resp}")
+
+
+
+            # 显示消息交互总结
+            logger.info("=== 消息交互总结 ===")
+            logger.info(f"临时智能体 {temp_agent.name} 成功与以下智能体进行了消息交互:")
+            logger.info(f"  - 发送消息给: {agent2.name}, {agent3.name}")
+            logger.info(f"  - 接收消息来自: {agent1.name}")
+            logger.info("所有消息都已正确处理和回复")
+
+        except Exception as e:
+            logger.error(f"消息演示过程中发生错误: {e}")
+            import traceback
+            logger.error(f"详细错误信息: {traceback.format_exc()}")
+
+        finally:
+            # 5. 清理：删除临时用户
+            logger.info("步骤5: 清理临时用户")
+
+            try:
+
+                success, did_doc, user_dir = get_user_dir_did_doc_by_did(temp_agent.id)
+                if not success:
+                    logger.error("无法找到刚创建的用户目录")
+                    return
+
+                temp_user_dir = user_dir
+                if temp_agent:
+                    # 从SDK中注销
+                    self.sdk.unregister_agent(temp_agent.id)
+                    logger.info(f"临时智能体 {temp_agent.name} 已从SDK注销")
+
+                if temp_user_dir:
+                    # 删除用户目录
+                    user_dirs = dynamic_config.get('anp_sdk.user_did_path')
+                    user_full_path = os.path.join(user_dirs, temp_user_dir)
+
+                    if os.path.exists(user_full_path):
+                        shutil.rmtree(user_full_path)
+                        logger.info(f"临时用户目录已删除: {user_full_path}")
+                    else:
+                        logger.warning(f"临时用户目录不存在: {user_full_path}")
+
+                logger.info("临时智能体清理完成")
+
+            except Exception as e:
+                logger.error(f"清理临时用户时发生错误: {e}")
+
+
     async def run_message_demo(self, agent2: LocalAgent, agent3: LocalAgent, agent1: LocalAgent):
         """消息发送演示"""
         self.step_helper.pause("步骤2: 演示消息发送")
@@ -103,17 +240,102 @@ class DemoTaskRunner:
         resp = await agent_msg_post(self.sdk, agent3.id, agent1.id, f"你好，我是{agent3.name}")
         logger.info(f"{agent3.name}向{agent1.name}发送消息响应: {resp}")
     
-   
+    async def run_anp_tool_crawler_agent_search_ai_ad_jason(self, agent1: LocalAgent, agent2: LocalAgent):
+        """ANP工具爬虫演示 - 使用ANP协议进行智能体信息爬取"""
+        self.step_helper.pause("步骤3: 演示ANP工具爬虫功能")
 
-    async def run_development_features(self):
-        """开发模式特有功能"""
-        self.step_helper.pause("步骤4: 开发模式特有功能演示")
-        logger.info("开发模式：运行额外的测试功能...")
+        # 引入必要的依赖
+        from anp_open_sdk.service.anp_tool import ANPTool
+        logger.info("成功导入ANPTool")
         
-        # 可以添加开发模式特有的功能
-        # 例如：性能测试、错误处理测试、创建新用户等
-        await self._run_user_creation_demo()
-        await self._run_performance_test()
+        
+        user_data_manager = self.sdk.user_data_manager
+        user_data_manager.load_users()
+   
+        user_data = user_data_manager.get_user_data_by_name("托管智能体_did:wba:agent-did.com:test:public")
+        agent_anptool = LocalAgent(self.sdk,user_data.did)
+        self.sdk.register_agent(agent_anptool)    
+            
+
+
+         # 搜索智能体的URL
+        search_agent_url = "https://agent-search.ai/ad.json"
+        
+        # 定义任务
+        task = {
+            "input": "查询北京天津上海今天的天气",
+            "type": "weather_query",
+        }
+        
+        # 创建搜索智能体的提示模板
+        SEARCH_AGENT_PROMPT_TEMPLATE = """
+        你是一个通用智能网络数据探索工具。你的目标是通过递归访问各种数据格式（包括JSON-LD、YAML等）来找到用户需要的信息和API以完成特定任务。
+
+        ## 当前任务
+        {task_description}
+
+        ## 重要提示
+        1. 你将收到一个初始URL（{initial_url}），这是一个代理描述文件。
+        2. 你需要理解这个代理的结构、功能和API使用方法。
+        3. 你需要像网络爬虫一样持续发现和访问新的URL和API端点。
+        4. 你可以使用anp_tool来获取任何URL的内容。
+        5. 此工具可以处理各种响应格式。
+        6. 阅读每个文档以找到与任务相关的信息或API端点。
+        7. 你需要自己决定爬取路径，不要等待用户指令。
+        8. 注意：你最多可以爬取10个URL，并且必须在达到此限制后结束搜索。
+
+        ## 爬取策略
+        1. 首先获取初始URL的内容，理解代理的结构和API。
+        2. 识别文档中的所有URL和链接，特别是serviceEndpoint、url、@id等字段。
+        3. 分析API文档以理解API用法、参数和返回值。
+        4. 根据API文档构建适当的请求，找到所需信息。
+        5. 记录所有你访问过的URL，避免重复爬取。
+        6. 总结所有你找到的相关信息，并提供详细的建议。
+
+        对于天气查询任务，你需要:
+        1. 找到天气查询API端点
+        2. 理解如何正确构造请求参数（如城市名、日期等）
+        3. 发送天气查询请求
+        4. 获取并展示天气信息
+
+        提供详细的信息和清晰的解释，帮助用户理解你找到的信息和你的建议。
+        """
+        
+        
+        
+        # 调用通用智能爬虫
+        """
+                result = await self.anptool_intelligent_crawler(
+                    user_input=task["input"],
+                    initial_url=search_agent_url,
+                    prompt_template=SEARCH_AGENT_PROMPT_TEMPLATE,
+                    did_document_path=agent_anptool.did_document_path,
+                    private_key_path=agent_anptool.private_key_path,
+                    task_type=task["type"],
+                    max_documents=10,
+                    agent_name="搜索智能体"
+                )
+        """
+        logger.info("启动双向认证底层搜索")
+        # 调用通用智能爬虫
+        result = await self.anptool_intelligent_crawler(
+            anpsdk=self.sdk,  # 添加 anpsdk 参数
+            caller_agent = str(agent_anptool.id) ,  # 添加发起 agent 参数
+            target_agent = str(agent2.id)  ,  # 添加目标 agent 参数
+            use_two_way_auth = True,  # 是否使用双向认证
+            user_input=task["input"],
+            initial_url=search_agent_url,
+            prompt_template=SEARCH_AGENT_PROMPT_TEMPLATE,
+            did_document_path=agent_anptool.did_document_path,
+            private_key_path=agent_anptool.private_key_path,
+            task_type=task["type"],
+            max_documents=10,
+            agent_name="搜索智能体"
+        )
+
+        self.step_helper.pause("搜索智能体演示完成")
+
+
 
     async def _show_agent_info(self, *agents):
         """显示智能体信息"""
@@ -137,7 +359,318 @@ class DemoTaskRunner:
             except Exception as e:
                 logger.error(f"获取{agent.name}信息失败: {e}")
 
-  
+
+    async def anptool_intelligent_crawler(
+        self,
+        user_input: str,
+        initial_url: str,
+        prompt_template: str,
+        did_document_path : str,
+        private_key_path : str,
+        anpsdk=None,  # 添加 anpsdk 参数
+        caller_agent: str = None,  # 添加发起 agent 参数
+        target_agent: str = None,  # 添加目标 agent 参数
+        use_two_way_auth: bool = False,  # 是否使用双向认证
+        task_type: str = "general",
+        max_documents: int = 10,
+        agent_name: str = "智能爬虫"
+
+    ):
+        """
+        通用智能爬虫功能 - 使用大模型自主决定爬取路径
+        
+        参数:
+            user_input: 用户输入的任务描述
+            initial_url: 初始URL
+            prompt_template: 提示模板字符串，需要包含{task_description}和{initial_url}占位符
+            task_type: 任务类型
+            max_documents: 最大爬取文档数
+            agent_name: 代理名称（用于日志显示）
+            did_document_path: DID文档路径，如果为None将使用默认路径
+            private_key_path: 私钥路径，如果为None将使用默认路径
+        
+        返回:
+            Dict: 包含爬取结果的字典
+        """
+        self.step_helper.pause(f"启动{agent_name}智能爬取: {initial_url}")
+        
+        # 引入必要的依赖
+        from anp_open_sdk.service.anp_tool import ANPTool
+        
+        # 初始化变量
+        visited_urls = set()
+        crawled_documents = []
+        
+        # 初始化ANPTool
+        logger.info("初始化ANP工具...")
+        anp_tool = ANPTool(
+            did_document_path=did_document_path, 
+            private_key_path=private_key_path
+        )
+        
+        # 获取初始URL内容
+        try:
+            logger.info(f"开始获取初始URL: {initial_url}")
+            initial_content = await anp_tool.execute(url=initial_url)
+            visited_urls.add(initial_url)
+            crawled_documents.append(
+                {"url": initial_url, "method": "GET", "content": initial_content}
+            )
+            logger.info(f"成功获取初始URL: {initial_url}")
+        except Exception as e:
+            logger.error(f"获取初始URL {initial_url} 失败: {str(e)}")
+            return {
+                "content": f"获取初始URL失败: {str(e)}",
+                "type": "error",
+                "visited_urls": list(visited_urls),
+                "crawled_documents": crawled_documents,
+                "task_type": task_type,
+            }
+        
+        # 创建初始消息
+        formatted_prompt = prompt_template.format(
+            task_description=user_input, initial_url=initial_url
+        )
+        
+        messages = [
+            {"role": "system", "content": formatted_prompt},
+            {"role": "user", "content": user_input},
+            {
+                "role": "system",
+                "content": f"我已获取初始URL的内容。以下是{agent_name}的描述数据:\n\n```json\n{json.dumps(initial_content, ensure_ascii=False, indent=2)}\n```\n\n请分析这些数据，理解{agent_name}的功能和API使用方法。找到你需要访问的链接，并使用anp_tool获取更多信息以完成用户的任务。",
+            },
+        ]
+        
+        # 创建客户端
+        try:
+            # 尝试使用环境变量创建合适的客户端
+
+
+            model_provider = os.environ.get("MODEL_PROVIDER", "azure").lower()
+            model_name = os.environ.get("AZURE_OPENAI_MODEL_NAME", "gpt-4")
+            
+            if model_provider == "azure":
+                # Azure OpenAI
+                from openai import AsyncAzureOpenAI
+                client = AsyncAzureOpenAI(
+                    api_key=os.environ.get("AZURE_OPENAI_API_KEY"),
+                    api_version=os.environ.get("AZURE_OPENAI_API_VERSION", "2023-05-15"),
+                    azure_endpoint=os.environ.get("AZURE_OPENAI_ENDPOINT"),
+                    azure_deployment=os.environ.get("AZURE_OPENAI_DEPLOYMENT"),
+                )
+            else:
+                logger.error(f"创建LLM客户端失败: 需要 azure配置")
+
+        except Exception as e:
+            logger.error(f"创建LLM客户端失败: {e}")
+            return {
+                "content": f"LLM客户端创建失败: {str(e)}",
+                "type": "error",
+                "visited_urls": list(visited_urls),
+                "crawled_documents": crawled_documents,
+                "task_type": task_type,
+            }
+        
+        # 开始对话循环
+        current_iteration = 0
+        
+        while current_iteration < max_documents:
+            current_iteration += 1
+            logger.info(f"开始爬取迭代 {current_iteration}/{max_documents}")
+            
+            # 检查是否已达到最大爬取文档数
+            if len(crawled_documents) >= max_documents:
+                logger.info(f"已达到最大爬取文档数 {max_documents}，停止爬取")
+                # 添加消息通知模型已达到最大爬取限制
+                messages.append({
+                    "role": "system",
+                    "content": f"你已爬取 {len(crawled_documents)} 个文档，达到最大爬取限制 {max_documents}。请根据获取的信息做出最终总结。",
+                })
+            
+            # 获取模型响应
+            self.step_helper.pause(f"迭代 {current_iteration}: 请求模型分析和决策")
+            
+            try:
+                completion = await client.chat.completions.create(
+                    model=model_name,
+                    messages=messages,
+                    tools=self.get_available_tools(anp_tool),
+                    tool_choice="auto",
+                )
+                
+                response_message = completion.choices[0].message
+                messages.append({
+                    "role": "assistant",
+                    "content": response_message.content,
+                    "tool_calls": response_message.tool_calls,
+                })
+                
+                # 显示模型分析
+                if response_message.content:
+                    logger.info(f"模型分析:\n{response_message.content}")
+                
+                # 检查对话是否应该结束
+                if not response_message.tool_calls:
+                    logger.info("模型没有请求任何工具调用，结束爬取")
+                    break
+                    
+                # 处理工具调用
+                self.step_helper.pause(f"迭代 {current_iteration}: 执行工具调用")
+                logger.info(f"执行 {len(response_message.tool_calls)} 个工具调用")
+                
+                for tool_call in response_message.tool_calls:
+
+                    if use_two_way_auth:
+                        await self.handle_tool_call(
+                            tool_call, messages, anp_tool, crawled_documents, visited_urls,
+                            anpsdk = anpsdk,caller_agent =caller_agent,target_agent =target_agent,use_two_way_auth =use_two_way_auth)
+                    else:
+                        await self.handle_tool_call(
+                            tool_call, messages, anp_tool, crawled_documents, visited_urls
+                        )
+
+                    # 如果已达到最大爬取文档数，停止处理工具调用
+                    if len(crawled_documents) >= max_documents:
+                        break
+                        
+                # 如果已达到最大爬取文档数，做出最终总结
+                if (len(crawled_documents) >= max_documents and current_iteration < max_documents):
+                    logger.info(f"已达到最大爬取文档数 {max_documents}，做出最终总结")
+                    continue
+                    
+            except Exception as e:
+                logger.error(f"模型调用或工具处理失败: {e}")
+                import traceback
+                logger.error(traceback.format_exc())
+                
+                # 添加失败信息到消息列表
+                messages.append({
+                    "role": "system",
+                    "content": f"在处理过程中发生错误: {str(e)}。请根据已获取的信息做出最佳判断。",
+                })
+                
+                # 再给模型一次机会总结
+                try:
+                    final_completion = await client.chat.completions.create(
+                        model=model_name,
+                        messages=messages,
+                    )
+                    response_message = final_completion.choices[0].message
+                except Exception:
+                    # 如果再次失败，使用最后成功的消息
+                    if len(messages) > 3 and messages[-2]["role"] == "assistant":
+                        response_message = messages[-2]
+                    else:
+                        # 创建一个简单的错误回复
+                        response_message = {
+                            "content": f"很抱歉，在处理您的请求时遇到了错误。已爬取的文档数: {len(crawled_documents)}。"
+                        }
+                
+                # 退出循环
+                break
+        
+        # 创建结果
+        result = {
+            "content": response_message.content if hasattr(response_message, "content") else response_message["content"],
+            "type": "text",
+            "visited_urls": [doc["url"] for doc in crawled_documents],
+            "crawled_documents": crawled_documents,
+            "task_type": task_type,
+            "messages": messages,
+        }
+
+        # 显示结果
+        self.step_helper.pause(f"{agent_name}智能爬取完成，显示结果")
+        logger.info(f"\n=== {agent_name}响应 ===")
+        logger.info(result["content"])
+
+        logger.info("\n=== 访问过的URL ===")
+        for url in result.get("visited_urls", []):
+            logger.info(url)
+
+        logger.info(f"\n=== 总共爬取了 {len(result.get('crawled_documents', []))} 个文档 ===")
+
+        return result
+
+        # 定义可用工具
+    def get_available_tools(self,anp_tool_instance):
+        """获取可用工具列表"""
+        return [
+            {
+                "type": "function",
+                "function": {
+                    "name": "anp_tool",
+                    "description": anp_tool_instance.description,
+                    "parameters": anp_tool_instance.parameters,
+                },
+            }
+        ]
+
+
+    async def handle_tool_call(
+        self,
+         tool_call: Any,
+        messages: List[Dict],
+        anp_tool: ANPTool,
+        crawled_documents: List[Dict],
+        visited_urls: set,
+        anpsdk = None,  # 添加 anpsdk 参数
+        caller_agent: str = None,  # 添加发起 agent 参数
+        target_agent: str = None,  # 添加目标 agent 参数
+        use_two_way_auth: bool = False  # 是否使用双向认证
+    ) -> None:
+        """处理工具调用"""
+        function_name = tool_call.function.name
+        function_args = json.loads(tool_call.function.arguments)
+
+        if function_name == "anp_tool":
+            url = function_args.get("url")
+            method = function_args.get("method", "GET")
+            headers = function_args.get("headers", {})
+            params = function_args.get("params", {})
+            body = function_args.get("body")
+
+            try:
+                # 使用 ANPTool 获取 URL 内容
+                if use_two_way_auth:
+                    result = await anp_tool.execute_with_two_way_auth(
+                        url=url, method=method, headers=headers, params=params, body=body,
+                        anpsdk=anpsdk, caller_agent=caller_agent,
+                        target_agent=target_agent,use_two_way_auth=use_two_way_auth)
+                else:
+                    result = await anp_tool.execute(
+                        url=url, method=method, headers=headers, params=params, body=body
+                    )
+                logger.info(f"ANPTool 响应 [url: {url}]")
+
+                # 记录访问过的 URL 和获取的内容
+                visited_urls.add(url)
+                crawled_documents.append({"url": url, "method": method, "content": result})
+
+                messages.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": tool_call.id,
+                        "content": json.dumps(result, ensure_ascii=False),
+                    }
+                )
+            except Exception as e:
+                logger.error(f"使用 ANPTool 获取 URL {url} 时出错: {str(e)}")
+
+                messages.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": tool_call.id,
+                        "content": json.dumps(
+                            {
+                                "error": f"使用 ANPTool 获取 URL 失败: {url}",
+                                "message": str(e),
+                            }
+                        ),
+                    }
+                )
+
+    
     async def run_group_chat_demo(self, agent1: LocalAgent, agent2: LocalAgent, agent3: LocalAgent):
         """使用新的 GroupRunner SDK 运行群聊演示"""
         print("\n" + "=" * 60)
@@ -255,7 +788,7 @@ class DemoTaskRunner:
             for group_name, log_file in zip(["普通群聊", "审核群聊"], group_log_files):
                 await self._show_group_logs(group_name, log_file)
 
-    
+
 
 
             # 显示接收到的消息
@@ -275,19 +808,11 @@ class DemoTaskRunner:
                 if agent_type in ["GroupMemberWithStorage", "GroupMemberComplete"]:
                     message_file = path_resolver.resolve_path(f"anp_sdk_demo/demo_data/member_messages/{agent_prefix}_group_messages.json")
                     await self._show_received_group_messages(agent.name, message_file)
-                     # 清空对应文件
-                    try:
-                        if os.path.exists(message_file):
-                            with open(message_file, 'w', encoding='utf-8') as f:
-                                f.write("")
-                            print(f"📝 已清空 {agent.name} 的消息文件")
-                    except Exception as e:
-                        print(f"❌ 清空 {agent.name} 消息文件失败: {e}")
-                            
                 else:
                     print(f"\n📨 {agent.name}: 使用的是 {agent_type} 类，不具备存储功能")
 
-
+            # 清空所有文件
+            await self.clean_demo_data()
 
 
 
@@ -313,6 +838,42 @@ class DemoTaskRunner:
             print(f"❌ 增强群聊演示过程中出错: {e}")
             import traceback
             traceback.print_exc()
+            
+    async def clean_demo_data(self):
+        """清空demo_data目录及其子目录中的所有文件，但保留目录结构"""
+        self.step_helper.pause("开始清空demo_data目录下的所有文件")
+        
+        try:
+            # 获取demo_data目录路径
+            demo_data_path = path_resolver.resolve_path("anp_sdk_demo/demo_data")
+            if not os.path.exists(demo_data_path):
+                logger.warning(f"demo_data目录不存在: {demo_data_path}")
+                return
+            
+            count_removed = 0
+            logger.info(f"正在清空目录: {demo_data_path}")
+            
+            # 遍历目录及其子目录
+            for root, dirs, files in os.walk(demo_data_path):
+                # 清空文件
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    try:
+                        # 清空文件内容而非删除文件，这样保留文件结构
+                        with open(file_path, 'w', encoding='utf-8') as f:
+                            f.write("")
+                        count_removed += 1
+                        logger.info(f"已清空文件: {file_path}")
+                    except Exception as e:
+                        logger.error(f"清空文件失败 {file_path}: {e}")
+            
+            logger.info(f"清空完成，共处理了 {count_removed} 个文件")
+        except Exception as e:
+            logger.error(f"清空demo_data时发生错误: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+        
+        self.step_helper.pause("demo_data清空完成")
 
     async def _show_received_messages(self, agent_name: str, message_file: str):
         """显示接收到的消息"""
@@ -331,11 +892,6 @@ class DemoTaskRunner:
         except Exception as e:
             logger.error(f"读取消息文件失败: {e}")
 
-    async def _run_user_creation_demo(self):
-        """用户创建演示（开发模式）"""
-        logger.info("开发模式：演示用户创建功能")
-        # 这里可以实现动态创建用户的逻辑
-        pass
 
     async def _show_received_group_messages(self, agent_name: str, message_file: str):
         """显示 agent 接收到的群组消息"""
@@ -386,31 +942,4 @@ class DemoTaskRunner:
             print(f"❌ 读取 {group_name} 日志文件时出错: {e}")
 
 
-    async def _run_performance_test(self):
-        """性能测试（开发模式）"""
-        logger.info("开发模式：运行性能测试")
-        
-        if len(self.agents) >= 2:
-            agent1, agent2 = self.agents[0], self.agents[1]
-            
-            # 测试API调用性能
-            start_time = time.time()
-            for i in range(5):
-                resp = await agent_api_call_get(
-                    self.sdk, agent1.id, agent2.id, "/info", {"test": f"performance_{i}"}
-                )
-            end_time = time.time()
-            
-            avg_time = (end_time - start_time) / 5 * 1000
-            logger.info(f"API调用平均耗时: {avg_time:.2f}ms")
-            
-            # 测试消息发送性能
-            start_time = time.time()
-            for i in range(5):
-                resp = await agent_msg_post(
-                    self.sdk, agent1.id, agent2.id, f"性能测试消息 {i}"
-                )
-            end_time = time.time()
-            
-            avg_time = (end_time - start_time) / 5 * 1000
-            logger.info(f"消息发送平均耗时: {avg_time:.2f}ms")
+

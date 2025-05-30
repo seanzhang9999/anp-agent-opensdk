@@ -16,19 +16,25 @@
 # limitations under the License.
 import sys
 import os
+from typing import Optional, Dict
 from urllib.parse import urlencode, quote
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
-from anp_open_sdk.agent_types import LocalAgent
-from anp_open_sdk.anp_sdk_utils import get_response_DIDAuthHeader_Token
+from anp_open_sdk.anp_sdk_agent import LocalAgent
+from anp_open_sdk.anp_sdk_tool import get_response_DIDAuthHeader_Token
 from anp_open_sdk.auth.did_auth import send_authenticated_request, send_request_with_token, DIDWbaAuthHeader
 from loguru import logger
 from anp_open_sdk.auth.custom_did_resolver import resolve_local_did_document
 from agent_connect.authentication.did_wba import resolve_did_wba_document
-from anp_open_sdk.agent_connect_hotpatch.authentication.did_wba import verify_auth_header_signature
 from anp_open_sdk.auth.did_auth import verify_timestamp
-from anp_open_sdk.agent_connect_hotpatch.authentication.did_wba import extract_auth_header_parts
+from anp_open_sdk.agent_connect_hotpatch.authentication.did_wba import verify_auth_header_signature_two_way
+from anp_open_sdk.agent_connect_hotpatch.authentication.did_wba import extract_auth_header_parts_two_way
 from anp_open_sdk.anp_sdk import RemoteAgent
+
+from anp_open_sdk.config.dynamic_config import dynamic_config
+from anp_open_sdk.agent_connect_hotpatch.authentication.did_wba_auth_header import DIDWbaAuthHeader
+
+
 async def check_response_DIDAtuhHeader(auth_value: str) -> bool:
 
     """检查响应头中的DIDAUTHHeader是否正确
@@ -40,7 +46,7 @@ async def check_response_DIDAtuhHeader(auth_value: str) -> bool:
         bool: 验证是否成功
     """
     try:
-        header_parts = extract_auth_header_parts(auth_value)
+        header_parts = extract_auth_header_parts_two_way(auth_value)
     except Exception as e:
         logger.error(f"无法从AuthHeader中解析信息: {e}")
         return False
@@ -77,7 +83,7 @@ async def check_response_DIDAtuhHeader(auth_value: str) -> bool:
         target_url = "virtual.WBAback" # 迁就现在的url parse代码
 
         # 调用验证函数
-        is_valid, message = verify_auth_header_signature(
+        is_valid, message = verify_auth_header_signature_two_way(
             auth_header=full_auth_header,
             did_document=did_document,
             service_domain=target_url
@@ -89,10 +95,10 @@ async def check_response_DIDAtuhHeader(auth_value: str) -> bool:
     except Exception as e:
         logger.error(f"验证签名时出错: {e}")
         return False
-from anp_open_sdk.config.dynamic_config import dynamic_config
-from anp_open_sdk.agent_connect_hotpatch.authentication.did_wba_auth_header import DIDWbaAuthHeader
 
-async def agent_auth_two_way(sdk, caller_agent: str, target_agent: str ) -> tuple[bool, str]:
+async def agent_auth_two_way(sdk, caller_agent: str, target_agent: str , request_url, method: str = "GET",json_data: Optional[Dict] = None,
+    custom_headers: dict[str,str] = None, use_two_way_auth: bool = False # 是否使用双向认证
+                             ) -> tuple[bool, str]:
     """执行智能体之间的认证
     
     Args:
@@ -104,10 +110,12 @@ async def agent_auth_two_way(sdk, caller_agent: str, target_agent: str ) -> tupl
         tuple[bool, str]: (认证是否成功, 错误信息)
     """
 
+    if custom_headers is None:
+        custom_headers = {}
     caller_agent_obj = sdk.get_agent(caller_agent)
 
     target_agent_obj = RemoteAgent(target_agent)
-    auth_dir = dynamic_config.get("anp_sdk.auth_virtual_dir")
+
 
     user_data_manager = sdk.user_data_manager
     user_data = user_data_manager.get_user_data (caller_agent)
@@ -115,45 +123,54 @@ async def agent_auth_two_way(sdk, caller_agent: str, target_agent: str ) -> tupl
 
 
 
-
+    from anp_open_sdk.agent_connect_hotpatch.authentication.did_wba_auth_header import DIDWbaAuthHeader
     auth_client = DIDWbaAuthHeader(
         did_document_path=did_document_path,
         private_key_path=str(user_data.did_private_key_file_path)
     )
 
-    url_params = {
-        "req_did": caller_agent_obj.id,
-        "resp_did": target_agent_obj.id
-    }
-    url_params = urlencode(url_params)
 
-    base_url = f"http://{target_agent_obj.host}:{target_agent_obj.port}"
-    test_url = f"{base_url}/{auth_dir}?{url_params}"
 
-    status, response, response_header, token = await send_authenticated_request(test_url, auth_client, str(target_agent_obj.id))
+    status, response, response_header, token = await send_authenticated_request(
+        target_url = request_url,auth_client=  auth_client, resp_did = str(target_agent_obj.id), custom_headers= custom_headers, method=method, json_data = json_data)
     
-    auth_value, token = get_response_DIDAuthHeader_Token(response_header)
-
-    if status != 200:
-        error = f"发起方发出的DID认证失败! 状态: {status}\n响应: {response}"
-        return False, error
-
-    if await check_response_DIDAtuhHeader(auth_value) is False:
-        error = f"\n接收方DID认证头验证失败! 状态: {status}\n响应: {response}"
-        return False, error
-
-    if token:
-        status, response = await send_request_with_token(test_url, token, caller_agent_obj.id, target_agent_obj.id)
-        
-        if status == 200:
-            caller_agent_obj.store_token_from_remote(target_agent_obj.id, token)
-            error = f"\nDID认证成功! {caller_agent_obj.id} 已保存 {target_agent_obj.id}颁发的token:{token}"
-            return True, error
+    if status == 200:
+        auth_value, token = get_response_DIDAuthHeader_Token(response_header)
+        if token:
+            if auth_value != "单向认证":
+                if await check_response_DIDAtuhHeader(auth_value) is False:
+                    info = f"\n接收方DID认证头验证失败! 状态: {status}\n响应: {response}"
+                    return status, response, info, False
+                else:
+                    caller_agent_obj.store_token_from_remote(target_agent_obj.id, token)
+                    info = f"\nDID双向认证成功! {caller_agent_obj.id} 已保存 {target_agent_obj.id}颁发的token:{token}"
+                    return status, response, info, True
         else:
-            error = f"\n令牌认证失败! 状态: {status}\n响应: {response}"
-            return False, error
+            info = f"\n200放行，无token，应该是无认证页面"
+            return status, response, info, True
+
     else:
-        error = "未从服务器收到令牌"
-        return False, error
+        # 回落尝试单向认证
+        from agent_connect.authentication.did_wba_auth_header import DIDWbaAuthHeader
+        auth_client = DIDWbaAuthHeader(
+            did_document_path=did_document_path,
+            private_key_path=str(user_data.did_private_key_file_path)
+        )
+        status, response, response_header, token = await send_authenticated_request(
+            target_url=request_url, auth_client=auth_client, resp_did=str(target_agent_obj.id),
+            custom_headers=custom_headers, method=method, json_data=json_data)
+        if status == 200:
+            auth_value, token = get_response_DIDAuthHeader_Token(response_header)
+            if auth_value == "单向认证" and token:
+                info = f"\n尝试单向认证头认证成功! 状态: {status}\n响应: {response}\nDID认证成功! {caller_agent_obj.id} 已保存 {target_agent_obj.id}颁发的token:{token}"
+                caller_agent_obj.store_token_from_remote(target_agent_obj.id, token)
+                return status, response, info , True
+            else:
+                info = f"\n单向认证通过没有返回token，应该是第一代协议，无token继续"
+                return status, response, info, True
+        else:
+            info = f"发起方发出的DID认证失败! 状态: {status}\n响应: {response}"
+            return status, response, info , False
+
 
         

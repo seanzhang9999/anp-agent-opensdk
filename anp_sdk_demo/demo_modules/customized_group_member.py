@@ -5,7 +5,7 @@ from typing import Dict, Any, Optional, Callable, List
 from datetime import datetime
 from anp_open_sdk.anp_sdk_group_member import GroupMemberSDK
 from anp_open_sdk.anp_sdk_group_runner import Message, MessageType
-from anp_open_sdk.anp_sdk_utils import path_resolver
+from anp_open_sdk.anp_sdk_tool import path_resolver
 
 
 class GroupMemberWithStorage(GroupMemberSDK):
@@ -21,6 +21,7 @@ class GroupMemberWithStorage(GroupMemberSDK):
         if self.enable_storage:
             self.storage_dir = path_resolver.resolve_path(storage_dir)
             os.makedirs(self.storage_dir, exist_ok=True)
+            print(f"🗂️ 存储目录已创建: {self.storage_dir}")  # 添加调试信息
 
     async def save_received_message(self, group_id: str, message: Message):
         """保存接收到的消息"""
@@ -28,7 +29,8 @@ class GroupMemberWithStorage(GroupMemberSDK):
             return
 
         agent_name = self.agent_id.split(":")[-1] if ":" in self.agent_id else self.agent_id
-        message_file = os.path.join(self.storage_dir, f"anp_sdk_demo/demo_data/{agent_name}_group_messages.json")
+        message_file = os.path.join(self.storage_dir, f"{agent_name}_group_messages.json")
+        print(f"📝 正在保存消息到 {message_file}")  # 添加调试信息
 
         message_data = {
             "type": message.type.value,

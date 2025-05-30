@@ -23,7 +23,7 @@ from urllib.parse import urlencode, quote
 from anp_open_sdk.config.dynamic_config import dynamic_config
 from loguru import logger
 from anp_open_sdk.anp_sdk import RemoteAgent
-from anp_open_sdk.anp_sdk_utils import handle_response
+from anp_open_sdk.anp_sdk_tool import handle_response
 from anp_open_sdk.service.agent_auth import agent_auth_two_way
 from anp_open_sdk.auth.did_auth import send_authenticated_request, send_request_with_token, DIDWbaAuthHeader
 async def agent_msg_post(sdk, caller_agent:str , target_agent :str, content: str, message_type: str = "text"):
@@ -41,10 +41,8 @@ async def agent_msg_post(sdk, caller_agent:str , target_agent :str, content: str
     caller_agent_obj = sdk.get_agent(caller_agent)
     target_agent_obj = RemoteAgent(target_agent)
 
-    if caller_agent_obj.get_token_from_remote(target_agent_obj.id) is None:
-        status, error = await agent_auth_two_way(sdk, caller_agent, target_agent)
-        if status is False:
-            return {"error": error}
+
+
 
     url_params = {
         "req_did": caller_agent_obj.id,
@@ -62,16 +60,18 @@ async def agent_msg_post(sdk, caller_agent:str , target_agent :str, content: str
     msg_dir = dynamic_config.get("anp_sdk.msg_virtual_dir")
 
     url = f"http://{target_agent_obj.host}:{target_agent_obj.port}{msg_dir}/{target_agent_path}/post?{url_params}"
+
+    if caller_agent_obj.get_token_from_remote(target_agent_obj.id) is None:
+        status, response, info, is_auth_pass = await agent_auth_two_way(sdk, caller_agent, target_agent, url, method="POST", json_data=msg)
+        response = await handle_response(response)
+        return response
+
     token = caller_agent_obj.get_token_from_remote(target_agent_obj.id)["token"]
 
     status, response = await send_request_with_token(url, token, caller_agent_obj.id, target_agent_obj.id, method="POST", json_data=msg)
     if status == 401:
-        status, error = await agent_auth_two_way(sdk, caller_agent, target_agent)
-        if status is False:
-            return {"error": error}
-        else:
-            token = caller_agent_obj.get_token_from_remote(target_agent_obj.id)["token"]
-            status, response = await send_request_with_token(url, token, caller_agent_obj.id, target_agent_obj.id, method="POST", json_data=msg)
+        if caller_agent_obj.get_token_from_remote(target_agent_obj.id) is None:
+            status, response, info, is_auth_pass = await agent_auth_two_way(sdk, caller_agent, target_agent, url, method="POST", json_data=msg)
 
     response = await handle_response(response)
     return response

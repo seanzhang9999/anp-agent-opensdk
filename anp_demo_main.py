@@ -26,7 +26,7 @@ try:
     from anp_sdk_demo.demo_modules.demo_tasks import DemoTaskRunner
     from anp_sdk_demo.services.dns_service import DemoDNSService
     from anp_sdk_demo.services.sdk_manager import DemoSDKManager
-    from anp_sdk_demo.utils.config_helper import DemoConfigHelper
+
     print("✓ 所有模块导入成功")
 except ImportError as e:
     print(f"✗ 模块导入失败: {e}")
@@ -43,7 +43,7 @@ class ANPDemoApplication:
 
         try:
             self.step_helper = DemoStepHelper(step_mode=args.s)
-            self.config_helper = DemoConfigHelper()
+
 
             # 初始化服务
             self.dns_service = DemoDNSService(base_domain=getattr(args, 'domain', 'localhost'))
@@ -80,7 +80,7 @@ class ANPDemoApplication:
             elif self.args.f:
                 self._run_fast_mode()
             else:
-    # 默认开发模式
+            # 默认开发模式
                 self._run_development_mode()
 
         except KeyboardInterrupt:

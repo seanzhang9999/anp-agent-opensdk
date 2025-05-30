@@ -22,6 +22,8 @@ import traceback
 import secrets
 import string
 import random
+from warnings import catch_warnings
+
 import aiohttp
 from typing import Dict, Tuple, Optional, Any
 from datetime import datetime, timezone, timedelta
@@ -33,7 +35,7 @@ from canonicaljson import encode_canonical_json
 from agent_connect.authentication import create_did_wba_document
 
 from anp_open_sdk.agent_connect_hotpatch.authentication.did_wba_auth_header import DIDWbaAuthHeader
-from anp_open_sdk.agent_connect_hotpatch.authentication.did_wba import  extract_auth_header_parts, verify_auth_header_signature,resolve_did_wba_document
+from anp_open_sdk.agent_connect_hotpatch.authentication.did_wba import  extract_auth_header_parts_two_way, verify_auth_header_signature_two_way,resolve_did_wba_document
 
 from anp_open_sdk.auth.custom_did_resolver import resolve_local_did_document
 
@@ -135,6 +137,9 @@ def get_and_validate_domain(request: Request) -> str:
 
 async def handle_did_auth(authorization: str, domain: str , request: Request , sdk = None) -> Dict:
     """
+    检测能力升级
+        通过解包数量6/5判断是two_way还是单向did验证
+
     Handle DID WBA authentication and return token.
     
     Args:
@@ -152,15 +157,36 @@ async def handle_did_auth(authorization: str, domain: str , request: Request , s
 
         # Extract header parts
         from anp_open_sdk.anp_sdk import ANPSDK
-        header_parts = extract_auth_header_parts(authorization)
+
+        try:
+            header_parts = extract_auth_header_parts_two_way(authorization)
         
-        if not header_parts:
-            raise HTTPException(status_code=401, detail="Invalid authorization header format")
-            
-        # 解包顺序：(did, nonce, timestamp, verification_method, signature)
-        did, nonce, timestamp, resp_did, keyid, signature = header_parts
-        
-    #   # logging.info(f"Processing DID WBA authentication - DID: {did}, Key ID: {keyid}")
+            if not header_parts:
+                raise HTTPException(status_code=401, detail="Invalid authorization header format")
+
+            # 解包顺序：(did, nonce, timestamp, resp_did, verification_method, signature)
+            did, nonce, timestamp, resp_did, keyid, signature = header_parts
+
+            is_two_way_auth = True
+        except (ValueError, TypeError) as e:
+            # 尝试标准认证作为回退
+            print(f"⚠️ 两路认证失败，尝试标准认证: {e}")
+
+            try:
+                from agent_connect.authentication.did_wba import extract_auth_header_parts
+                header_parts = extract_auth_header_parts(authorization)
+
+                if not header_parts or len(header_parts) < 4:
+                    raise HTTPException(status_code=401, detail="Invalid standard authorization header")
+
+                did, nonce, timestamp, keyid,  signature = header_parts[:4]
+                resp_did = None
+                is_two_way_auth = False
+
+                print(f"✅ 标准认证解析成功")
+            except Exception as fallback_error:
+                raise HTTPException(status_code=401, detail=f"Authentication parsing failed: {fallback_error}")
+        #   # logging.info(f"Processing DID WBA authentication - DID: {did}, Key ID: {keyid}")
         
         # 验证时间戳
         if not verify_timestamp(timestamp):
@@ -192,14 +218,22 @@ async def handle_did_auth(authorization: str, domain: str , request: Request , s
         try:
             # 重新构造完整的授权头
             full_auth_header = authorization
-            
+
             # 调用验证函数
-            is_valid, message = verify_auth_header_signature(
-                auth_header=full_auth_header,
-                did_document=did_document,
-                service_domain=domain
-            )
-            
+            if is_two_way_auth:
+                is_valid, message = verify_auth_header_signature_two_way(
+                    auth_header=full_auth_header,
+                    did_document=did_document,
+                    service_domain=domain
+                )
+            else:
+                from agent_connect.authentication.did_wba import verify_auth_header_signature
+                is_valid, message = verify_auth_header_signature_two_way(
+                    auth_header=full_auth_header,
+                    did_document=did_document,
+                    service_domain=domain
+                )
+
             logging.info(f" {did}签名验证结果: {is_valid}, 消息: {message}")
             
             if not is_valid:
@@ -257,7 +291,7 @@ async def handle_did_auth(authorization: str, domain: str , request: Request , s
                     
                     # 获取认证头（用于返回给req_did进行验证,此时 req是现在的did）
                     target_url = "http://virtual.WBAback:9999"  # 使用当前请求的域名
-                    resp_did_auth_header = resp_auth_client.get_auth_header(target_url, did)
+                    resp_did_auth_header = resp_auth_client.get_auth_header_two_way(target_url, did)
 
                     # 打印认证头
                    # logging.info(f"Generated resp_did_auth_header: {resp_did_auth_header}")
@@ -268,18 +302,18 @@ async def handle_did_auth(authorization: str, domain: str , request: Request , s
             except Exception as e:
                 logging.error(f"加载resp_did的DID文档时出错: {e}")
                 resp_did_auth_header = None
-        
-        
-        return [
-            {   
-                "access_token": access_token,
-                "token_type": "bearer",
-                "req_did": did,
-                "resp_did": resp_did,
-                "resp_did_auth_header": resp_did_auth_header
-             } 
-
-        ]
+        if is_two_way_auth:
+            return [
+                {
+                    "access_token": access_token,
+                    "token_type": "bearer",
+                    "req_did": did,
+                    "resp_did": resp_did,
+                    "resp_did_auth_header": resp_did_auth_header
+                 }
+            ]
+        else:
+            return f"bearer {access_token}"
 
         
     except HTTPException:
@@ -357,7 +391,7 @@ async def generate_or_load_did(unique_id: str = None) -> Tuple[Dict, Dict, str]:
     return did_document, keys, str(user_dir)
 
 
-async def send_authenticated_request(target_url: str, auth_client: DIDWbaAuthHeader, resp_did: str, method: str = "GET", 
+async def send_authenticated_request(target_url: str, auth_client: DIDWbaAuthHeader, resp_did: str, custom_headers:dict[str,str] = None , method: str = "GET",
                                      json_data: Optional[Dict] = None) -> Tuple[int, Dict[str, Any], Optional[str]]:
     """
     发送带有DID WBA认证的请求
@@ -373,32 +407,59 @@ async def send_authenticated_request(target_url: str, auth_client: DIDWbaAuthHea
     """
     try:
         # 获取认证头
-        auth_headers = auth_client.get_auth_header(target_url , resp_did)
 
+        # Check if auth_client supports two-way authentication method
+        if hasattr(auth_client, 'get_auth_header_two_way'):
+            auth_headers = auth_client.get_auth_header_two_way(target_url, resp_did)
+        else:
+            # Fall back to first generation header method if two-way not available
+            auth_headers = auth_client.get_auth_header(target_url)
        # logging.info(f"Sending authenticated request to {target_url} with headers: {auth_headers}")
-        
+
+        if custom_headers is not None:
+            custom_headers.update(auth_headers)
+        else:
+            custom_headers = auth_headers
+
+
         async with aiohttp.ClientSession() as session:
             if method.upper() == "GET":
                 async with session.get(
                     target_url,
-                    headers=auth_headers
+                    headers=custom_headers
                 ) as response:
                     status = response.status
-                    response_data = await response.json() if status == 200 else {}
                     # x = dict(response.headers)
                     token = auth_client.update_token(target_url, dict(response.headers))
                     # token = auth_client.update_token(target_url, response_data )
-                    return status, response_data, dict(response.headers), token
+                    try:
+                        response_data = await response.json()
+                    except:
+                        response_text = await response.text()
+                        try:
+                            response_data = json.loads(response_text)
+                        except:
+                            response_data = {"text": response_text}
+
+                    return status, response_data , dict(response.headers), token
             elif method.upper() == "POST":
                 async with session.post(
                     target_url,
-                    headers=auth_headers,
+                    headers=custom_headers,
                     json=json_data
                 ) as response:
                     status = response.status
-                    response_data = await response.json() if status == 200 else {}
                     token = auth_client.update_token(target_url, dict(response.headers))
-                    return status, response_data,dict(response.headers) ,token
+                    try:
+                        response_data = await response.json()
+                    except:
+                        response_text = await response.text()
+                        try:
+                            response_data = json.loads(response_text)
+                        except:
+                            response_data = {"text": response_text}
+
+                    return status, response_data, dict(response.headers), token
             else:
                 logging.error(f"Unsupported HTTP method: {method}")
                 return 400, {"error": "Unsupported HTTP method"}, dict(response.headers) , None

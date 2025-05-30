@@ -263,23 +263,30 @@ def get_response_DIDAuthHeader_Token(response_header: Dict) -> Tuple[Optional[st
     Returns:
         Tuple[str, str]: (did_auth_header, token) 双向认证头和访问令牌
     """
-    if isinstance(response_header, dict) and "Authorization" in response_header:
-        try:
-            auth_value = json.loads(response_header["Authorization"])
-            token = auth_value.get("access_token")
-            did_auth_header = auth_value.get("resp_did_auth_header", {}).get("Authorization")
-
-            if did_auth_header and token:
-                logger.info("获得认证方返回的 'Authorization' 字段，进行双向校验")
-                return did_auth_header, token
-            else:
-                logger.error("[错误] 解析失败，缺少必要字段" + str(auth_value))
+    if "Authorization" in response_header:
+        auth_value = response_header["Authorization"]
+        if isinstance(auth_value, str) and auth_value.startswith('Bearer '):
+                token = auth_value[7:]  # Extract token after 'Bearer '
+                logger.info("获得单向认证令牌，兼容无双向认证的服务")
+                return "单向认证", token
+        # If Authorization is a dict, execute existing logic
+        else:
+            try:
+                auth_value =  response_header.get("Authorization")
+                auth_value= json.loads(auth_value)
+                token = auth_value.get("access_token")
+                did_auth_header =auth_value.get("resp_did_auth_header", {}).get("Authorization")
+                if did_auth_header and token:
+                    logger.info("获得认证方返回的 'Authorization' 字段，进行双向校验")
+                    return did_auth_header, token
+                else:
+                    logger.error("[错误] 解析失败，缺少必要字段" + str(auth_value))
+                    return None, None
+            except Exception as e:
+                logger.error("[错误] 处理 Authorization 字典时出错: " + str(e))
                 return None, None
-        except json.JSONDecodeError:
-            logger.error("[错误] Authorization 头格式错误，无法解析 JSON:" + str(response_header["Authorization"]))
-            return None, None
     else:
-        logger.error("[错误] response_header 缺少 'Authorization' 字段，实际值：" + str(response_header))
+        logger.info("response_header 没有 'Authorization' 字段，但是返回值200")
         return None, None
 
 async def handle_response(response: Any) -> Dict:
@@ -297,9 +304,32 @@ async def handle_response(response: Any) -> Dict:
     if isinstance(response, dict):  
         return response  # 直接返回字典
     elif isinstance(response, ClientResponse):  
-        return await response.json()  # 解析 JSON
+        try:
+            # 检查响应状态码
+            if response.status >= 400:
+                error_text = await response.text()
+                logger.error(f"HTTP错误 {response.status}: {error_text}")
+                return {"error": f"HTTP {response.status}", "message": error_text}
+
+            # 检查内容类型
+            content_type = response.headers.get('Content-Type', '')
+            if 'application/json' in content_type:
+                return await response.json()
+            else:
+                # 非JSON响应，返回文本
+                text = await response.text()
+                logger.warning(f"非JSON响应，Content-Type: {content_type}")
+                return {"content": text, "content_type": content_type}
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON解析失败: {e}")
+            text = await response.text()
+            return {"error": "JSON解析失败", "raw_text": text}
+        except Exception as e:
+            logger.error(f"处理响应时出错: {e}")
+            return {"error": str(e)}
     else:
-        raise TypeError(f"未知类型: {type(response)}")
+        logger.error(f"未知响应类型: {type(response)}")
+        return {"error": f"未知类型: {type(response)}"}
 
 
 def get_agent_cfg_by_user_dir(user_dir: str) -> dict:

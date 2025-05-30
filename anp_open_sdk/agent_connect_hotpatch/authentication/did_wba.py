@@ -255,7 +255,7 @@ def resolve_did_wba_document_sync(did: str) -> Dict:
     """
     return asyncio.run(resolve_did_wba_document(did))
 
-def generate_auth_header(
+def generate_auth_header_two_way(
     did_document: Dict,
     service_domain: str,
     sign_callback: Callable[[bytes, str], bytes],
@@ -581,7 +581,7 @@ def _extract_public_key(verification_method: Dict) -> Union[ec.EllipticCurvePubl
         f"Unsupported verification method type or missing required key format: {method_type}"
     )
 
-def extract_auth_header_parts(auth_header: str) -> Tuple[str, str, str, str, str]:
+def extract_auth_header_parts_two_way(auth_header: str) -> Tuple[str, str, str, str, str]:
     """
     Extract authentication information from the authorization header.
     
@@ -626,7 +626,7 @@ def extract_auth_header_parts(auth_header: str) -> Tuple[str, str, str, str, str
     return (parts['did'], parts['nonce'], parts['timestamp'], 
             parts['resp_did'], parts['verification_method'], parts['signature'])
 
-def verify_auth_header_signature(
+def verify_auth_header_signature_two_way(
     auth_header: str,
     did_document: Dict,
     service_domain: str
@@ -648,7 +648,7 @@ def verify_auth_header_signature(
     
     try:
         # Extract auth header parts
-        client_did, nonce, timestamp_str, resp_id, verification_method, signature = extract_auth_header_parts(auth_header)
+        client_did, nonce, timestamp_str, resp_id, verification_method, signature = extract_auth_header_parts_two_way(auth_header)
          
         # Verify DID (case-sensitive)
         if did_document.get('id').lower() != client_did.lower():

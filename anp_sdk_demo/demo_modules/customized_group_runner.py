@@ -4,7 +4,7 @@ import os
 from typing import Dict, Any
 from datetime import datetime
 from anp_open_sdk.anp_sdk_group_runner import GroupRunner, Message, MessageType, Agent
-from anp_open_sdk.anp_sdk_utils import path_resolver
+from anp_open_sdk.anp_sdk_tool import path_resolver
 
 
 class FileLoggingGroupRunner(GroupRunner):
@@ -14,6 +14,7 @@ class FileLoggingGroupRunner(GroupRunner):
         super().__init__(group_id)
         self.log_dir = path_resolver.resolve_path("anp_sdk_demo/demo_data/group_logs")
         os.makedirs(self.log_dir, exist_ok=True)
+        print(f"🗂️ 群组日志目录已创建: {self.log_dir}")  # 添加调试信息
 
     async def save_message_to_file(self, message_data: Dict[str, Any]):
         """保存消息到文件"""

@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from anp_open_sdk.mail_manager_enhanced import EnhancedMailManager
+from anp_open_sdk.anp_sdk_publisher_mail_backend import EnhancedMailManager
 from anp_open_sdk.config.dynamic_config import dynamic_config,get_config_value
 import os
 import json
@@ -22,7 +22,7 @@ from typing import Dict, Any, Callable, Optional, Union, List
 from warnings import simplefilter
 from loguru import logger
 
-from anp_open_sdk.anp_sdk_utils import get_user_dir_did_doc_by_did
+from anp_open_sdk.anp_sdk_tool import get_user_dir_did_doc_by_did
 from anp_open_sdk.config.dynamic_config import dynamic_config
 import asyncio
 import nest_asyncio
@@ -57,6 +57,7 @@ class LocalAgent:
         
 
         user_data_manager = sdk.user_data_manager
+        user_data_manager.load_users()
         self.user_data = user_data_manager.get_user_data(id)
         user_dir = self.user_data.user_dir
 
@@ -505,7 +506,7 @@ class LocalAgent:
     async def register_hosted_did(self,sdk):
         """注册托管DID，将 did_document 邮件发送申请开通"""
         try:
-            from anp_open_sdk.mail_manager_enhanced import EnhancedMailManager
+            from anp_open_sdk.anp_sdk_publisher_mail_backend import EnhancedMailManager
             
             user_data_manager = sdk.user_data_manager
             user_data = user_data_manager.get_user_data(self.id)

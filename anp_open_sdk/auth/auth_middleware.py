@@ -148,7 +148,7 @@ async def auth_middleware(request: Request, call_next: Callable, sdk = None) -> 
 
         if response_auth is not None:
             response = await call_next(request)
-            if isinstance(response_auth, str):
+            if isinstance(response_auth, str): # 兼容老模式 只返回bearer 开头token
                 response.headers['authorization'] = response_auth
                 return response
             else:

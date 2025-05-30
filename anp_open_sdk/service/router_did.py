@@ -17,10 +17,10 @@ DID document API router.
 """
 import sys
 import os
-from anp_open_sdk.anp_sdk_utils import get_user_dir_did_doc_by_did
+from anp_open_sdk.anp_sdk_tool import get_user_dir_did_doc_by_did
 from urllib3 import response
 
-from anp_open_sdk.agent_types import LocalAgent
+from anp_open_sdk.anp_sdk_agent import LocalAgent
 from anp_open_sdk.config import path_resolver
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..","..")))
@@ -87,7 +87,7 @@ async def get_agent_description(resp_did: str, request: Request) -> Dict:
         raise HTTPException(status_code=403, detail=f"{resp_did} is hosted did")
 
     
-    from anp_open_sdk.anp_sdk_utils import get_agent_cfg_by_user_dir
+    from anp_open_sdk.anp_sdk_tool import get_agent_cfg_by_user_dir
     user_cfg = get_agent_cfg_by_user_dir(user_dir)
     
     # 获取基础端点
