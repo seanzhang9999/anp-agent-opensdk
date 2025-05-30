@@ -33,7 +33,7 @@ from urllib.parse import urlparse
 
 # Import agent_connect for DID authentication
 from .did_wba import (
-    generate_auth_header
+    generate_auth_header_two_way
 )
 
 class DIDWbaAuthHeader:
@@ -129,7 +129,7 @@ class DIDWbaAuthHeader:
             logging.error(f"Error signing content: {e}")
             raise
     
-    def _generate_auth_header(self, domain: str , resp_did:str) -> str:
+    def _generate_auth_header_two_way(self, domain: str, resp_did:str) -> str:
         """Generate DID authentication header"""
         try:
             did_document = self._load_did_document()
@@ -137,7 +137,7 @@ class DIDWbaAuthHeader:
             # logging.info("尝试添加DID认证头自")
             
 
-            auth_header = generate_auth_header(
+            auth_header = generate_auth_header_two_way(
                 did_document,
                 domain,
                 self._sign_callback,
@@ -153,7 +153,7 @@ class DIDWbaAuthHeader:
             logging.error(f"Error generating authentication header: {e}")
             raise
     
-    def get_auth_header(self, server_url: str, resp_did: str, force_new: bool = False) -> Dict[str, str]:
+    def get_auth_header_two_way(self, server_url: str, resp_did: str, force_new: bool = False) -> Dict[str, str]:
         """
         获取认证头。
         支持 server_url 为 FastAPI/Starlette Request 对象或字符串。
@@ -168,7 +168,7 @@ class DIDWbaAuthHeader:
         
         # Otherwise, generate or use existing DID authentication header
         if domain not in self.auth_headers or force_new:
-            self.auth_headers[domain] = self._generate_auth_header(domain , resp_did)
+            self.auth_headers[domain] = self._generate_auth_header_two_way(domain, resp_did)
         
         # logging.info(f"Using DID authentication header for domain {domain}")
         return {"Authorization": self.auth_headers[domain]}
@@ -184,19 +184,26 @@ class DIDWbaAuthHeader:
         Returns:
             Optional[str]: Updated token, or None if no valid token is found
         """
-        domain = self._get_domain(server_url)
-        auth_status = headers.get("Authorization")
-        token_type = headers.get("token_type")
-        access_token = headers.get("access_token")
 
-        
-        if auth_status and token_type == "bearer":
-            token = access_token  # Remove "Bearer " prefix
-            self.tokens[domain] = token
-            # logging.info(f"Updated token for domain {domain}: {token[:30]}...")
-            return token
-        else:
-            logging.debug(f"No valid token found in response headers for domain {domain}")
+
+        domain = self._get_domain(server_url)
+        auth_data = headers.get("Authorization")
+        if not auth_data:
+            logging.debug(f"响应头中没有 Authorization 字段，跳过 token 更新。URL: {server_url}")
+            return None
+
+        if auth_data.startswith('Bearer '):
+            token_value = auth_data[7:]  # 移除 "Bearer " 前缀
+            logging.info(f"解析到bearer token: {token_value}")
+            return token_value
+
+        try:
+            auth_data = json.loads(auth_data)
+            token_type = auth_data.get("token_type")
+            access_token = auth_data.get("access_token")
+            return access_token
+        except json.JSONDecodeError:
+            logging.debug(f"No valid token found in response headers for  {server_url}")
             return None
     
     def clear_token(self, server_url: str) -> None:

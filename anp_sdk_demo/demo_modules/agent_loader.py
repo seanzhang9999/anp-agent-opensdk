@@ -1,0 +1,55 @@
+from typing import List, Optional
+from loguru import logger
+from anp_open_sdk.anp_sdk import ANPSDK, LocalAgent, LocalUserDataManager
+from anp_open_sdk.config.dynamic_config import dynamic_config
+
+
+class DemoAgentLoader:
+    """演示用Agent加载器"""
+    
+    @staticmethod
+    def load_demo_agents(sdk: ANPSDK) -> List[LocalAgent]:
+        """加载演示用的智能体"""
+        user_data_manager: LocalUserDataManager = sdk.user_data_manager
+        agent_cfg = dynamic_config.get('anp_sdk.agent', {})
+        agent_names = [
+            agent_cfg.get('demo_agent1'),
+            agent_cfg.get('demo_agent2'),
+            agent_cfg.get('demo_agent3')
+        ]
+
+        agents = []
+        for agent_name in agent_names:
+            if not agent_name:
+                continue
+
+            user_data = user_data_manager.get_user_data_by_name(agent_name)
+            if user_data:
+                agent = LocalAgent(sdk, id=user_data.did, name=user_data.name)
+                agent.name = user_data.agent_cfg.get('name', user_data.user_dir)
+                agents.append(agent)
+            else:
+                logger.warning(f'未找到预设名字={agent_name} 的用户数据')
+        return agents
+
+    @staticmethod
+    def find_hosted_agent(sdk: ANPSDK, user_datas) -> Optional[LocalAgent]:
+        """查找托管的智能体"""
+        for user_data in user_datas:
+            agent = LocalAgent(sdk, user_data.did)
+            if agent.is_hosted_did:
+                logger.info(f"hosted_did: {agent.id}")
+                logger.info(f"parent_did: {agent.parent_did}")
+                logger.info(f"hosted_info: {agent.hosted_info}")
+                return agent
+        return None
+
+    @staticmethod
+    def create_test_agents(sdk: ANPSDK, agent_names: List[str]) -> List[LocalAgent]:
+        """创建测试用智能体（开发模式）"""
+        agents = []
+        for name in agent_names:
+            # 这里可以实现动态创建智能体的逻辑
+            logger.info(f"创建测试智能体: {name}")
+            # 实际实现会根据需求来完成
+        return agents

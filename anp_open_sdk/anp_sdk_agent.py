@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from anp_open_sdk.mail_manager_enhanced import EnhancedMailManager
+from anp_open_sdk.anp_sdk_publisher_mail_backend import EnhancedMailManager
 from anp_open_sdk.config.dynamic_config import dynamic_config,get_config_value
 import os
 import json
@@ -22,7 +22,7 @@ from typing import Dict, Any, Callable, Optional, Union, List
 from warnings import simplefilter
 from loguru import logger
 
-from anp_open_sdk.anp_sdk_utils import get_user_dir_did_doc_by_did
+from anp_open_sdk.anp_sdk_tool import get_user_dir_did_doc_by_did
 from anp_open_sdk.config.dynamic_config import dynamic_config
 import asyncio
 import nest_asyncio
@@ -57,6 +57,7 @@ class LocalAgent:
         
 
         user_data_manager = sdk.user_data_manager
+        user_data_manager.load_users()
         self.user_data = user_data_manager.get_user_data(id)
         user_dir = self.user_data.user_dir
 
@@ -188,6 +189,8 @@ class LocalAgent:
             self.message_handlers[msg_type] = func
             return func
 
+
+
     def register_group_event_handler(self, handler: Callable, group_id: str = None, event_type: str = None):
         """
         注册群事件处理器
@@ -265,11 +268,19 @@ class LocalAgent:
         from anp_open_sdk.service.agent_message_group import listen_group_messages
         import asyncio
         
-        # 创建监听任务
+        # 创建监听任务，传入事件处理器
         task = asyncio.create_task(
-            listen_group_messages(sdk, self.id, group_hoster, group_url, group_id)
+            listen_group_messages(
+                sdk,
+                self.id,
+                group_hoster,
+                group_url,
+                group_id,
+                event_handlers = {
+                    "*": lambda msg_obj: self._dispatch_group_event(group_id, "*", msg_obj)
+            })
         )
-        
+
         self.logger.info(f"已启动群组 {group_id} 的消息监听")
         return task
        
@@ -495,7 +506,7 @@ class LocalAgent:
     async def register_hosted_did(self,sdk):
         """注册托管DID，将 did_document 邮件发送申请开通"""
         try:
-            from anp_open_sdk.mail_manager_enhanced import EnhancedMailManager
+            from anp_open_sdk.anp_sdk_publisher_mail_backend import EnhancedMailManager
             
             user_data_manager = sdk.user_data_manager
             user_data = user_data_manager.get_user_data(self.id)

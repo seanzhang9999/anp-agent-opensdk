@@ -36,7 +36,7 @@ from typing import Dict, List, Tuple, Optional
 
 from anp_open_sdk.config.path_resolver import path_resolver
 from anp_open_sdk.config.dynamic_config import dynamic_config
-from anp_open_sdk.anp_sdk_utils import did_create_user, get_user_cfg_list, get_user_cfg
+from anp_open_sdk.anp_sdk_tool import did_create_user, get_user_cfg_list, get_user_cfg
 
 
 def create_user(args):
