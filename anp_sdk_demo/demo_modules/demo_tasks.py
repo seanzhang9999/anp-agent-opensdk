@@ -19,12 +19,14 @@ import requests
 import aiofiles
 from loguru import logger
 
+from anp_open_sdk.service.agent_message_p2p import agent_msg_post
+
+
 from anp_open_sdk.anp_sdk import ANPSDK, LocalAgent
 from anp_open_sdk.config.path_resolver import path_resolver
 from anp_open_sdk.service.agent_api_call import agent_api_call_post, agent_api_call_get
 from anp_open_sdk.service.agent_message_p2p import agent_msg_post
 from anp_open_sdk.service.anp_tool import ANPTool
-
 from .step_helper import DemoStepHelper
 
 
@@ -68,6 +70,7 @@ class DemoTaskRunner:
             await self.run_message_demo(agent2, agent3, agent1)
             await self.run_agent_lifecycle_demo(agent1,agent2,agent3)
             await self.run_anp_tool_crawler_agent_search_ai_ad_jason(agent1, agent2)
+            await self.run_hosted_did_demo(agent1)  # 添加托管 DID 演示
             await self.run_group_chat_demo(agent1, agent2,agent3)
             self.step_helper.pause("所有演示完成")
             
@@ -225,7 +228,117 @@ class DemoTaskRunner:
             except Exception as e:
                 logger.error(f"清理临时用户时发生错误: {e}")
 
-
+    async def run_hosted_did_demo(self, agent1: LocalAgent):
+        """托管 DID 演示"""
+        self.step_helper.pause("步骤5: 演示托管 DID 功能")
+        
+        try:
+            # Part 1: 申请托管 DID
+            logger.info("=== Part 1: 申请托管 DID ===")
+            self.step_helper.pause("准备申请 hosted_did")
+            
+            result = await agent1.register_hosted_did(self.sdk)
+            if result:
+                logger.info(f"✓ {agent1.name} 申请托管 DID 发送成功")
+            else:
+                logger.info(f"✗ {agent1.name} 申请托管 DID 发送失败")
+                return
+            
+            await asyncio.sleep(0.5)
+            
+            # 服务器查询托管申请状态
+            logger.info("服务器查询托管 DID 申请状态...")
+            server_result = await self.sdk.check_did_host_request()
+            await asyncio.sleep(2)
+            logger.info(f"服务器处理托管情况: {server_result}")
+            
+            # 智能体查询自己的托管状态
+            agent_result = await agent1.check_hosted_did()
+            logger.info(f"{agent1.name} 托管申请查询结果: {agent_result}")
+            
+            # Part 2: 托管智能体消息交互演示
+            logger.info("\n=== Part 2: 托管智能体消息交互演示 ===")
+            self.step_helper.pause("开始托管智能体消息交互")
+            
+            # 加载用户数据
+            user_data_manager = self.sdk.user_data_manager
+            user_data_manager.load_users()
+            user_datas = user_data_manager.get_all_users()
+            
+            # 查找并注册托管智能体
+            hosted_agents = find_and_register_hosted_agent(self.sdk, user_datas)
+            if not hosted_agents:
+                logger.warning("未找到托管智能体，跳过托管消息演示")
+                return
+                
+            hosted_agent = hosted_agents[0]
+            self.sdk.register_agent(hosted_agent)
+            logger.info(f"注册托管智能体: {hosted_agent.name}")
+            
+            # 查找公共托管智能体
+            public_hosted_data = user_data_manager.get_user_data_by_name("托管智能体_did:wba:agent-did.com:test:public")
+            if public_hosted_data:
+                public_hosted_agent = LocalAgent(self.sdk, public_hosted_data.did)
+                self.sdk.register_agent(public_hosted_agent)
+                logger.info(f"注册公共托管智能体: {public_hosted_agent.name}")
+                
+                # 托管智能体之间的消息交互
+                self.step_helper.pause("托管智能体消息交互演示")
+                
+                # 公共托管智能体向托管智能体发送消息
+                resp = await agent_msg_post(
+                    self.sdk, 
+                    public_hosted_agent.id, 
+                    hosted_agent.id, 
+                    f"你好，我是{public_hosted_agent.name}"
+                )
+                logger.info(f"{public_hosted_agent.name} -> {hosted_agent.name}: {resp}")
+                
+                await asyncio.sleep(1)
+                
+                # 托管智能体向普通智能体发送消息
+                resp = await agent_msg_post(
+                    self.sdk,
+                    hosted_agent.id,
+                    agent1.id,
+                    f"你好，我是托管智能体 {hosted_agent.name}"
+                )
+                logger.info(f"{hosted_agent.name} -> {agent1.name}: {resp}")
+                
+                await asyncio.sleep(1)
+                
+                # 普通智能体向托管智能体发送消息
+                resp = await agent_msg_post(
+                    self.sdk,
+                    agent1.id,
+                    hosted_agent.id,
+                    f"你好托管智能体，我是 {agent1.name}"
+                )
+                logger.info(f"{agent1.name} -> {hosted_agent.name}: {resp}")
+                
+                # 显示托管状态总结
+                logger.info("\n=== 托管 DID 演示总结 ===")
+                logger.info(f"1. {agent1.name} 成功申请了托管 DID")
+                logger.info(f"2. 托管智能体 {hosted_agent.name} 已注册并可以正常通信")
+                logger.info("3. 托管智能体可以与普通智能体和其他托管智能体进行消息交互")
+                
+                # 清理：注销托管智能体
+                self.sdk.unregister_agent(hosted_agent.id)
+                if public_hosted_data:
+                    self.sdk.unregister_agent(public_hosted_agent.id)
+                logger.info("托管智能体已注销")
+                
+            else:
+                logger.warning("未找到公共托管智能体，跳过部分演示")
+                
+        except Exception as e:
+            logger.error(f"托管 DID 演示过程中发生错误: {e}")
+            import traceback
+            logger.error(f"详细错误信息: {traceback.format_exc()}")
+            
+        self.step_helper.pause("托管 DID 演示完成")
+        
+        
     async def run_message_demo(self, agent2: LocalAgent, agent3: LocalAgent, agent1: LocalAgent):
         """消息发送演示"""
         self.step_helper.pause("步骤2: 演示消息发送")
@@ -605,7 +718,8 @@ class DemoTaskRunner:
                 },
             }
         ]
-
+            
+    
 
     async def handle_tool_call(
         self,
@@ -943,3 +1057,15 @@ class DemoTaskRunner:
 
 
 
+def find_and_register_hosted_agent(sdk, user_datas):
+        hosted_agents = []
+        for user_data in user_datas:
+            agent = LocalAgent(sdk, user_data.did)
+            if agent.is_hosted_did:
+                logger.info(f"hosted_did: {agent.id}")
+                logger.info(f"parent_did: {agent.parent_did}")
+                logger.info(f"hosted_info: {agent.hosted_info}")
+                hosted_agents.append(agent)
+
+        # Return the first hosted agent if any were found, otherwise None
+        return hosted_agents if hosted_agents else None

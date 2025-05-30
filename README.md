@@ -1,106 +1,241 @@
 # anp agent opensdk
 
-anp agent opensdk 致力于为 Agent 开发者提供一个快速上手、易于集成的 SDK，帮助你自己的智能体快速集成基于 ANP 协议的互联能力，扩展开发者的服务范围。
+anp agent opensdk是基于ANP核心协议栈agent_connect开发的一个anp快速集成开发工具包
+
+## 开发背景
+
+- ANP协议基于DID建立身份认证，涉及到密钥文件的生成、DID文档的组织和管理，但是一般开发者对此相对陌生。
+- ANP协议的DID文档基于域名发布，DID标识符指引认证者向特定url获取DID文档，DID发布需要运行服务器。
+- ANP协议的DID认证目前基于FastAPI框架的路由和中间件机制，对开发者也有一定学习成本。
+- ANP协议的认证完全是点对点完成，中间涉及首次DID认证以及后续Token颁发存储，需要开发者理解DID的工作原理和相关的安全性问题。
+- ANP协议现有web版demo，是一个公共的DID身份，提升了用户快速感知的体验，但是对开发者后续开发，密钥身份问题还是需要了解和处理。
 
 ## 项目目标
 
-- 为 Agent 开发者提供一套开箱即用的 SDK，降低集成门槛。
-- 通过自动演示脚本，帮助用户直观了解 SDK 的关键能力和工作流程。
-- 提供详细的集成步骤说明，助力开发者将自有 Agent 快速接入 ANP 网络。
-- 为智能体提供互联的开箱即用基本能力：
-    1. 创建一个DID身份，身份与一个域名绑定，可以将DID文档和描述发布到公网域名，作为基本信任源
-    2. 可以与其他 Agent 进行点对点身份认证与互信验证
-    3. 可以与其他 Agent 进行点对点post消息/接收对方post消息、发布和调用api
-    4. 在无法点对点联系的情况下（例如内网），可以与其他Agent在共同确认的sse公网服务建立“消息群”
-    5. sse公网服务可以接收post，sse推送到目标Agent，从而完成Agent间的基本消息传递
+- 简化对智能体开发者使用ANP协议的WBA-DID认证的开发流程，降低开发复杂度
 
-## 自动演示脚本
+  - 一个函数直接创建anp用户密钥文件夹和相关DID文档，DID标识符格式符合ANP协议要求，开发者熟悉后可以自己修改
+  - 拥有密钥文件夹后，import SDK，一行代码创建LocalAgent（ANP的网络连接实例）
+- 提供开发者本地快速测试环境，支持快速迭代和调试多智能体互操作
 
-项目内置自动演示脚本，旨在帮助用户快速了解 SDK 的核心功能和工作流程。启动脚本后，您可以自动体验 SDK 的完整流程，关键步骤会在控制台输出，便于理解各环节。
+  - LocalAgent可以调用其他agent的api，向其他agent发送消息，请求中自动进行DID认证，开发者无需操作
+  - LocalAgent可以注册到SDK的FastAPI服务上，支持多个LocalAgent并存
+    - 对外发布自身DID文档、智能体描述json文件
+    - FastAPI服务为注册LocalAgent默认提供接收其他agent发送消息的消息监听接口，开发者可以直接注册处理函数
+    - LocalAgent可以通过装饰器、函数注册将本地API一行代码转换为Agent的API，自动发布到FastAPI服务，方便其他agent调用
+    - 所有调用事件均传入调用者DID，并且已经进行过验证，开发者可以自由定制对不同调用者DID的权限控制
+- 为几种DID使用场景提供解决方案和示例代码
 
-演示脚本当前涵盖以下功能：
-1. 通过工具自动创建一个 DID 身份，并在用户目录下生成相应的配置。
-2. 在 Agent 代码中加载 DID 身份。
-3. 启动本地 ANPSDK 服务，该服务负责帮助 Agent 发布 DID-doc、API 以及消息接收端口。
-4. 同一 ANPSDK 服务可以承载多个 Agent，并自动路由对应的消息/API 请求。
-5. 启动 ANPSDK 服务的 Agent 可以通过 API (GET/POST)、消息 (POST) 和消息群 (POST+SSE) 进行互相通信。
-6. 对于开发者，可以通过装饰器或注册方式在 ANPSDK 服务上发布对外 API，注册消息监听/消息群监听处理器，或随时向任何 DID 用户发送消息。
+  - 用户自动绑定模式：
+    - 如果开发者给用户提供服务时，希望让用户访问anp服务，但是又不想麻烦用户了解DID，可以利用SDK自动给用户创建身份，自动发布DID文档到FastAPI服务，并将用户的DID与其服务进行绑定，访问ANP其他agent获取服务
+  - 内网公共服务器发布DID文档模式：
+    - 如果开发者给企业开发时，希望所有DID文档发布在一个公共服务器，但是agent运行在不同笔记本/桌面电脑，可以利用SDK的hosted DID模式，将本地agent的DID文档自动邮件提交给公共服务器管理员，公共服务器进行审核和发布，并将最终公共服务器host的DID文档发还本地agent，此后本地agent可以使用这个DID文档自由访问其他agent
+  - ANPTool模式：
+    - ANP的特色能力，通过大模型自动连接分析其他anp agent提供的ad.json及链接的url，自动调用其中描述的api，完成用户功能
+  - GroupRunner模式：
+    - 不同网络的agent可以在一个公共服务器上加入一个Group，通过SSE监听响应消息，消息处理成员管理功能由创建者管理的GroupRunner具体执行，GroupRunner可以继承扩展，自定义各种额外行为，方便跨网agent尽可能安全的互相连接，在GroupRunner中，成员可以通过DID进行身份验证，确保消息的安全性和隐私性。
 
-未来演示脚本将涵盖以下功能：
-1. 向 ANP 目录服务发布 Agent 信息。
-2. 发现其他 Agent 并拉取其描述信息。
-3. 发起探索与互操作请求。
-4. 在内网和移动场景下，通过 ANP 的 SSE 公网服务与其他智能体交互。
-5. 演示简化版 ANPSDK，在托管 DID-doc 的情况下，无需启动 HTTP Server，只通过公网 SSE 对外监听。
+## 核心功能
 
-> 启动演示脚本：
->
-> ```bash
-> python anp_sdk_demo.py -h
+1. DID 身份管理
+   创建去中心化身份（DID）
+   DID 与域名绑定
+   DID 文档发布和管理
+   支持托管 DID 模式
+2. 智能体通信
+   点对点消息：智能体间直接消息传递
+   API 调用：RESTful API 的发布和调用
+   群组通信：基于 SSE 的群组消息功能
+   双向认证：安全的身份验证机制，当前支持三种模式兼容：
+   请求者提交DID认证，响应者验证，不返回token（一次一验）
+   请求者提交DID认证，响应者验证，返回token（方便后续访问）
+   请求者提交DID认证，响应者验证后，返回token，并返回自己DID认证（双向认证）
+3. 服务发现与互操作
+   智能体可信信息发布（ad.json/yaml/did文档接口，可以自定义）
+   智能爬虫功能（anp_tool）
+   智能体发现（提供了查询接口，可以自定义）
 
-    usage: anp_sdk_demo.py [-h] [-p] [-f] [-n name host port host_dir agent_type]
+## 快速运行演示
 
-    ANP SDK 演示程序
+1. 克隆项目
+2. python创建venv环境，并进入venv环境
+3. 使用poetry安装依赖
+4. python anp_demo_main.py
+   python anp_demo_main.py [-h] [-d] [-s] [-f] [--domain DOMAIN]
+   参数说明：
+   -h, --help       显示帮助信息
+   -d               开发测试模式（默认）- 包含详细日志输出
+   -s               步骤执行模式 - 每个步骤暂停等待确认，适合学习
+   -f               快速执行模式 - 跳过所有暂停，适合自动化测试
 
-    options:
-    -h, --help            show this help message and exit
-    -s                    启用步骤模式，每个步骤都会暂停等待用户确认———适合作为学习与调试
-    -f                    快速模式，跳过所有等待用户确认的步骤————适合作为回归测试
-    -n name host port host_dir agent_type
-                            创建新用户，需要提供：用户名 主机名 端口号 主机路径 用户类型
-> ```
->
-python anp_sdk_demo.py -n cool_anper localhost 9527 wba user
+## 主要演示内容
 
-创建一个名为cool_anper的用户，主机名为localhost，端口号为9527，主机路径为wba，用户类型为user
-其地址为did:wba:localhost%3A9527%3A:wba:user:8位随机数
+1. API 调用演示 (run_api_demo)
+   展示智能体间的 API 调用功能
+   演示 POST/GET 请求到其他智能体的接口
+   显示智能体的 ad.json 信息
+2. 消息传递演示 (run_message_demo)
+   演示点对点消息发送
+   展示消息自动回复功能
+   多个智能体间的消息交互
+3. 智能体生命周期演示 (run_agent_lifecycle_demo)
+   动态创建临时智能体
+   注册消息处理器
+   智能体间消息交互
+   智能体的注销和清理
+4. ANP 工具爬虫演示 (run_anp_tool_crawler_agent_search_ai_ad_jason)
+   使用 ANP 协议进行智能体信息爬取
+   智能爬虫自主决定爬取路径
+   支持双向认证的安全爬取
+   集成 AI 模型进行智能分析和决策
+5. 托管 DID 演示 (run_hosted_did_demo)
+   申请托管 DID
+   查询托管状态
+   托管智能体与普通智能体的消息交互
+   托管智能体之间的通信
+6. 群组聊天演示 (run_group_chat_demo)
+   创建和加入群组
+   群组消息广播
+   审核群聊功能（消息过滤）
+   群组成员管理
+   消息存储和统计功能
 
-python anp_sdk_demo.py -n cool_anp_agent localhost 9527 wba agent
+## 演示模式
 
-创建一个名为cool_anp_agent的用户，主机名为localhost，端口号为9527，主机路径为wba，用户类型为agent
-其地址为did:wba:localhost%3A9527%3A:wba:agent:unique_id（8位随机数）
+开发模式（-d）：适合开发调试，包含详细的日志输出
+步骤模式（-s）：每个演示步骤都会暂停，适合学习和理解
+快速模式（-f）：跳过所有暂停，适合自动化测试
 
-did及其他信息存储在 /anp_open_sdk/anp_users/user_unique_id/目录下
-agent类型会额外创建一个/anp_open_sdk/anp_users/user_unique_id/agent目录,用于配合开发者进行agent的各种配置
+## 🔧 集成指南
 
-重复用户名会创建为用户名+日期+当日序号
+  基础集成步骤
 
+1. 创建 DID 身份
 
+   ```python
+   1. from anp_open_sdk.anp_sdk_tool import did_create_user
 
+     params = {
+         'name': 'MyAgent',
+         'host': 'localhost',
+         'port': 9527,
+         'dir': 'wba',
+         'type': 'agent'
+     }
+     did_document = did_create_user(params)
 
-## Agent 集成步骤说明
+   ```
+2. 初始化 SDK
 
-1. **基于 Agent 核心能力**：在您的智能体项目内引入SDK。
-2. **配置 anp agent opensdk**：创建did身份，简单配置sdk。
-3. **实现 ANP 服务注册**：参考示例代码，将您的代码注册到 ANP SDK的接口（如身份、发现、认证、探索、互操作等）。
-4. **注册与发布 Agent**：通过 SDK 提供的注册接口，将你的 Agent 发布到 ANP 网络。
-5. **测试与调试**：使用自动演示脚本或手动调用接口，验证集成效果。
+```python
+  from anp_open_sdk.anp_sdk import ANPSDK, LocalAgent
 
-详细集成文档请参考 [doc/architecture](doc/architecture/) 及示例代码。
+  sdk = ANPSDK(host="localhost", port=9527)
+  agent = LocalAgent(sdk, did_document['id'])
+  sdk.register_agent(agent)
+```
 
-## 运行过程体验
+3. 注册消息处理器
+   ```python
+   @agent.register_message_handler("*")
+     def handle_message(msg):
+         print(f"收到消息: {msg}")
+         return {"reply": "消息已收到"}
+   ```
 
-支持多进程或多主机下的 ANPSDK 互操作体验：
+```
+  
+3. 注册 API 端点
+   ```python
+  @agent.register_api_handler("/info", methods=["GET", "POST"])
+  async def handle_info(request):
+      return {"name": agent.name, "status": "online"}
+```
 
-- 各 ANPSDK 可在不同进程或主机上独立运行，通过 ANP 协议交换彼此agent信息。
-- 支持身份认证、互信验证，保障通信安全。
-- 可发起探索、互操作请求，体验 Agent 开放互联协作。
+4、 启动服务
 
-> 你可以在多台主机分别运行 anp_sdk_demo.py，体验真实网络环境下的 Agent 发现与互操作。
+```python
+  sdk.start_server()
+```
 
+## 🏗️ 架构说明
+```
+  anp-agent-opensdk/
+  ├── anp_open_sdk/          # SDK 核心代码
+  │   ├── anp_sdk.py         # 主 SDK 类
+  │   ├── anp_sdk_agent.py   # 智能体实现
+  │   ├── anp_users_hosted/  # 作为托管服务器托管的DID文档
+  │   ├── auth/              # 认证相关模块
+  │   ├── config             # 配置相关模块/
+  │   ├── auth/              # 认证相关模块
+  │   └── service/           # 服务模块
+  ├── anp_sdk_demo/          # 演示相关代码
+  │   ├── demo_modules/      # 演示模块
+  │   └── services/          # 演示服务
+  ├── anp_demo_main.py       # 综合演示程序
+  └── docs/                  # 文档
+```
+# 📄 许可证
 
+  本项目采用 Apache License 2.0 进行授权，详情请查看 LICENSE 文件。
 
-## 快速开始
+# 🔍 常见问题
 
-1. 克隆项目并安装依赖
-2. 配置 .env 文件
-3. 运行 anp_sdk_demo.py 体验自动演示
-4. 按照集成步骤将 SDK 集成到你的 Agent 项目
+  Q: 如何在内网环境使用？
+  A: 1. 如果内网内使用，参见  - 内网公共服务器发布DID文档模式：
+     2. 如果希望跨内网使用，参见  - GroupRunner模式：
+     3. 当前作为演示，GroupRunner没有加入did验证，可以按需扩展
 
-## 参考文档
+  Q: 支持哪些 AI 模型？
+  A: 智能爬虫功能目前支持 Azure OpenAI 和 OpenAI API。通过配置 .env 文件中的相关参数即可切换。
 
-- [ANP 协议规范](https://github.com/agent-network-protocol/AgentNetworkProtocol)
-- 示例代码与自动演示脚本
+  Q: 如何自定义群组逻辑？
+  A: 继承 BaseGroupRunner 类并实现自定义逻辑，然后通过 sdk.register_group_runner() 注册即可。
+
+  Q: DID 文档存储在哪里？
+  A: 1. DID 文档默认存储在 /anp_open_sdk/anp_users/ 目录下，每个用户有独立的目录。
+     2. 如果是hosted用户，目录名为 user_hosted_hosturl_port_随机数
+     3. 如果是公网共享用户，暂时要手动配置，请参考 user_hosted_agent-did.com_80_/
+
+# 🌟 设计思路
+
+[ANP Open SDK 未来想法](docs/anp_open_sdk_design_doc.html)
+[ANP Open SDK 重构设想](docs/anp_open_sdk_refactoring_plan.html)
+[ANP Open SDK 当前架构](docs/anp_sdk_architecture.html)
+[ANP Open SDK 遵循理念](docs/anp_sdk_principles_guide.html)
+[ANP Open SDK WBA类比](docs/did_story.html)
+[ANP Open SDK WBA价值](docs/did_web_crypto.html)
+
+# 📈 路线图
+
+   近期设想，欢迎共建
+   [ ] 本地DNS模拟，方便本地多智能体开发
+   [ ] 开发视频生成智能体的anp消息互调用演示
+   [ ] 完善智能体发现服务、ad.json/yaml生成、配合ANP_Tool
+   [ ] 群组增加DID认证，计划是GroupRunner具有DID，由创建者管理，自主与申请者DID双向验证
+   [ ] 对接客户端app、智能体开发框架、mcp、a2a、AG-UI
+   [ ] 支持更多编程语言 如TS
+   [ ] 中文注释英文化，log统一翻译成英文
+   [ ] 增加自动测试，参考Python a2a
+   [ ] GroupRunner支持ws连接和json-rpc转发
+
+# 💬 社区支持
+
+    [ANP](https://github.com/agent-network-protocol/AgentNetworkProtocol)
+    [个人] seanzhang9999@gmail.com
+
+# 🙏 致谢
+
+   感谢所有贡献者和社区成员的支持！
+
+  特别感谢：
+
+  ANP 协议设计团队
+  开源社区的宝贵建议
+  早期测试用户的反馈
+  让智能体互联变得简单！ 🚀
+
+  如有任何问题或建议，欢迎联系我们或提交 Issue。
 
 欢迎反馈建议，共同完善 anp agent opensdk！
 本项目采用 Apache License 2.0 进行授权，详情请查看 LICENSE 文件。
