@@ -145,7 +145,7 @@ async def run_all_demos(self):
 
 ## 🔧 集成指南
 
-  基础智能体集成只需五步
+  基础智能体集成只需八步
 
 1. 创建 DID 身份，此时在anp_open_sdk/anp_users建立DID用户目录，存储密钥/did doc/配置文件
 
@@ -189,6 +189,79 @@ async def run_all_demos(self):
     ```python
             sdk.start_server()
     ```
+6. 调用其他智能体 API，实现智能体间服务调用
+
+    ```python       
+        # POST请求调用其他agent的API
+        resp = await agent_api_call_post(
+            sdk, agent1.id, agent2.id, "/info", {"from": agent1.name}
+        )
+        print(f"{agent1.name}POST调用{agent2.name}的/info接口响应: {resp}")
+        
+        # GET请求调用其他agent的API
+        resp = await agent_api_call_get(
+            sdk, agent1.id, agent2.id, "/info", {"from": agent1.name}
+        )
+        print(f"{agent1.name}GET调用{agent2.name}的/info接口响应: {resp}")
+    ```
+
+7. 发送点对点消息，实现智能体间直接通信
+
+    ```python
+        # 向其他agent发送消息
+        resp = await agent_msg_post(
+            sdk, agent2.id, agent3.id, f"你好，我是{agent2.name}"
+        )
+        print(f"{agent2.name}向{agent3.name}发送消息响应: {resp}")
+        
+        # 发送更复杂的消息内容
+        resp = await agent_msg_post(
+            sdk, temp_agent.id, agent2.id, f"你好，我是{temp_agent.name}"
+        )
+        print(f"[{temp_agent.name}] 已发送消息给 {agent2.name},响应: {resp}")
+   ```
+
+
+8. 使用 ANP Tool 智能爬虫，自动发现和调用其他智能体服务
+
+   ```python
+      # 定义爬虫任务
+        task = {
+            "input": "查询北京天津上海今天的天气",
+            "type": "weather_query",
+        }
+        
+        # 定义搜索智能体的提示模板
+        SEARCH_AGENT_PROMPT_TEMPLATE = """
+        你是一个通用智能网络数据探索工具。你的目标是通过递归访问各种数据格式（包括JSON-LD、YAML等）来找到用户需要的信息和API以完成特定任务。
+        ## 当前任务
+        {task_description}
+        ## 重要提示
+        1. 你将收到一个初始URL（{initial_url}），这是一个代理描述文件。
+        2. 你需要理解这个代理的结构、功能和API使用方法。
+        3. 你需要像网络爬虫一样持续发现和访问新的URL和API端点。
+        4. 你可以使用anp_tool来获取任何URL的内容。
+        5. 此工具可以处理各种响应格式。
+        """
+        
+        # 调用智能爬虫（支持双向认证）
+        result = await self.anptool_intelligent_crawler(
+            anpsdk=sdk,  # SDK实例
+            caller_agent=str(agent1.id),  # 发起agent的DID
+            target_agent=str(agent2.id),  # 目标agent的DID
+            use_two_way_auth=True,  # 使用双向认证
+            user_input=task["input"],
+            initial_url="https://agent-search.ai/ad.json",
+            prompt_template=SEARCH_AGENT_PROMPT_TEMPLATE,
+            did_document_path=agent1.did_document_path,
+            private_key_path=agent1.private_key_path,
+            task_type=task["type"],
+            max_documents=10,
+            agent_name="搜索智能体"
+        )
+        print(f"智能爬虫结果: {result}")
+   ```
+
 
 ## 🏗️ 架构说明
 
@@ -243,14 +316,14 @@ async def run_all_demos(self):
      - 3. 共同协商demo的重构和加入sdk的方式
      - 4. 修改代码，PR合并
 
-# 🌟 设计思路
+# 🌟 方案思考
 
-[ANP Open SDK 未来想法](docs/anp_open_sdk_design_doc.html)
-[ANP Open SDK 重构设想](docs/anp_open_sdk_refactoring_plan.html)
-[ANP Open SDK 当前架构](docs/anp_sdk_architecture.html)
-[ANP Open SDK 遵循理念](docs/anp_sdk_principles_guide.html)
-[ANP Open SDK WBA类比](docs/did_story.html)
-[ANP Open SDK WBA价值](docs/did_web_crypto.html)
+![anp域名did方案的价值](./docs/anp域名did方案的核心价值.jpg)
+![did比喻1](./docs/价值比喻1.jpg)
+![did比喻2](./docs/价值比喻2.jpg)
+![did比喻3](./docs/价值比喻3.jpg)
+![did比喻4](./docs/价值比喻4.jpg)
+![did比喻5](./docs/价值比喻5.jpg)
 
 # 📈 路线图
 
