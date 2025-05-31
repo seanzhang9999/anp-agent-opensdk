@@ -1,6 +1,13 @@
 # anp agent opensdk
-
 anp agent opensdk是基于ANP核心协议栈agent_connect开发的一个anp快速集成开发工具包
+
+
+## 🌍 开发背景
+
+ANP协议在技术上有一定的门槛，主要体现在以下几个方面：
+![ANP协议对开发者的挑战](./docs/anp开发者的挑战.jpg)
+
+
 
 ## 开发背景
 
@@ -11,6 +18,8 @@ anp agent opensdk是基于ANP核心协议栈agent_connect开发的一个anp快�
 - ANP协议现有web版demo，是一个公共的DID身份，提升了用户快速感知的体验，但是对开发者后续开发，密钥身份问题还是需要了解和处理。
 
 ## 项目目标
+
+![sdk主要作用](./docs/sdk主要作用.jpg)
 
 - 简化对智能体开发者使用ANP协议的WBA-DID认证的开发流程，降低开发复杂度
 
@@ -25,9 +34,8 @@ anp agent opensdk是基于ANP核心协议栈agent_connect开发的一个anp快�
     - LocalAgent可以通过装饰器、函数注册将本地API一行代码转换为Agent的API，自动发布到FastAPI服务，方便其他agent调用
     - 所有调用事件均传入调用者DID，并且已经进行过验证，开发者可以自由定制对不同调用者DID的权限控制
 - 为几种DID使用场景提供解决方案和示例代码
-
   - 用户自动绑定模式：
-    - 如果开发者给用户提供服务时，希望让用户访问anp服务，但是又不想麻烦用户了解DID，可以利用SDK自动给用户创建身份，自动发布DID文档到FastAPI服务，并将用户的DID与其服务进行绑定，访问ANP其他agent获取服务
+    - 如果开发者给用户提供服务时，希望让用户访问anp服务，但是又不想麻烦用户了解DID，可以利用SDK自动给用户创建身份，自动发布DID文档到FastAPI服务，并将用户的DID与其服务进行绑定，访问ANP其他agent获取服务，一个FastAPI可以多租户服务
   - 内网公共服务器发布DID文档模式：
     - 如果开发者给企业开发时，希望所有DID文档发布在一个公共服务器，但是agent运行在不同笔记本/桌面电脑，可以利用SDK的hosted DID模式，将本地agent的DID文档自动邮件提交给公共服务器管理员，公共服务器进行审核和发布，并将最终公共服务器host的DID文档发还本地agent，此后本地agent可以使用这个DID文档自由访问其他agent
   - ANPTool模式：
@@ -74,35 +82,60 @@ anp agent opensdk是基于ANP核心协议栈agent_connect开发的一个anp快�
 ```
 ## 主要演示内容
 
+anp_sdk_demo/demo_modules/demo_tasks.py中是调用sdk的逻辑代码，按具体执行目标在 run_all_demos依次调用，可以选择性注释其他deme，专门运行一个进行分析
+```python
+async def run_all_demos(self):
+        """运行所有演示"""
+        if len(self.agents) < 3:
+            logger.error("智能体不足，无法执行演示")
+            return
+
+        agent1, agent2, agent3 = self.agents[0], self.agents[1], self.agents[2]
+
+        try:
+
+            await self.run_api_demo(agent1, agent2)
+            await self.run_message_demo(agent2, agent3, agent1)
+            await self.run_agent_lifecycle_demo(agent1,agent2,agent3)
+            await self.run_anp_tool_crawler_agent_search_ai_ad_jason(agent1, agent2)
+            await self.run_hosted_did_demo(agent1)  # 添加托管 DID 演示
+            await self.run_group_chat_demo(agent1, agent2,agent3)
+            self.step_helper.pause("所有演示完成")
+            
+        except Exception as e:
+            logger.error(f"演示执行过程中发生错误: {e}")
+            raise
+```
+
 1. API 调用演示 (run_api_demo)
-   展示智能体间的 API 调用功能
-   演示 POST/GET 请求到其他智能体的接口
-   显示智能体的 ad.json 信息
+   - 展示智能体间的 API 调用功能
+   - 演示 POST/GET 请求到其他智能体的接口
+   - 显示智能体的 ad.json 信息
 2. 消息传递演示 (run_message_demo)
-   演示点对点消息发送
-   展示消息自动回复功能
-   多个智能体间的消息交互
+   - 演示点对点消息发送
+   - 展示消息自动回复功能
+   - 多个智能体间的消息交互
 3. 智能体生命周期演示 (run_agent_lifecycle_demo)
-   动态创建临时智能体
-   注册消息处理器
-   智能体间消息交互
-   智能体的注销和清理
+   - 动态创建临时智能体
+   - 注册消息处理器
+   - 智能体间消息交互
+   - 智能体的注销和清理
 4. ANP 工具爬虫演示 (run_anp_tool_crawler_agent_search_ai_ad_jason)
-   使用 ANP 协议进行智能体信息爬取
-   智能爬虫自主决定爬取路径
-   支持双向认证的安全爬取
-   集成 AI 模型进行智能分析和决策
+   - 使用 ANP 协议进行智能体信息爬取（使用公网共享爽身份，爬取公网demo）
+   - 智能爬虫自主决定爬取路径
+   - 支持双向认证的安全爬取
+   - 集成 AI 模型进行智能分析和决策
 5. 托管 DID 演示 (run_hosted_did_demo)
-   申请托管 DID
-   查询托管状态
-   托管智能体与普通智能体的消息交互
-   托管智能体之间的通信
+   - 申请托管 DID
+   - 查询托管状态
+   - 托管智能体与普通智能体的消息交互
+   - 托管智能体之间的通信
 6. 群组聊天演示 (run_group_chat_demo)
-   创建和加入群组
-   群组消息广播
-   审核群聊功能（消息过滤）
-   群组成员管理
-   消息存储和统计功能
+   - 创建和加入群组
+   - 群组消息广播
+   - 审核群聊功能（消息过滤）
+   - 群组成员管理
+   - 消息存储和统计功能
 
 ## 演示模式
 
@@ -112,9 +145,9 @@ anp agent opensdk是基于ANP核心协议栈agent_connect开发的一个anp快�
 
 ## 🔧 集成指南
 
-  基础集成步骤
+  基础智能体集成只需五步
 
-1. 创建 DID 身份
+1. 创建 DID 身份，此时在anp_open_sdk/anp_users建立DID用户目录，存储密钥/did doc/配置文件
 
     ```python
        from anp_open_sdk.anp_sdk_tool import did_create_user
@@ -127,7 +160,7 @@ anp agent opensdk是基于ANP核心协议栈agent_connect开发的一个anp快�
          }
          did_document = did_create_user(params)
     ```
-2. 初始化 SDK
+2. 初始化 SDK，ANPSDK可以启动一个fastapi服务，LocalAgent将在本地DID用户目录按agent的did查找对应密钥文件，并加载初始化，如果只想调用其他agent的api，此时已经可以直接使用，如果需要发布did文档和api，将agent注册到sdk实例
 
     ```python
        from anp_open_sdk.anp_sdk import ANPSDK, LocalAgent
@@ -136,7 +169,7 @@ anp agent opensdk是基于ANP核心协议栈agent_connect开发的一个anp快�
        agent = LocalAgent(sdk, did_document['id'])
        sdk.register_agent(agent)
     ```
-3. 注册消息处理器
+3. 注册消息处理器，以便接收消息
 
     ```python
         @agent.register_message_handler("*")
@@ -144,20 +177,21 @@ anp agent opensdk是基于ANP核心协议栈agent_connect开发的一个anp快�
             print(f"收到消息: {msg}")
             return {"reply": "消息已收到"}
     ```
-4. 注册 API 端点
+4. 注册 API 端点及响应函数
 
     ```python       
             @agent.register_api_handler("/info", methods=["GET", "POST"])       
             async def handle_info(request):         
                 return {"name": agent.name, "status": "online"}     
     ```
-5. 启动服务
+5. 启动服务，sdk启动后，agent注册的消息处理器和API端点自动上线，所有请求会自动路由到agent响应。
 
     ```python
             sdk.start_server()
     ```
 
 ## 🏗️ 架构说明
+
 
 ```
   anp-agent-opensdk/
@@ -182,25 +216,28 @@ anp agent opensdk是基于ANP核心协议栈agent_connect开发的一个anp快�
 
 # 🔍 常见问题
 
-  Q: 如何在内网环境使用？
-  A: 1. 如果内网内使用，参见  - 内网公共服务器发布DID文档模式：
-     2. 如果希望跨内网使用，参见  - GroupRunner模式：
-     3. 当前作为演示，GroupRunner没有加入did验证，可以按需扩展
+ - Q: 如何在内网环境使用？
+ - A: 
+   - 1. 如果内网内使用，参见  - 内网公共服务器发布DID文档模式：
+   - 2. 如果希望跨内网使用，参见  - GroupRunner模式：
+   - 3. 当前作为演示，GroupRunner没有加入did验证，可以按需扩展
 
-  Q: 支持哪些 AI 模型？
-  A: 智能爬虫功能目前支持 Azure OpenAI 和 OpenAI API。通过配置 .env 文件中的相关参数即可切换。
+ - Q: 支持哪些 AI 模型？
+ - A: 
+   - 智能爬虫功能目前支持 Azure OpenAI 和 OpenAI API。通过配置 .env 文件中的相关参数即可切换。
 
-  Q: 如何自定义群组逻辑？
-  A: 继承 BaseGroupRunner 类并实现自定义逻辑，然后通过 sdk.register_group_runner() 注册即可。
+-  Q: 如何自定义群组逻辑？
+-  A: 
+   - 继承 BaseGroupRunner 类并实现自定义逻辑，然后通过 sdk.register_group_runner() 注册即可。
 
-  Q: DID 文档存储在哪里？
-  A: 
+-  Q: DID 文档存储在哪里？
+-  A: 
      - 1. DID 文档默认存储在 /anp_open_sdk/anp_users/ 目录下，每个用户有独立的目录。
      - 2. 如果是hosted用户，目录名为 user_hosted_hosturl_port_随机数
      - 3. 如果是公网共享用户，暂时要手动配置，请参考 user_hosted_agent-did.com_80_/
    
-  Q: SDK的共同开发思路？
-  A: 
+-  Q: SDK的共同开发思路？
+-  A: 
      - 1. folk代码到自己的仓库
      - 2. 共同提出SDK解决的问题和思路，首先根目录下搭建demo跑通场景
      - 3. 共同协商demo的重构和加入sdk的方式
