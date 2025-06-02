@@ -7,7 +7,8 @@ ANP Tool 智能爬虫演示 - 优化版本
 1. 创建本地Python代码生成智能体
 2. 配置智能体API接口
 3. 使用智能爬虫调用本地智能体
-4. 演示智能体间的协作
+4. 使用智能爬虫调用外部Web智能体
+5. 演示智能体间的协作
 """
 
 import os
@@ -62,7 +63,7 @@ class ANPToolCrawler:
 
     async def run_crawler_demo(self, task_input: str, initial_url: str, 
                              use_two_way_auth: bool = True, req_did: str = None, 
-                             resp_did: str = None):
+                             resp_did: str = None, task_type: str = "code_generation"):
         """运行爬虫演示"""
         try:
             # 获取调用者智能体
@@ -70,23 +71,28 @@ class ANPToolCrawler:
             if not caller_agent:
                 return {"error": "无法获取调用者智能体"}
 
-            # 创建搜索智能体的提示模板
-            prompt_template = self._create_search_prompt_template()
+            # 根据任务类型创建不同的提示模板
+            if task_type == "weather_query":
+                prompt_template = self._create_weather_search_prompt_template()
+                agent_name = "天气查询爬虫"
+            else:
+                prompt_template = self._create_code_search_prompt_template()
+                agent_name = "代码生成爬虫"
 
             # 调用通用智能爬虫
             result = await self._intelligent_crawler(
                 anpsdk=self.sdk,
                 caller_agent=str(caller_agent.id),
-                target_agent=str(resp_did),
+                target_agent=str(resp_did) if resp_did else str(caller_agent.id),
                 use_two_way_auth=use_two_way_auth,
                 user_input=task_input,
                 initial_url=initial_url,
                 prompt_template=prompt_template,
                 did_document_path=caller_agent.did_document_path,
                 private_key_path=caller_agent.private_key_path,
-                task_type="code_generation",
+                task_type=task_type,
                 max_documents=10,
-                agent_name="代码生成爬虫"
+                agent_name=agent_name
             )
 
             return result
@@ -112,8 +118,8 @@ class ANPToolCrawler:
         else:
             return LocalAgent(self.sdk, req_did)
 
-    def _create_search_prompt_template(self):
-        """创建搜索智能体的提示模板"""
+    def _create_code_search_prompt_template(self):
+        """创建代码搜索智能体的提示模板"""
         current_date = datetime.now().strftime("%Y-%m-%d")
         return f"""
         你是一个通用的智能代码工具。你的目标是根据用户输入要求调用工具完成代码任务。
@@ -143,6 +149,41 @@ class ANPToolCrawler:
 
         ## 日期
         当前日期：{current_date}
+        """
+
+    def _create_weather_search_prompt_template(self):
+        """创建天气搜索智能体的提示模板"""
+        return """
+        你是一个通用智能网络数据探索工具。你的目标是通过递归访问各种数据格式（包括JSON-LD、YAML等）来找到用户需要的信息和API以完成特定任务。
+
+        ## 当前任务
+        {task_description}
+
+        ## 重要提示
+        1. 你将收到一个初始URL（{initial_url}），这是一个代理描述文件。
+        2. 你需要理解这个代理的结构、功能和API使用方法。
+        3. 你需要像网络爬虫一样持续发现和访问新的URL和API端点。
+        4. 你可以使用anp_tool来获取任何URL的内容。
+        5. 此工具可以处理各种响应格式。
+        6. 阅读每个文档以找到与任务相关的信息或API端点。
+        7. 你需要自己决定爬取路径，不要等待用户指令。
+        8. 注意：你最多可以爬取10个URL，并且必须在达到此限制后结束搜索。
+
+        ## 爬取策略
+        1. 首先获取初始URL的内容，理解代理的结构和API。
+        2. 识别文档中的所有URL和链接，特别是serviceEndpoint、url、@id等字段。
+        3. 分析API文档以理解API用法、参数和返回值。
+        4. 根据API文档构建适当的请求，找到所需信息。
+        5. 记录所有你访问过的URL，避免重复爬取。
+        6. 总结所有你找到的相关信息，并提供详细的建议。
+
+        对于天气查询任务，你需要:
+        1. 找到天气查询API端点
+        2. 理解如何正确构造请求参数（如城市名、日期等）
+        3. 发送天气查询请求
+        4. 获取并展示天气信息
+
+        提供详细的信息和清晰的解释，帮助用户理解你找到的信息和你的建议。
         """
 
     async def _intelligent_crawler(self, user_input: str, initial_url: str, 
@@ -701,7 +742,8 @@ async def run_crawler_demo(crawler: ANPToolCrawler, target_agent: LocalAgent,
         initial_url=f"http://localhost:9527/wba/user/{target_agent.id}/ad.json",
         use_two_way_auth=True,
         req_did=None,
-        resp_did=target_agent.id
+        resp_did=target_agent.id,
+        task_type="code_generation"
     )
     
     # 保存结果到文件
@@ -731,7 +773,8 @@ async def run_crawler_demo_with_different_agent(crawler: ANPToolCrawler,
         initial_url=f"http://localhost:9527/wba/user/{target_agent.id}/ad.json",
         use_two_way_auth=True,
         req_did=agent1.id,
-        resp_did=target_agent.id
+        resp_did=target_agent.id,
+        task_type="code_generation"
     )
     
     # 保存结果到文件
@@ -743,9 +786,33 @@ async def run_crawler_demo_with_different_agent(crawler: ANPToolCrawler,
     return result
 
 
+async def run_web_agent_crawler_demo(crawler: ANPToolCrawler, 
+                                   task_input: str = "查询北京天津上海今天的天气",
+                                   initial_url: str = "https://agent-search.ai/ad.json"):
+    """运行Web智能体爬虫演示 - 来自project_1的功能"""
+    logger.info(f"开始Web智能体爬虫演示: {task_input}")
+    
+    result = await crawler.run_crawler_demo(
+        task_input=task_input,
+        initial_url=initial_url,
+        use_two_way_auth=True,
+        req_did=None,
+        resp_did=None,
+        task_type="weather_query"
+    )
+    
+    # 保存结果到文件
+    output_file = "web_agent_crawler_result.json"
+    with open(output_file, 'w', encoding='utf-8') as f:
+        json.dump(result, f, ensure_ascii=False, indent=2, cls=CustomJSONEncoder)
+    logger.info(f"Web智能体爬取结果已保存到 {output_file}")
+    
+    return result
+
+
 async def cleanup_resources(sdk: ANPSDK, python_agent: LocalAgent):
     """清理临时资源"""
-    logger.info("步骤5: 清理临时资源")
+    logger.info("步骤6: 清理临时资源")
     
     try:
         from anp_open_sdk.anp_sdk_tool import get_user_dir_did_doc_by_did
@@ -864,14 +931,15 @@ def create_llm_client():
 
 async def main():
     """
-    主函数：演示ANP智能爬虫与本地智能体交互的完整流程
+    主函数：演示ANP智能爬虫与本地/Web智能体交互的完整流程
     
     核心步骤:
     1. 创建并初始化SDK
     2. 创建本地Python代码生成智能体
     3. 配置智能体API和接口描述
     4. 启动服务并运行爬虫演示
-    5. 清理资源
+    5. 运行Web智能体爬虫演示
+    6. 清理资源
     """
     logger.info("=== ANP智能爬虫演示开始 ===")
     
@@ -905,7 +973,7 @@ async def main():
     
     try:
         # 演示1: 基本爬虫功能 - 生成冒泡排序代码
-        logger.info("\n=== 演示1: 基本爬虫功能 ===")
+        logger.info("\n=== 演示1: 本地智能体 - 基本爬虫功能 ===")
         await run_crawler_demo(
             crawler, 
             python_agent, 
@@ -914,12 +982,20 @@ async def main():
         )
         
         # 演示2: 使用不同智能体身份 - 生成随机数代码
-        logger.info("\n=== 演示2: 使用不同智能体身份 ===")
+        logger.info("\n=== 演示2: 本地智能体 - 使用不同智能体身份 ===")
         await run_crawler_demo_with_different_agent(
             crawler, 
             python_agent, 
             sdk, 
             "写个随机数生成代码"
+        )
+        
+        # 演示3: Web智能体爬虫演示 - 来自project_1的功能
+        logger.info("\n=== 演示3: Web智能体 - 天气查询功能 ===")
+        await run_web_agent_crawler_demo(
+            crawler,
+            "查询北京天津上海今天的天气",
+            "https://agent-search.ai/ad.json"
         )
         
         logger.info("\n=== 所有演示完成 ===")

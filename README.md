@@ -10,7 +10,6 @@ anp agent opensdk是基于ANP核心协议栈agent_connect开发的一个anp快�
 
 [2 演示代码](project_2_anp_tool_crawler_to_local_agent.py)
 
-
 1. ### 自己跑起来 ANP Explorer同款
 
    无需复杂配置，一键启动智能体发现之旅
@@ -24,10 +23,9 @@ anp agent opensdk是基于ANP核心协议栈agent_connect开发的一个anp快�
 📊 可视化展示ANP生态全貌
 🛡️ 安全可靠的资源访问
 
+2. ### Explorer web和我的Agent
 
-2. ### Explorer 我的 Agent
-
-   创建专属智能体，让世界看见你的AI能力
+   智能爬虫，几行代码自动调用本地和web的anp服务
 
 在本地快速搭建属于自己的ANP智能体，并通过1中的Explorer进行智能调用。无论是简单的对话机器人还是复杂的业务处理系统，都能轻松接入ANP网络，让你的智能爬虫能够智能化地发现、连接和使用你的专属智能体。
 
@@ -43,8 +41,7 @@ anp agent opensdk是基于ANP核心协议栈agent_connect开发的一个anp快�
 配置能力描述和API接口
 一键发布到ANP网络
 通过Explorer实时测试和调试
-
-
+![三种方式使用anp_tool](./docs/anp_tool的三种用法.jpeg)
 
 3. ### 我的多 Agent 服务与互联
 
@@ -58,7 +55,6 @@ anp agent opensdk是基于ANP核心协议栈agent_connect开发的一个anp快�
 🔄 智能消息路由与API调用
 🏗️ 可视化Workflow构建
 📊 统一监控与管理面板
-
 
 4. ### 跨越网络边界的 Agent 组群
 
@@ -80,7 +76,6 @@ anp agent opensdk是基于ANP核心协议栈agent_connect开发的一个anp快�
 建立安全通信隧道
 开始跨网络智能协作
 让智能体不再孤单，让AI协作成为现实！
-
 
 ## 项目目标
 
@@ -170,7 +165,7 @@ async def run_all_demos(self):
             await self.run_hosted_did_demo(agent1)  # 添加托管 DID 演示
             await self.run_group_chat_demo(agent1, agent2,agent3)
             self.step_helper.pause("所有演示完成")
-    
+  
         except Exception as e:
             logger.error(f"演示执行过程中发生错误: {e}")
             raise
@@ -382,9 +377,24 @@ async def run_all_demos(self):
   - 3. 共同协商demo的重构和加入sdk的方式
   - 4. 修改代码，PR合并
 
-# 🌟 方案思考
+# 🌟 图解ANP
 
-ANP协议在技术上有一定的门槛，主要体现在以下几个方面：
+
+
+## anp的did身份价值
+![anp域名did方案的价值](./docs/anp域名did方案的核心价值.jpg)
+![did比喻1](./docs/价值比喻1.jpg)
+![did比喻2](./docs/价值比喻2.jpg)
+![did比喻3](./docs/价值比喻3.jpg)
+![did比喻4](./docs/价值比喻4.jpg)
+![did比喻5](./docs/价值比喻5.jpg)
+
+
+## anp_tool基本原理
+![流程图](docs/agent_anptool_crawler_flow.jpeg)
+
+
+## ANPSDK解决的主要问题：
 ![ANP协议对开发者的挑战](./docs/anp开发者的挑战.jpg)
 
 - ANP协议基于DID建立身份认证，涉及到密钥文件的生成、DID文档的组织和管理，但是一般开发者对此相对陌生。
@@ -392,13 +402,6 @@ ANP协议在技术上有一定的门槛，主要体现在以下几个方面：
 - ANP协议的DID认证目前基于FastAPI框架的路由和中间件机制，对开发者也有一定学习成本。
 - ANP协议的认证完全是点对点完成，中间涉及首次DID认证以及后续Token颁发存储，需要开发者理解DID的工作原理和相关的安全性问题。
 - ANP协议现有web版demo，是一个公共的DID身份，提升了用户快速感知的体验，但是对开发者后续开发，密钥身份问题还是需要了解和处理。
-
-![anp域名did方案的价值](./docs/anp域名did方案的核心价值.jpg)
-![did比喻1](./docs/价值比喻1.jpg)
-![did比喻2](./docs/价值比喻2.jpg)
-![did比喻3](./docs/价值比喻3.jpg)
-![did比喻4](./docs/价值比喻4.jpg)
-![did比喻5](./docs/价值比喻5.jpg)
 
 # 📈 路线图
 
