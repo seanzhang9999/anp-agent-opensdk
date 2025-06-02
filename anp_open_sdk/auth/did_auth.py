@@ -179,7 +179,7 @@ async def handle_did_auth(authorization: str, domain: str , request: Request , s
                 if not header_parts or len(header_parts) < 4:
                     raise HTTPException(status_code=401, detail="Invalid standard authorization header")
 
-                did, nonce, timestamp, keyid,  signature = header_parts[:4]
+                did, nonce, timestamp, keyid,  signature = header_parts
                 resp_did = None
                 is_two_way_auth = False
 
@@ -228,7 +228,7 @@ async def handle_did_auth(authorization: str, domain: str , request: Request , s
                 )
             else:
                 from agent_connect.authentication.did_wba import verify_auth_header_signature
-                is_valid, message = verify_auth_header_signature_two_way(
+                is_valid, message = verify_auth_header_signature(
                     auth_header=full_auth_header,
                     did_document=did_document,
                     service_domain=domain

@@ -112,12 +112,13 @@ async def agent_auth_two_way(sdk, caller_agent: str, target_agent: str , request
 
     if custom_headers is None:
         custom_headers = {}
-    caller_agent_obj = sdk.get_agent(caller_agent)
+    caller_agent_obj = LocalAgent(sdk,caller_agent)
 
     target_agent_obj = RemoteAgent(target_agent)
 
 
     user_data_manager = sdk.user_data_manager
+
     user_data = user_data_manager.get_user_data (caller_agent)
     did_document_path = user_data.did_doc_path
 
@@ -134,7 +135,7 @@ async def agent_auth_two_way(sdk, caller_agent: str, target_agent: str , request
     status, response, response_header, token = await send_authenticated_request(
         target_url = request_url,auth_client=  auth_client, resp_did = str(target_agent_obj.id), custom_headers= custom_headers, method=method, json_data = json_data)
     
-    if status == 200:
+    if status!= 401:
         auth_value, token = get_response_DIDAuthHeader_Token(response_header)
         if token:
             if auth_value != "单向认证":
@@ -146,7 +147,7 @@ async def agent_auth_two_way(sdk, caller_agent: str, target_agent: str , request
                     info = f"\nDID双向认证成功! {caller_agent_obj.id} 已保存 {target_agent_obj.id}颁发的token:{token}"
                     return status, response, info, True
         else:
-            info = f"\n200放行，无token，应该是无认证页面"
+            info = f"\n不是401，无token，应该是无认证页面"
             return status, response, info, True
 
     else:
@@ -159,7 +160,7 @@ async def agent_auth_two_way(sdk, caller_agent: str, target_agent: str , request
         status, response, response_header, token = await send_authenticated_request(
             target_url=request_url, auth_client=auth_client, resp_did=str(target_agent_obj.id),
             custom_headers=custom_headers, method=method, json_data=json_data)
-        if status == 200:
+        if status != 401:
             auth_value, token = get_response_DIDAuthHeader_Token(response_header)
             if auth_value == "单向认证" and token:
                 info = f"\n尝试单向认证头认证成功! 状态: {status}\n响应: {response}\nDID认证成功! {caller_agent_obj.id} 已保存 {target_agent_obj.id}颁发的token:{token}"

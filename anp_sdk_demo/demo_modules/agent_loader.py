@@ -44,12 +44,3 @@ class DemoAgentLoader:
                 return agent
         return None
 
-    @staticmethod
-    def create_test_agents(sdk: ANPSDK, agent_names: List[str]) -> List[LocalAgent]:
-        """创建测试用智能体（开发模式）"""
-        agents = []
-        for name in agent_names:
-            # 这里可以实现动态创建智能体的逻辑
-            logger.info(f"创建测试智能体: {name}")
-            # 实际实现会根据需求来完成
-        return agents

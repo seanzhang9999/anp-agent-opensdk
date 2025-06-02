@@ -4,7 +4,7 @@
     "agent_id": "did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1",
     "agent_name": "本田",
     "group_id": "moderated_group",
-    "timestamp": "2025-05-30 20:14:47",
+    "timestamp": "2025-06-02 12:49:45",
     "content": "本田 left the moderated chat"
   },
   {
@@ -12,7 +12,7 @@
     "agent_id": "did:wba:localhost%3A9527:wba:user:28cddee0fade0258",
     "agent_name": "雅马哈",
     "group_id": "moderated_group",
-    "timestamp": "2025-05-30 20:14:47",
+    "timestamp": "2025-06-02 12:49:45",
     "content": "雅马哈 left the moderated chat"
   }
 ]

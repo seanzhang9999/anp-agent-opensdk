@@ -312,7 +312,7 @@ class ANPTool:
             status, response, info, is_auth_pass = await agent_auth_two_way(
                 sdk=anpsdk,  # 需要传入 SDK 实例
                 caller_agent=caller_agent,  # 需要传入调用方智能体ID
-                target_agent=target_agent,  # 需要从 URL 解析或参数传入
+                target_agent=target_agent,  # 需要传入目标方智能体ID，如果对方没有ID，可以随便写，因为对方不会响应这个信息
                 request_url=final_url,
                 method=method.upper(),
                 json_data=request_data,

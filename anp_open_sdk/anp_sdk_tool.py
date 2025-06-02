@@ -163,7 +163,7 @@ def did_create_user(user_iput: dict):
         "unique_id": unique_id,
         "did": did_document["id"],
         "type": user_iput['type'],
-        "owner": "anper",
+        "owner": {"name": "anpsdk 创造用户", "@id": "https://localhost"},
         "description": "anpsdk的测试用户",
         "version": "0.1.0",
         "created_at": time

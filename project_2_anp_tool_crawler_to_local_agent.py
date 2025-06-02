@@ -3,14 +3,30 @@
 ANP Tool 智能爬虫演示
 使用 ANP 协议进行智能体信息爬取，通过大模型自主决定爬取路径
 """
+from datetime import datetime
 import os
 import asyncio
+import shutil
 import sys
 import json
+import time
 from json import JSONEncoder
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Coroutine
+from urllib.parse import quote
+from fastapi import Request
+from fastapi import FastAPI, Request
+
+import yaml
+from anyio import Path
 from dotenv import load_dotenv
+from fastapi.openapi.utils import status_code_ranges
 from loguru import logger
+from openai.types.chat import ChatCompletionMessage
+from starlette.responses import JSONResponse
+
+from anp_open_sdk.config.dynamic_config import dynamic_config
+from anp_open_sdk.config.path_resolver import path_resolver
+from anp_sdk_demo.services.sdk_manager import DemoSDKManager
 
 # 加载环境变量
 load_dotenv()
@@ -27,8 +43,8 @@ from anp_sdk_demo.demo_modules import agent_loader
 class ANPToolCrawler:
     """ANP Tool 智能爬虫"""
 
-    def __init__(self):
-        self.sdk = ANPSDK()
+    def __init__(self, sdk:ANPSDK):
+        self.sdk = sdk
         self.agents = []
         self.anp_tool = None
 
@@ -38,25 +54,32 @@ class ANPToolCrawler:
     async def run_crawler_demo(self,
                              task_input: str = "查询北京天津上海今天的天气",
                              initial_url: str = "https://agent-search.ai/ad.json",
-                             use_two_way_auth: bool = True):
+                             use_two_way_auth: bool = True,
+                               req_did: str = None,
+                               resp_did: str = None):
 
 
 
         try:
             # 尝试加载托管智能体
-            agent_anptool = None
 
-            user_data_manager = self.sdk.user_data_manager
-            user_data_manager.load_users()
-            user_data = user_data_manager.get_user_data_by_name("托管智能体_did:wba:agent-did.com:test:public")
 
-            if user_data:
-                agent_anptool = LocalAgent(self.sdk, user_data.did)
-                self.sdk.register_agent(agent_anptool)
-                logger.info(f"使用托管智能体: {agent_anptool.name}")
+            if req_did is None:
+                user_data_manager = self.sdk.user_data_manager
+                user_data_manager.load_users()
+                user_data = user_data_manager.get_user_data_by_name("托管智能体_did:wba:agent-did.com:test:public")
+                if user_data:
+                    agent_anptool = LocalAgent(self.sdk, user_data.did, user_data.name)
+                    self.sdk.register_agent(agent_anptool)
+                    logger.info(f"使用托管智能体: {agent_anptool.name}")
+                else:
+                    logger.error("未找到托管智能体，停止")
+                    return
+
             else:
-                logger.error("未找到托管智能体，停止")
-                return
+                agent_anptool = LocalAgent(self.sdk, req_did)
+
+
         except Exception as e:
             logger.warning(f"加载托管智能体失败: {e}，停止")
             return
@@ -68,7 +91,8 @@ class ANPToolCrawler:
         }
 
         # 创建搜索智能体的提示模板
-        SEARCH_AGENT_PROMPT_TEMPLATE = """
+        # SEARCH_AGENT_PROMPT_TEMPLATE =
+        """
         你是一个通用智能网络数据探索工具。你的目标是通过递归访问各种数据格式（包括JSON-LD、YAML等）来找到用户需要的信息和API以完成特定任务。
 
         ## 当前任务
@@ -100,12 +124,59 @@ class ANPToolCrawler:
 
         提供详细的信息和清晰的解释，帮助用户理解你找到的信息和你的建议。
         """
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        SEARCH_AGENT_PROMPT_TEMPLATE = f"""
+        你是一个通用的智能代码工具。你的目标是根据用户输入要求调用工具完成代码任务。
 
+        ## 当前任务
+        {{task_description}}
+
+        ## 重要提示
+        1. 你将收到一个初始 URL（{{initial_url}}），这是一个代理描述文件。
+        2. 你需要理解这个代理的结构、功能和 API 使用方法。
+        3. 你需要像网络爬虫一样不断发现和访问新的 URL 和 API 端点。
+        4. 你可以使用 anp_tool 获取任何 URL 的内容。
+        5. 该工具可以处理各种响应格式，包括：
+           - JSON 格式：将直接解析为 JSON 对象。
+           - YAML 格式：将返回文本内容，你需要分析其结构，并将其作为后续生成请求的输入。
+           - 其他文本格式：将返回原始文本内容。
+        6. 阅读每个文档以找到与任务相关的信息或 API 端点。
+        7. 你需要自己决定爬取路径，不要等待用户指令。
+        8. 注意：你最多可以爬取 10 个 URL，达到此限制后必须结束搜索。
+
+        ## 爬取策略
+        1. 首先获取初始 URL 的内容以了解代理的结构和 API。
+        2. 识别文档中的所有 URL 和链接，尤其是 serviceEndpoint、url、@id 等字段。
+        3. 分析 API 文档以了解 API 的使用方法、参数和返回值。
+        4. 根据 API 文档构建适当的请求以找到所需的信息。
+        5. 记录所有访问过的 URL 以避免重复爬取。
+        6. 总结你找到的所有相关信息并提供详细的建议。
+        7. 出错时，要特别注意是否链接参数输出错误，以及post输出参数忽略了body
+
+        ## 工作流程
+        1. 获取初始 URL 的内容并理解代理的功能。
+        2. 分析内容以找到所有可能的链接和 API 文档。
+        3. 解析 API 文档以了解 API 的使用方法。
+        4. 根据任务需求构建请求以获取所需的信息。
+        5. 继续探索相关链接，直到找到足够的信息。
+        6. 总结信息并向用户提供最合适的建议。
+
+        ## JSON-LD 数据解析提示
+        1. 注意 @context 字段，它定义了数据的语义上下文。
+        2. @type 字段表示实体的类型，帮助你理解数据的含义。
+        3. @id 字段通常是一个可以进一步访问的 URL。
+        4. 查找 serviceEndpoint、url 等字段，这些字段通常指向 API 或更多数据。
+
+        提供详细的信息和清晰的解释，帮助用户理解你找到的信息和你的建议。
+
+        ## 日期
+        当前日期：{current_date}
+        """
         # 调用通用智能爬虫
         result = await self.anptool_intelligent_crawler(
             anpsdk=self.sdk,
             caller_agent=str(agent_anptool.id),
-            target_agent=str(agent_anptool.id), # 对单向认证web 目标id提供一个dummy即可
+            target_agent=str(resp_did), # 对单向认证web 目标id提供一个dummy即可，否则要提供目标did
             use_two_way_auth=use_two_way_auth,
             user_input=task["input"],
             initial_url=initial_url,
@@ -276,10 +347,11 @@ class ANPToolCrawler:
                     "content": response_message.content,
                     "tool_calls": response_message.tool_calls,
                 })
+                # 显示模型分析与API计划
+                logger.info(f"\n本地模型思考:\n{response_message.content}\n本地模型调用:\n{response_message.tool_calls}")
 
-                # 显示模型分析
-                if response_message.content:
-                    logger.info(f"模型分析:\n{response_message.content}")
+
+
 
                 # 检查对话是否应该结束
                 if not response_message.tool_calls:
@@ -397,7 +469,29 @@ class ANPToolCrawler:
             method = function_args.get("method", "GET")
             headers = function_args.get("headers", {})
             params = function_args.get("params", {})
-            body = function_args.get("body")
+            body = function_args.get("body",{})
+            message_value = None
+            if len(body) == 0:
+                def find_message(data):
+                    """递归查找 'message' 值"""
+                    if isinstance(data, dict):  # 如果是字典，遍历键值
+                        if "message" in data:
+                            return data["message"]
+                        for value in data.values():
+                            result = find_message(value)  # 递归搜索
+                            if result:
+                                return result
+                    elif isinstance(data, list):  # 如果是列表，遍历每个元素
+                        for item in data:
+                            result = find_message(item)
+                            if result:
+                                return result
+                    return None  # 如果未找到，返回 None
+
+                message_value = find_message(function_args)
+            if message_value is not None:
+                logger.info(f"本地模型发出调用消息：{message_value}")
+                body = {"message": message_value}
 
             try:
                 # 使用 ANPTool 获取 URL 内容
@@ -416,7 +510,6 @@ class ANPToolCrawler:
                 # 记录访问过的 URL 和获取的内容
                 visited_urls.add(url)
                 crawled_documents.append({"url": url, "method": method, "content": result})
-
                 messages.append(
                     {
                         "role": "tool",
@@ -453,31 +546,416 @@ class CustomJSONEncoder(JSONEncoder):
         except TypeError:
             return str(obj)
 
-async def main():
-    """主函数"""
-    crawler = ANPToolCrawler()
 
+
+
+
+async def call_llm(prompt: str) -> str | ChatCompletionMessage:
     try:
+        llm_client=create_llm_client()
+        model_name = os.environ.get("AZURE_OPENAI_MODEL_NAME", "gpt-4")
+
+        messages = [
+                {"role": "system", "content": "你是一个擅长写 Python 代码的助手"},
+                {"role": "user", "content": prompt}
+            ]
+
+
+
+        completion = await llm_client.chat.completions.create(
+            model=model_name,
+            messages=messages
+        )
+
+        response_message = completion.choices[0].message
+
+
+        return response_message
+    except Exception as e:
+        logger.error(f"模型服务调用失败: {e}")
+        return "# [错误] 无法生成代码"
+
+
+async def main():
+
+
+    sdk = ANPSDK()
+
+    from anp_open_sdk.anp_sdk_tool import did_create_user, get_user_dir_did_doc_by_did
+    # 1. 创建临时用户
+    logger.info("步骤1: 创建临时用户")
+    temp_user_params = {
+        'name': 'Python任务智能体',
+        'host': 'localhost',
+        'port': 9527,  # 演示在同一台服务器，使用相同端口
+        'dir': 'wba',  # 理论上可以自定义，当前由于did 路由的did.json服务在wba/user，所以要保持一致
+        'type': 'user'  # 用户可以自定义did 路由的did.json服务在路径，确保和did名称路径一致即可
+    }
+
+    did_document = did_create_user(temp_user_params)
+    if not did_document:
+        logger.error("临时用户创建失败")
+        return
+
+    logger.info(f"临时用户创建成功，DID: {did_document['id']}")
+
+    # 创建LocalAgent实例
+    python_agent = LocalAgent(sdk,
+                            id=did_document['id'],
+                            name=temp_user_params['name']
+                            )
+
+    # 注册到SDK
+    sdk.register_agent(python_agent)
+    logger.info(f"临时智能体 {python_agent.name} 注册成功")
+
+    # 3. 为临时智能体注册API服务函数
+    logger.info("步骤3: 注册消息监听函数")
+
+    @python_agent.expose_api("/tasks/send", methods=["POST"])
+    async def task_receive(request_data, request:Request):
+        start = time.time()
+        # 检查请求方法，如果是GET方法直接拒绝
+        if request.method == "GET":
+            return JSONResponse(
+                {"error": "GET method not allowed"},
+                status_code=405
+            )
+        try:
+            # 先检查 Content-Type
+            if request.headers.get("Content-Type") != "application/json":
+                return JSONResponse({"error": "请求必须是 JSON 格式"}, status_code=400)
+
+            # 先检查请求体是否为空
+            raw_data = await request.body()
+            if not raw_data:
+                return JSONResponse({"error": "请求体为空"}, status_code=400)
+
+            # 解析 JSON
+            body = await request.json()
+
+            def find_message(data):
+                """递归查找 'message' 值"""
+                if isinstance(data, dict):  # 如果是字典，遍历键值
+                    if "message" in data:
+                        return data["message"]
+                    for value in data.values():
+                        result = find_message(value)  # 递归搜索
+                        if result:
+                            return result
+                elif isinstance(data, list):  # 如果是列表，遍历每个元素
+                    for item in data:
+                        result = find_message(item)
+                        if result:
+                            return result
+                return None  # 如果未找到，返回 None
+
+            message_value = find_message(body)
+
+
+            message = message_value
+            if message is None:
+                return JSONResponse(
+                    {"error": "Missing 'message' field in your post body"},
+                    status_code=400
+                )
+            logger.info(f"\n远程智能体收到本地大模型发出的任务\n{message}")
+            task_text = message if message else ""
+
+            code = await call_llm(task_text)
+            if isinstance(code, dict):
+                code = json.dumps(code)  # ✅ 如果是字典，则转换为 JSON
+            elif hasattr(code, "content"):
+                code = code.content  # ✅ 如果是 LLM 对象，则提取文本部分
+            elif hasattr(code, "__dict__"):
+                code = json.dumps(code.__dict__)  # ✅ 可能是 Python 类实例，转换为字典
+            logger.info(f"\n远程智能体完成本地大模型发出的任务\n{code}")
+            code = {
+                "jsonrpc": "2.0",
+                "id": body.get("id"),
+                "result": {
+                    "code": code
+                }}
+
+
+            return JSONResponse(
+                json.loads(json.dumps(code)),
+                status_code = 200
+            )
+        except Exception as e:
+            logger.error(f"任务处理失败: {e}")
+            return JSONResponse({"error": str(e)}, status_code=500)
+        finally:
+            logger.info(f"任务耗时: {time.time() - start:.2f}s")
+
+
+    agent_id = f"http://localhost:9527/wba/user/{python_agent.id}/ad.json"
+
+    # 默认模板内容
+    default_template = \
+        {
+            "@context": {
+                "@vocab": "https://schema.org/",
+                "did": "https://w3id.org/did#",
+                "ad": "https://agent-network-protocol.com/ad#"
+            },
+            "@type": "ad:AgentDescription",
+            "@id": agent_id,
+            "name": f"ANPSDK Agent{python_agent.name}",
+            "did": python_agent.id,
+            "owner": {
+                "@type": "Organization",
+                "name": "code-writer.local",
+                "@id": python_agent.id
+            },
+            "description": "代码生成智能体，可根据自然语言请求生成 Python 示例代码。",
+            "version": "1.0.0",
+            "created": "2025-05-25T20:00:00Z",
+            "endpoint": f"http://localhost:9527/agent/api/{quote(python_agent.id)}/tasks/send",
+            "ad:securityDefinitions": {
+                "didwba_sc": {
+                    "scheme": "didwba",
+                    "in": "header",
+                    "name": "Authorization"
+                }
+            },
+            "ad:security": "didwba_sc",
+            "ad:AgentDescription": [],
+            "ad:interfaces": [
+                {
+                    "@type": "ad:NaturalLanguageInterface",
+                    "protocol": "JSON",
+                    "url": f"http://localhost:9527/wba/user/{quote(python_agent.id)}/codegen-interface.json",
+                    "description": "自然语言代码生成接口的 JSON 描述"
+                }
+            ]
+        }
+
+    yaml_data = {
+        "openapi": "3.0.0",
+        "info": {
+            "title": "Code Writer Agent API",
+            "version": "1.0.0"
+        },
+        "paths": {
+            "/tasks/send": {
+                "post": {
+                    "summary": "基于自然语言生成代码的服务,在post请求的body部分添加message参数,说明生成代码需求,服务将自动返回结果",
+                    "requestBody": {
+                        "required": True,
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {"type": "string"}
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "responses": {
+                        "200": {
+                            "description": "生成的代码",
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "type": "object",
+                                        "properties": {
+                                            "code": {"type": "string"}
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    json_rpc_methods = []
+
+    for path, methods in yaml_data["paths"].items():
+        for method, details in methods.items():
+            json_rpc_methods.append({
+                "jsonrpc": "2.0",
+                "summary": details.get("summary", ""),
+                "method": f"{method.upper()} {path}",
+                "params": details.get("requestBody", {}).get("content", {}).get("application/json", {}).get("schema", {}).get("properties", {}),
+                "result": details.get("responses", {}).get("200", {}).get("content", {}).get("application/json", {}).get("schema", {}).get("properties", {}),
+            })
+
+    json_rpc = {
+    "jsonrpc": "2.0",
+    "summary": "基于自然语言生成代码的服务,在post请求的body部分添加message参数,说明生成代码需求,服务将自动返回结果",
+    "method": "generate_code",
+      "params": {
+        "message":{
+            "type": "string",
+            "value": "用 Python 生成冒泡排序"
+        }
+      },
+      "result": {
+        "code": {
+          "type": "string"
+        }
+      },
+        "meta": {
+        "openapi": "3.0.0",
+        "info": {
+        "title": "Code Writer Agent API",
+        "version": "1.0.0"
+        },
+        "httpMethod": "POST",
+        "endpoint": "/tasks/send"
+        }
+    }
+
+
+
+    import jsonschema
+    import json
+
+    # 加载 JSON Schema
+    with open("jsonrpc_request_schema.json", "r", encoding="utf-8") as f:
+        schema = json.load(f)
+
+    # 进行验证
+    try:
+        jsonschema.validate(instance=json_rpc, schema=schema)
+        print("✅ JSON-RPC 格式符合 Schema 规范!")
+    except jsonschema.ValidationError as e:
+        print(f"❌ JSON-RPC 格式错误: {e.message}")
+
+
+
+    success, did_doc, user_dir = get_user_dir_did_doc_by_did(python_agent.id)
+    user_dirs = dynamic_config.get('anp_sdk.user_did_path')
+    user_full_path = os.path.join(user_dirs, user_dir)
+    # 写入 ad.json 模板文件
+    template_ad_path = Path(user_full_path)/"template-ad.json"
+    template_ad_path = Path(path_resolver.resolve_path(template_ad_path.as_posix()))
+    await template_ad_path.parent.mkdir(parents=True, exist_ok=True)  # 确保目录存在
+    # 将default_template写入template_ad_path
+    with open(template_ad_path, 'w', encoding='utf-8') as f:
+        json.dump(default_template, f, ensure_ascii=False, indent=2)
+    logger.info(f"模板文件已写入: {template_ad_path}")
+
+    # 保存 YAML 文件
+    template_yaml_path = Path(user_full_path) / "codegen-interface.yaml"
+    template_yaml_path = Path(path_resolver.resolve_path(template_yaml_path.as_posix()))
+    await template_yaml_path.parent.mkdir(parents=True, exist_ok=True)  # 确保目录存在
+    with open(template_yaml_path, "w", encoding="utf-8") as file:
+        yaml.dump(yaml_data, file, allow_unicode=True)
+
+
+    # 保存 JSON RPC 文件
+    template_jsonrpc_path = Path(user_full_path) / "codegen-interface.json"
+    template_jsonrpc_path = Path(path_resolver.resolve_path(template_jsonrpc_path.as_posix()))
+    await template_jsonrpc_path.parent.mkdir(parents=True, exist_ok=True)  # 确保目录存在
+    with open(template_jsonrpc_path, "w", encoding="utf-8") as file:
+            json.dump(json_rpc, file, indent=2, ensure_ascii=False)
+
+    sdk.register_agent(python_agent)
+    sdk_manager = DemoSDKManager()
+    sdk_manager.start_server(sdk)
+    crawler = ANPToolCrawler(sdk)
+    try:
+
 
         # 运行爬虫演示
         # 可以自定义参数
         result = await crawler.run_crawler_demo(
-            task_input="查询北京天津上海今天的天气",  # 可以修改为其他任务
-            initial_url="https://agent-search.ai/ad.json",  # 可以修改为其他URL
-            use_two_way_auth=True  # 是否使用双向认证
+            task_input="写个冒泡法排序代码",  # 可以修改为其他任务
+            initial_url=f"http://localhost:9527/wba/user/{python_agent.id}/ad.json",  # 可以修改为其他URL
+            use_two_way_auth=True,  # 是否使用双向认证
+            req_did = None,
+            resp_did = python_agent.id
         )
         # 保存结果到文件（可选）
-        output_file = "crawler_result.json"
+        output_file = "agent_anptool_crawler_result.json"
         with open(output_file, 'w', encoding='utf-8') as f:
             json.dump(result, f, ensure_ascii=False, indent=2, cls=CustomJSONEncoder)
         logger.info(f"爬取结果已保存到 {output_file}")
+
+        user_data = sdk.user_data_manager.get_user_data_by_name("本田")
+        agent1 = LocalAgent(sdk,user_data.did)
+
+        result = await crawler.run_crawler_demo(
+            task_input="写个随机数生成代码",  # 可以修改为其他任务
+            initial_url=f"http://localhost:9527/wba/user/{python_agent.id}/ad.json",  # 可以修改为其他URL
+            use_two_way_auth=True,  # 是否使用双向认证
+            req_did=agent1.id,
+            resp_did=python_agent.id
+        )
+        # 保存结果到文件（可选）
+        output_file = "agent1_crawler_result.json"
+        with open(output_file, 'w', encoding='utf-8') as f:
+            json.dump(result, f, ensure_ascii=False, indent=2, cls=CustomJSONEncoder)
+        logger.info(f"爬取结果已保存到 {output_file}")
+
 
     except Exception as e:
         logger.error(f"演示过程中发生错误: {e}")
         import traceback
         traceback.print_exc()
+    finally:
+        # 5. 清理：删除临时用户
+        logger.info("步骤5: 清理临时用户")
+
+        try:
+
+            success, did_doc, user_dir = get_user_dir_did_doc_by_did(python_agent.id)
+            if not success:
+                logger.error("无法找到刚创建的用户目录")
+                return
+
+            temp_user_dir = user_dir
+            if python_agent:
+                # 从SDK中注销
+                sdk.unregister_agent(python_agent.id)
+                logger.info(f"临时智能体 {python_agent.name} 已从SDK注销")
+
+            if temp_user_dir:
+                # 删除用户目录
+                user_dirs = dynamic_config.get('anp_sdk.user_did_path')
+                user_full_path = os.path.join(user_dirs, temp_user_dir)
+
+                if os.path.exists(user_full_path):
+                    shutil.rmtree(user_full_path)
+                    logger.info(f"临时用户目录已删除: {user_full_path}")
+                else:
+                    logger.warning(f"临时用户目录不存在: {user_full_path}")
+
+            logger.info("临时智能体清理完成")
+
+        except Exception as e:
+            logger.error(f"清理临时用户时发生错误: {e}")
 
 
+def create_llm_client():
+    try:
+        model_provider = os.environ.get("MODEL_PROVIDER", "azure").lower()
+
+
+        if model_provider == "azure":
+            # Azure OpenAI
+            from openai import AsyncAzureOpenAI
+            client = AsyncAzureOpenAI(
+                api_key=os.environ.get("AZURE_OPENAI_API_KEY"),
+                api_version=os.environ.get("AZURE_OPENAI_API_VERSION", "2023-05-15"),
+                azure_endpoint=os.environ.get("AZURE_OPENAI_ENDPOINT"),
+                azure_deployment=os.environ.get("AZURE_OPENAI_DEPLOYMENT"),
+            )
+            return client
+        else:
+            logger.error(f"创建LLM客户端失败: 需要 azure配置")
+            return None
+
+    except Exception as e:
+        logger.error(f"创建LLM客户端失败: {e}")
+        return None
 
 if __name__ == "__main__":
 

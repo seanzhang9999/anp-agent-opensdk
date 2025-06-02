@@ -65,13 +65,16 @@ class DemoTaskRunner:
         agent1, agent2, agent3 = self.agents[0], self.agents[1], self.agents[2]
 
         try:
-
+            # await self.run_anp_tool_crawler_agent_search_ai_ad_jason(agent1, agent2)
+            
+            
+            
             await self.run_api_demo(agent1, agent2)
-            await self.run_message_demo(agent2, agent3, agent1)
-            await self.run_agent_lifecycle_demo(agent1,agent2,agent3)
-            await self.run_anp_tool_crawler_agent_search_ai_ad_jason(agent1, agent2)
-            await self.run_hosted_did_demo(agent1)  # 添加托管 DID 演示
-            await self.run_group_chat_demo(agent1, agent2,agent3)
+            #await self.run_message_demo(agent2, agent3, agent1)
+            #await self.run_agent_lifecycle_demo(agent1,agent2,agent3)
+
+            #await self.run_hosted_did_demo(agent1)  # 添加托管 DID 演示
+            #await self.run_group_chat_demo(agent1, agent2,agent3)
             self.step_helper.pause("所有演示完成")
             
         except Exception as e:
@@ -84,7 +87,12 @@ class DemoTaskRunner:
 
         # 显示智能体信息
         await self._show_agent_info(agent1, agent2)
-
+        # GET请求演示
+        self.step_helper.pause("演示GET请求到/hello接口")
+        resp = await agent_api_call_get(
+            self.sdk, agent2.id, agent1.id, "/hello", {"from": agent2.name}
+        )
+        logger.info(f"{agent2.name}GET调用{agent1.name}的/hello接口响应: {resp}")
         # POST请求演示
         self.step_helper.pause("演示POST请求到/info接口")
         resp = await agent_api_call_post(
@@ -415,21 +423,7 @@ class DemoTaskRunner:
         """
         
         
-        
-        # 调用通用智能爬虫
-        """
-                result = await self.anptool_intelligent_crawler(
-                    user_input=task["input"],
-                    initial_url=search_agent_url,
-                    prompt_template=SEARCH_AGENT_PROMPT_TEMPLATE,
-                    did_document_path=agent_anptool.did_document_path,
-                    private_key_path=agent_anptool.private_key_path,
-                    task_type=task["type"],
-                    max_documents=10,
-                    agent_name="搜索智能体"
-                )
-        """
-        logger.info("启动双向认证底层搜索")
+
         # 调用通用智能爬虫
         result = await self.anptool_intelligent_crawler(
             anpsdk=self.sdk,  # 添加 anpsdk 参数

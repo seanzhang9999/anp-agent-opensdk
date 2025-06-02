@@ -17,6 +17,7 @@ Authentication middleware module.
 """
 import logging
 from typing import List, Optional, Callable
+import re
 from fastapi import Request, HTTPException, Response
 from fastapi.responses import JSONResponse
 from pydantic_core.core_schema import none_schema
@@ -60,15 +61,17 @@ async def verify_auth_header(request: Request , sdk = None) -> dict:
     from anp_open_sdk.anp_sdk import ANPSDK
     from anp_open_sdk.auth.did_auth import handle_did_auth, get_and_validate_domain
     # Get authorization header
+    req_did = None
     auth_header = request.headers.get("Authorization")
+    match = re.search(r'did="([^"]+)"', auth_header)
+    if match:
+        req_did = match.group(1)  # 提取 DID 值
+    match = re.search(r'resp_did="([^"]+)"', auth_header)
+    if match:
+        resp_did = match.group(1)  # 提取 DID 值
 
-    req_did = request.headers.get("req_did")
-    resp_did = request.headers.get("resp_did")
-    if not req_did or not resp_did:
-        req_did = request.query_params.get("req_did", "demo_caller")
-        resp_did = request.query_params.get("resp_did", "demo_responser")
-        if not req_did or not resp_did:
-            raise HTTPException(status_code=401, detail="Missing req_did or resp_did in headers or query parameters")
+    if req_did is None:
+            raise HTTPException(status_code=401, detail="Missing req_did in headers or query parameters")
     # Check if authorization header is present
 
     if not auth_header:

@@ -13,6 +13,8 @@
 # limitations under the License.
 
 import logging
+from importlib.metadata import always_iterable
+from fastapi import FastAPI, Request
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 import time
@@ -163,12 +165,17 @@ class AgentRouter:
         """获取指定DID的本地智能体"""
         return self.local_agents.get(str(did))
     from urllib.parse import unquote
-    def route_request(self, req_did: str, resp_did: str, request_data: Dict):
+    async def route_request(self, req_did: str, resp_did: str, request_data: Dict , request: Request) -> Any:
         """路由请求到对应的本地智能体"""
         resp_did = str(resp_did)
         req_did = str(req_did)
         if resp_did in self.local_agents:
-            return self.local_agents[resp_did].handle_request(req_did, request_data)
+
+            if hasattr(self.local_agents[resp_did].handle_request, "__call__"):  # 确保 `handle_request` 可调用
+                return await self.local_agents[resp_did].handle_request(req_did, request_data , request)
+            else:
+                self.logger.error(f"{resp_did} 的 `handle_request` 不是一个可调用对象")
+                raise TypeError(f"{resp_did} 的 `handle_request` 不是一个可调用对象")
         else:
             self.logger.error(f"未找到本地智能体: {resp_did}")
             raise ValueError(f"未找到本地智能体: {resp_did}")

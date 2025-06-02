@@ -76,7 +76,7 @@ async def resolve_local_did_document(did: str) -> Optional[Dict]:
                     logging.info(f"通过DID标识解析的{http_url}获取{did}的DID文档")
                     return did_document
                 else:
-                    logging.error(f"HTTP请求失败，状态码: {response.status}")
+                    logging.error(f"did本地解析器地址{http_url}获取失败，状态码: {response.status}")
                     return None
     
     except Exception as e:

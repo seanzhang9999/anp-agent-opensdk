@@ -121,12 +121,14 @@ class LocalUserDataManager:
                     if did_doc and agent_cfg:
                          user_data = LocalUserData(folder_name, agent_cfg, did_doc, did_doc_path, password_paths,user_folder_path)
                          self.users[user_data.did] = user_data
-                         logger.info(f"加载用户数据成功: {user_data.did}")
                     else:
                          logger.warning(f"跳过加载用户数据 (缺少 agent_cfg.yaml 或 did_document.json): {folder_name}")
 
                 except Exception as e:
                     logger.error(f"加载用户数据失败 ({folder_name}): {e}")
+        
+        logger.info(f"加载用户数据共 {len(self.users)} 个用户")
+
 
     def get_user_data(self, did: str) -> Optional[LocalUserData]:
         """根据DID获取用户数据"""
@@ -467,12 +469,12 @@ class ANPSDK:
                 yaml_path = os.path.join(user_path, f"openapi_{safe_agent_id}.yaml")
                 with open(yaml_path, 'w', encoding='utf-8') as f:
                     yaml.dump(openapi_spec, f, allow_unicode=True, sort_keys=False)
-                self.logger.info(f"Generated OpenAPI documentation for agent {agent_id} at {yaml_path} ")
+                # self.logger.info(f"Generated OpenAPI documentation for agent {agent_id} at {yaml_path} ")
             else:
                 yaml_path = os.path.join(docs_dir, f"openapi_{safe_agent_id}.yaml")
                 with open(yaml_path, 'w', encoding='utf-8') as f:
                     yaml.dump(openapi_spec, f, allow_unicode=True, sort_keys=False)
-                self.logger.info(f"Generated OpenAPI documentation for agent {agent_id} at {yaml_path} (user directory not found)")
+                #self.logger.info(f"Generated OpenAPI documentation for agent {agent_id} at {yaml_path} (user directory not found)")
 
     def get_agents(self):
         """获取所有已注册的智能体"""
@@ -504,17 +506,28 @@ class ANPSDK:
             resp_did = did
             data["type"] = "api_call"
             data["path"] = f"/{subpath}"
-            result = self.router.route_request(req_did, resp_did, data)
+            result = self.router.route_request(req_did, resp_did, data, request)
+            # 检查结果是否是协程对象，如果是则等待它完成
+            if asyncio.iscoroutine(result):
+                result = await result
             return result
 
         @self.app.post("/agent/api/{did}/{subpath:path}")
         async def api_entry_post(did: str, subpath:str, request: Request):
-            data = await request.json()
+            try:
+                data = await request.json()
+                if not data:
+                    data = {}
+            except Exception:
+                data = {}
             req_did = request.query_params.get("req_did", "demo_caller")
             resp_did = did
             data["type"] = "api_call"
             data["path"] = f"/{subpath}"
-            result = self.router.route_request(req_did, resp_did, data)
+            result = await self.router.route_request(req_did, resp_did, data,request)
+            # 检查结果是否是协程对象，如果是则等待它完成
+            if asyncio.iscoroutine(result):
+                result = await result
             return result
 
         @self.app.post("/agent/message/{did}/post")
@@ -523,7 +536,10 @@ class ANPSDK:
             req_did = request.query_params.get("req_did", "demo_caller")
             resp_did = did
             data["type"] = "message"
-            result = self.router.route_request(req_did, resp_did, data)
+            result = await self.router.route_request(req_did, resp_did, data,request)
+            # 检查结果是否是协程对象，如果是则等待它完成
+            if asyncio.iscoroutine(result):
+                result = await result
             return result
 
         self.group_queues = {}
@@ -552,7 +568,10 @@ class ANPSDK:
             data["type"] = "group_join"
             data["group_id"] = group_id
             data["req_did"] = req_did
-            result = self.router.route_request(req_did, resp_did, data)
+            result = await self.router.route_request(req_did, resp_did, data,request)
+            # 检查结果是否是协程对象，如果是则等待它完成
+            if asyncio.iscoroutine(result):
+                result = await result
             return result
 
         @self.app.post("/agent/group/{did}/{group_id}/leave")
@@ -569,7 +588,10 @@ class ANPSDK:
             data["type"] = "group_leave"
             data["group_id"] = group_id
             data["req_did"] = req_did
-            result = self.router.route_request(req_did, resp_did, data)
+            result = await self.router.route_request(req_did, resp_did, data,request)
+            # 检查结果是否是协程对象，如果是则等待它完成
+            if asyncio.iscoroutine(result):
+                result = await result
             return result
 
         @self.app.post("/agent/group/{did}/{group_id}/message")
@@ -596,7 +618,10 @@ class ANPSDK:
             data["type"] = "group_message"
             data["group_id"] = group_id
             data["req_did"] = req_did
-            result = self.router.route_request(req_did, resp_did, data)
+            result = await self.router.route_request(req_did, resp_did, data,request)
+            # 检查结果是否是协程对象，如果是则等待它完成
+            if asyncio.iscoroutine(result):
+                result = await result
             return result
 
         @self.app.get("/agent/group/{did}/{group_id}/connect")
@@ -619,7 +644,7 @@ class ANPSDK:
                 return StreamingResponse(event_generator(), media_type="text/event-stream")
             resp_did = did
             data = {"type": "group_connect", "group_id": group_id, "req_did": req_did}
-            result = self.router.route_request(req_did, resp_did, data)
+            result = await self.router.route_request(req_did, resp_did, data)
             if result and "event_generator" in result:
                 return StreamingResponse(result["event_generator"], media_type="text/event-stream")
             return result
@@ -659,7 +684,10 @@ class ANPSDK:
             data["type"] = "group_members"
             data["group_id"] = group_id
             data["req_did"] = req_did
-            result = self.router.route_request(req_did, resp_did, data)
+            result = await self.router.route_request(req_did, resp_did, data,request)
+            # 检查结果是否是协程对象，如果是则等待它完成
+            if asyncio.iscoroutine(result):
+                result = await result
             return result
 
         @self.app.get("/agent/group/{did}/{group_id}/members")
@@ -671,7 +699,10 @@ class ANPSDK:
                 return {"status": "success", "members": members}
             resp_did = did
             data = {"type": "group_members", "action": "list", "group_id": group_id, "req_did": req_did}
-            result = self.router.route_request(req_did, resp_did, data)
+            result = await self.router.route_request(req_did, resp_did, data,request)
+            # 检查结果是否是协程对象，如果是则等待它完成
+            if asyncio.iscoroutine(result):
+                result = await result
             return result
 
         @self.app.get("/agent/groups")
@@ -956,6 +987,8 @@ class ANPSDK:
                     else:
                         host = did_parts[2]
                         port = did_parts[3]
+                        if port is not int:
+                            port = 80
             except Exception as e:
                 print(f"解析did失败: {did}, 错误: {e}")
         if not host or not port:

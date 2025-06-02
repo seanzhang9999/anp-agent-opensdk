@@ -15,6 +15,7 @@
 """
 DID document API router.
 """
+from fastapi.responses import JSONResponse
 import sys
 import os
 from anp_open_sdk.anp_sdk_tool import get_user_dir_did_doc_by_did
@@ -98,7 +99,8 @@ async def get_agent_description(resp_did: str, request: Request) -> Dict:
         if hasattr(route, "methods") and hasattr(route, "path"):
             path = route.path
             # 只导出 /agent/api/、/agent/message/、/agent/group/、/wba/ 相关路由
-            if not (path.startswith("/agent/api/") or path.startswith("/agent/message/") or path.startswith("/agent/group/") or path.startswith("/wba/")):
+            # if not (path.startswith("/agent/api/") or path.startswith("/agent/message/") or path.startswith("/agent/group/") or path.startswith("/wba/")):
+            if not (path.startswith("/agent/api/")) :
                 continue
             # endpoint 名称自动生成
             endpoint_name = path.replace("/agent/api/", "api_").replace("/agent/message/", "message_").replace("/agent/group/", "group_").replace("/wba/", "wba_").replace("/", "_").strip("_")
@@ -106,57 +108,72 @@ async def get_agent_description(resp_did: str, request: Request) -> Dict:
                 "path": path,
                 "description": getattr(route, "summary", getattr(route, "name", "相关端点"))
             }
-   
+
     for path, _ in agent.api_routes.items():
         endpoint_name = path.replace('/', '_').strip('_')
         endpoints[endpoint_name] = {
             "path": f"/agent/api/{resp_did}{path}",
             "description": f"API 路径 {path} 的端点"
         }
-    agent_id = f"https://agent-search.ai/ad.json"
-    agent_name = user_cfg.get("name", f"DID WBA Example Agent{agent.name}")
-    agent_owner = user_cfg.get("owner", {"name": "DID WBA Example", "@id": "https://agent-search.ai"})
-    agent_description = user_cfg.get("description", "An example agent implementing DID WBA authentication")
-    agent_version = user_cfg.get("version", "0.1.0")
-    agent_created = user_cfg.get("created_at", "2025-04-21T00:00:00Z")
-    security_def = {
+    agent_id = f"{request.url.scheme}://{request.url.netloc}/wba/user/{resp_did}/ad.json"
+    # 读取 ad.json 模板文件
+
+    user_dirs = dynamic_config.get('anp_sdk.user_did_path')
+    user_full_path = os.path.join(user_dirs, user_dir)
+
+    template_ad_path = Path(user_full_path) / "template-ad.json"
+    template_ad_path = Path(path_resolver.resolve_path(template_ad_path.as_posix()))
+
+    # 默认模板内容
+    default_template = {
+        "name": f"DID WBA Example Agent{agent.name}",
+        "owner": {
+            "name": "DID WBA Example",
+            "@id": "https://agent-search.ai"
+        },
+        "description": "An example agent implementing DID WBA authentication",
+        "version": "0.1.0",
+        "created_at": "2025-04-21T00:00:00Z",
+        "security_definitions": {
         "didwba_sc": {
             "scheme": "didwba",
             "in": "header",
             "name": "Authorization"
         }
+        },
+        "interfaces": [],
+        "sub_agents": []
     }
-    interfaces = []  # 可根据实际需求补充
-    sub_agents = []  # 可根据实际需求补充
-    result = {
-        "@context": {
+
+    # 尝试读取模板文件，如果不存在则使用默认值
+    try:
+        if template_ad_path.exists():
+            with open(template_ad_path, 'r', encoding='utf-8') as f:
+                template_data = json.load(f)
+        else:
+            # 如果模板文件不存在，创建默认模板文件
+            template_ad_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(template_ad_path, 'w', encoding='utf-8') as f:
+                json.dump(default_template, f, indent=2, ensure_ascii=False)
+            template_data = default_template
+    except Exception as e:
+        logger.warning(f"Error reading template-ad.json: {e}, using default values")
+        template_data = default_template
+
+    result = template_data
+
+    # 确保必要的字段存在
+    result["@context"] = result.get("@context", {
             "@vocab": "https://schema.org/",
             "did": "https://w3id.org/did#",
             "ad": "https://agent-network-protocol.com/ad#"
-        },
-        "@type": "ad:AgentDescription",
-        "@id": agent_id,
-        "name": agent_name,
-        "did": resp_did,
-        "owner": {
-            "@type": "Organization",
-            "name": agent_owner.get("name", "DID WBA Example"),
-            "@id": agent_owner.get("@id", "https://agent-search.ai")
-        },
-        "description": agent_description,
-        "version": agent_version,
-        "created": agent_created,
-        "ad:securityDefinitions": security_def,
-        "ad:security": "didwba_sc",
-        "ad:endpoints": endpoints,
-        "ad:AgentDescription": sub_agents,
-        "ad:interfaces": interfaces
-    }
+    })
+    result["@type"] = result.get("@type", "ad:AgentDescription")
     return result
 
 
-@router.get("/wba/user/{resp_did}/agent.yaml", summary="Get agent OpenAPI YAML")
-async def get_agent_openapi_yaml(resp_did: str, request: Request):
+@router.get("/wba/user/{resp_did}/{yaml_file_name}.yaml", summary="Get agent OpenAPI YAML")
+async def get_agent_openapi_yaml(resp_did: str, yaml_file_name, request: Request):
     import urllib.parse
     import yaml
 
@@ -179,9 +196,44 @@ async def get_agent_openapi_yaml(resp_did: str, request: Request):
     user_did_path = path_resolver.resolve_path(user_did_path)
 
 
-    yaml_path = os.path.join(user_did_path, user_dir, f"openapi_{dquote_did}.yaml")
+    yaml_path = os.path.join(user_did_path, user_dir, f"{yaml_file_name}.yaml")
     if not os.path.exists(yaml_path):
         raise HTTPException(status_code=404, detail="OpenAPI YAML not found")
     with open(yaml_path, 'r', encoding='utf-8') as f:
         yaml_content = f.read()
     return Response(content=yaml_content, media_type="application/x-yaml")
+
+
+
+
+
+@router.get("/wba/user/{resp_did}/{jsonrpc_file_name}.json", summary="Get agent OpenAPI YAML")
+async def get_agent_openapi_yaml(resp_did: str, jsonrpc_file_name, request: Request):
+    import urllib.parse
+    import json
+
+    if resp_did and resp_did.find("%3A") == -1:
+        parts = resp_did.split(":", 4)  # 分割 4 份 把第三个冒号替换成%3A
+        resp_did = ":".join(parts[:3]) + "%3A" + ":".join(parts[3:])
+    success, did_doc, user_dir = get_user_dir_did_doc_by_did(resp_did)
+    if not success:
+        raise HTTPException(status_code=404, detail="User not found")
+    dquote_did = urllib.parse.quote(resp_did, safe='')
+
+    sdk = request.app.state.sdk
+    agent = sdk.get_agent(resp_did)
+
+    if agent.is_hosted_did:
+        raise HTTPException(status_code=403, detail=f"{resp_did} is hosted did")
+    
+    
+    user_did_path = dynamic_config.get('anp_sdk.user_did_path')
+    user_did_path = path_resolver.resolve_path(user_did_path)
+
+
+    json_path = os.path.join(user_did_path, user_dir, f"{jsonrpc_file_name}.json")
+    if not os.path.exists(json_path):
+        raise HTTPException(status_code=404, detail="json rpc not found")
+    with open(json_path, 'r', encoding='utf-8') as f:
+        json_content = f.read()
+    return JSONResponse(content=json_content, status_code=200)

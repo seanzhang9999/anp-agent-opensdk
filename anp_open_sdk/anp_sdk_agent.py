@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from starlette.responses import JSONResponse
+
 from anp_open_sdk.anp_sdk_publisher_mail_backend import EnhancedMailManager
 from anp_open_sdk.config.dynamic_config import dynamic_config,get_config_value
 import os
@@ -21,6 +23,7 @@ import inspect
 from typing import Dict, Any, Callable, Optional, Union, List
 from warnings import simplefilter
 from loguru import logger
+from fastapi import Request
 
 from anp_open_sdk.anp_sdk_tool import get_user_dir_did_doc_by_did
 from anp_open_sdk.config.dynamic_config import dynamic_config
@@ -253,39 +256,9 @@ class LocalAgent:
             # 忽略错误，防止在解释器关闭时出现问题
             pass
                 
-    async def start_group_listening(self, sdk, group_hoster:str,group_url: str, group_id: str):
-        """
-        启动对指定群组的消息监听
-        
-        Args:
-            sdk: ANPSDK 实例
-            group_url: 群组URL
-            group_id: 群组ID
-            
-        Returns:
-            asyncio.Task: 监听任务对象，可用于后续取消
-        """
-        from anp_open_sdk.service.agent_message_group import listen_group_messages
-        import asyncio
-        
-        # 创建监听任务，传入事件处理器
-        task = asyncio.create_task(
-            listen_group_messages(
-                sdk,
-                self.id,
-                group_hoster,
-                group_url,
-                group_id,
-                event_handlers = {
-                    "*": lambda msg_obj: self._dispatch_group_event(group_id, "*", msg_obj)
-            })
-        )
+    
 
-        self.logger.info(f"已启动群组 {group_id} 的消息监听")
-        return task
-       
-
-    def handle_request(self, req_did: str, request_data: Dict[str, Any]):
+    async def handle_request(self, req_did: str, request_data: Dict[str, Any] , request: Request):
         """Handle requests from req_did
         Args:
             req_did: Requester's DID
@@ -326,21 +299,36 @@ class LocalAgent:
             handler = self.api_routes.get(api_path)
             if handler:
                 try:
-                    result = handler(request_data)
-                    if isinstance(result, dict) and "anp_result" in result:
+                    result = await handler(request_data , request)
+                    # 直接返回 HTTP 响应
+                    if isinstance(result, dict):
+                        # 从result中提取status_code，默认为200
+                        status_code = result.pop('status_code', 200)
+                        return JSONResponse(
+                            status_code=status_code,
+                            content=result
+                        )
+                    else:
+                        # 对于非dict结果，使用默认状态码200
                         return result
-                    return {"anp_result": result}
+
                 except Exception as e:
                     self.logger.error(f"API调用错误: {e}")
-                    return {"anp_result": {"status": "error", "message": str(e)}}
+                    return JSONResponse(
+                        status_code=500,
+                        content={"status": "error", "message": str(e)}
+                    )
             else:
-                return {"anp_result": {"status": "error", "message": f"未找到API: {api_path}"}}
+                return JSONResponse(
+                    status_code=404,
+                    content={"status": "error", "message": f"未找到API: {api_path}"}
+                )
         elif req_type == "message":
             msg_type = request_data.get("message_type", "*")
             handler = self.message_handlers.get(msg_type) or self.message_handlers.get("*")
             if handler:
                 try:
-                    result = handler(request_data)
+                    result = await handler(request_data)
                     if isinstance(result, dict) and "anp_result" in result:
                         return result
                     return {"anp_result": result}

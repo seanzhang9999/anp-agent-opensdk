@@ -3,8 +3,13 @@ import os
 import json
 import asyncio
 from datetime import datetime
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.openapi.utils import status_code_ranges
 from loguru import logger
+
+from fastapi import Request
 import aiofiles
+
 
 from anp_open_sdk.anp_sdk import LocalAgent
 from anp_open_sdk.config.path_resolver import path_resolver
@@ -22,20 +27,28 @@ class DemoAgentRegistry:
 
         agent1, agent2 = agents[0], agents[1]
 
+
+
         # 智能体的第一种API发布方式：装饰器
         @agent1.expose_api("/hello", methods=["GET"])
-        def hello_api(request):
-            return {
+        async def hello_api(request_data, request:Request):
+            return JSONResponse(
+                content={
                 "msg": f"{agent1.name}的/hello接口收到请求:",
-                "param": request.get("params")
-            }
+                "param": request_data.get("params")
+                },
+                 status_code = 200
+            )
 
         # 智能体的另一种API发布方式：显式注册
-        def info_api(request):
-            return {
+        async def info_api(request_data, request:Request):
+            return JSONResponse(
+                content={
                 "msg": f"{agent2.name}的/info接口收到请求:",
-                "data": request.get("params")
-            }
+                "param": request_data.get("params")
+                },
+                 status_code = 200
+            )
         agent2.expose_api("/info", info_api, methods=["POST", "GET"])
 
     @staticmethod
@@ -48,17 +61,17 @@ class DemoAgentRegistry:
         agent1, agent2, agent3 = agents[0], agents[1], agents[2]
 
         @agent1.register_message_handler("text")
-        def handle_text1(msg):
+        async def handle_text1(msg):
             logger.info(f"{agent1.name}收到text消息: {msg}")
             return {"reply": f"{agent1.name}回复:确认收到text消息:{msg.get('content')}"}
 
-        def handle_text2(msg):
+        async def handle_text2(msg):
             logger.info(f"{agent2.name}收到text消息: {msg}")
             return {"reply": f"{agent2.name}回复:确认收到text消息:{msg.get('content')}"}
         agent2.register_message_handler("text", handle_text2)
 
         @agent3.register_message_handler("*")
-        def handle_any(msg):
+        async def handle_any(msg):
             logger.info(f"{agent3.name}收到*类型消息: {msg}")
             return {
                 "reply": f"{agent3.name}回复:确认收到{msg.get('type')}类型"
