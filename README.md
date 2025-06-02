@@ -4,6 +4,15 @@ anp agent opensdk是基于ANP核心协议栈agent_connect开发的一个anp快�
 
 ## 快速上手
 
+- 克隆项目
+- python -m venv .venv
+- 激活.venv
+- poetry install
+- python project_1_anp_tool_crawler_to_web_agent.py
+- python project_2_anp_tool_crawler_to_local_agent_optimized.py
+- python project_1_anp_tool_crawler_to_web_agent.py
+
+## 场景体验
 通过sdk，可以快速上手，在自己的开发环境上实现anp的四个场景，当前进度：1和2已完成
 
 [1 演示代码](project_1_anp_tool_crawler_to_web_agent.py)
@@ -379,9 +388,8 @@ async def run_all_demos(self):
 
 # 🌟 图解ANP
 
-
-
 ## anp的did身份价值
+
 ![anp域名did方案的价值](./docs/anp域名did方案的核心价值.jpg)
 ![did比喻1](./docs/价值比喻1.jpg)
 ![did比喻2](./docs/价值比喻2.jpg)
@@ -389,12 +397,12 @@ async def run_all_demos(self):
 ![did比喻4](./docs/价值比喻4.jpg)
 ![did比喻5](./docs/价值比喻5.jpg)
 
-
 ## anp_tool基本原理
+
 ![流程图](docs/agent_anptool_crawler_flow.jpeg)
 
-
 ## ANPSDK解决的主要问题：
+
 ![ANP协议对开发者的挑战](./docs/anp开发者的挑战.jpg)
 
 - ANP协议基于DID建立身份认证，涉及到密钥文件的生成、DID文档的组织和管理，但是一般开发者对此相对陌生。

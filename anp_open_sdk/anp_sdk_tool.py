@@ -286,7 +286,7 @@ def get_response_DIDAuthHeader_Token(response_header: Dict) -> Tuple[Optional[st
                 logger.error("[错误] 处理 Authorization 字典时出错: " + str(e))
                 return None, None
     else:
-        logger.info("response_header 没有 'Authorization' 字段，但是返回值200")
+        logger.info("response_header 没有 'Authorization' 字段")
         return None, None
 
 async def handle_response(response: Any) -> Dict:

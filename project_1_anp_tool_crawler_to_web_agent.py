@@ -470,7 +470,7 @@ async def main():
             use_two_way_auth=True  # 是否使用双向认证
         )
         # 保存结果到文件（可选）
-        output_file = "crawler_result.json"
+        output_file = "anp_sdk_demo/demo_data/crawler_result.json"
         with open(output_file, 'w', encoding='utf-8') as f:
             json.dump(result, f, ensure_ascii=False, indent=2, cls=CustomJSONEncoder)
         logger.info(f"爬取结果已保存到 {output_file}")

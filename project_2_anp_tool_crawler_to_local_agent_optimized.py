@@ -110,7 +110,7 @@ class ANPToolCrawler:
             if user_data:
                 agent = LocalAgent(self.sdk, user_data.did, user_data.name)
                 self.sdk.register_agent(agent)
-                logger.info(f"使用托管智能体: {agent.name}")
+                logger.info(f"使用托管身份智能体进行爬取: {agent.name}")
                 return agent
             else:
                 logger.error("未找到托管智能体")
@@ -778,7 +778,7 @@ async def run_crawler_demo_with_different_agent(crawler: ANPToolCrawler,
     )
     
     # 保存结果到文件
-    output_file = "agent1_crawler_result.json"
+    output_file = "anp_sdk_demo/demo_data/agent1_crawler_result.json"
     with open(output_file, 'w', encoding='utf-8') as f:
         json.dump(result, f, ensure_ascii=False, indent=2, cls=CustomJSONEncoder)
     logger.info(f"爬取结果已保存到 {output_file}")
@@ -978,7 +978,7 @@ async def main():
             crawler, 
             python_agent, 
             "写个冒泡法排序代码",
-            "agent_anptool_crawler_result.json"
+            "anp_sdk_demo/demo_data/agent_anptool_crawler_result.json"
         )
         
         # 演示2: 使用不同智能体身份 - 生成随机数代码

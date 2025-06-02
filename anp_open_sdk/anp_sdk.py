@@ -313,7 +313,7 @@ class ANPSDK:
     def register_agent(self, agent: LocalAgent):
         """注册智能体到路由器"""
         self.router.register_agent(agent)
-        self.logger.info(f"已注册智能体到路由器: {agent.id}")
+        self.logger.info(f"已注册智能体到SDK: {agent.id}")
         self._register_default_routes()
         @self.app.on_event("startup")
         async def generate_openapi_yaml():
