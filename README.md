@@ -1,7 +1,7 @@
 # anp agent opensdk
 
-> **Architect once, Network anywhere, Participate mutually**  
-> 一次架构，随处联网，共同参与
+> **Assemble once, Network anywhere, Participate openly**  
+> 一次组装，随处联网，开放参与
 
 anp agent opensdk是基于ANP核心协议栈agent_connect开发的一个anp快速集成开发工具包
 
@@ -89,7 +89,7 @@ anp agent opensdk是基于ANP核心协议栈agent_connect开发的一个anp快�
 让智能体不再孤单，让AI协作成为现实！
 
 ## 项目目标
-> **Architect once, Network anywhere, Participate mutually**
+> **Assemble once, Network anywhere, Participate openly**  
 
 ![sdk主要作用](./docs/sdk主要作用.jpg)
 
