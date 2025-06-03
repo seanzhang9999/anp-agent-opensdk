@@ -211,6 +211,7 @@ class ANPToolCrawler:
         ]
 
         # 创建客户端
+        model_name =  os.environ.get("OPENAI_MODEL_NAME","gpt-4o")
         try:
             model_provider = os.environ.get("MODEL_PROVIDER", "openai").lower()
             if model_provider == "openai":
@@ -219,7 +220,6 @@ class ANPToolCrawler:
                     api_key=os.environ.get("OPENAI_API_KEY"),
                     base_url=os.environ.get("OPENAI_API_BASE_URL", "https://api.openai.com/v1"),
         )
-                return client
 
             else:
                 logger.error(f"创建LLM客户端失败: 需要 openai配置")
@@ -466,10 +466,22 @@ async def main():
             initial_url="https://agent-search.ai/ad.json",  # 可以修改为其他URL
             use_two_way_auth=True  # 是否使用双向认证
         )
+
+        def ensure_serializable_keys(obj):
+            if isinstance(obj, dict):
+                return {
+                    str(k): ensure_serializable_keys(v)
+                    for k, v in obj.items()
+                }
+            elif isinstance(obj, list):
+                return [ensure_serializable_keys(v) for v in obj]
+            else:
+                return obj
         # 保存结果到文件（可选）
         output_file = "anp_sdk_demo/demo_data/crawler_result.json"
         with open(output_file, 'w', encoding='utf-8') as f:
-            json.dump(result, f, ensure_ascii=False, indent=2, cls=CustomJSONEncoder)
+            serializable_result = ensure_serializable_keys(result)
+            json.dump(serializable_result, f, ensure_ascii=False, indent=2, cls=CustomJSONEncoder)
         logger.info(f"爬取结果已保存到 {output_file}")
 
     except Exception as e:
