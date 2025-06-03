@@ -1,5 +1,7 @@
 anp_open_sdk/anp_users/*
 anp_open_sdk/anp_users_hosted/*
+!anp_open_sdk/anp_users/user_hosted_agent-did.com*
+!anp_open_sdk/anp_users/user_hosted_agent-did.com*/*
 anp_open_sdk/testuse/*
 # Byte-compiled / optimized / DLL files
 __pycache__/
