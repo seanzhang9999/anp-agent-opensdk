@@ -126,6 +126,9 @@ class LocalUserDataManager:
 
                 except Exception as e:
                     logger.error(f"加载用户数据失败 ({folder_name}): {e}")
+            else:
+                logger.warning(f"不合格的文件或文件夹: {entry.name}")
+
         
         logger.info(f"加载用户数据共 {len(self.users)} 个用户")
 
