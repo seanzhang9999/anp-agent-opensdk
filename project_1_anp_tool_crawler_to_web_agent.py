@@ -212,22 +212,17 @@ class ANPToolCrawler:
 
         # 创建客户端
         try:
-            model_provider = os.environ.get("MODEL_PROVIDER", "azure").lower()
-            model_name = os.environ.get("AZURE_OPENAI_MODEL_NAME", "gpt-4")
-
-            if model_provider == "azure":
-                # Azure OpenAI
-                from openai import AsyncAzureOpenAI
-                client = AsyncAzureOpenAI(
-                    api_key=os.environ.get("AZURE_OPENAI_API_KEY"),
-                    api_version=os.environ.get("AZURE_OPENAI_API_VERSION", "2023-05-15"),
-                    azure_endpoint=os.environ.get("AZURE_OPENAI_ENDPOINT"),
-                    azure_deployment=os.environ.get("AZURE_OPENAI_DEPLOYMENT"),
-                )
+            model_provider = os.environ.get("MODEL_PROVIDER", "openai").lower()
+            if model_provider == "openai":
+                from openai import AsyncOpenAI
+                client = AsyncOpenAI(
+                    api_key=os.environ.get("OPENAI_API_KEY"),
+                    base_url=os.environ.get("OPENAI_API_BASE_URL", "https://api.openai.com/v1"),
+        )
             else:
-                logger.error(f"创建LLM客户端失败: 需要 azure配置")
+                logger.error(f"创建LLM客户端失败: 需要 openai配置")
                 return {
-                    "content": "LLM客户端创建失败: 需要配置Azure OpenAI",
+                    "content": "LLM客户端创建失败: 需要配置 OpenAI",
                     "type": "error",
                     "visited_urls": list(visited_urls),
                     "crawled_documents": crawled_documents,

@@ -17,6 +17,8 @@
 import sys
 import os
 
+from anp_open_sdk.anp_sdk_agent import LocalAgent
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..","..")))
 from typing import Optional, Dict, Any
 from urllib.parse import urlencode, quote
@@ -38,7 +40,7 @@ async def agent_msg_post(sdk, caller_agent:str , target_agent :str, content: str
     Returns:
         Dict: 响应结果
     """
-    caller_agent_obj = sdk.get_agent(caller_agent)
+    caller_agent_obj = LocalAgent(sdk,id=caller_agent)
     target_agent_obj = RemoteAgent(target_agent)
 
 

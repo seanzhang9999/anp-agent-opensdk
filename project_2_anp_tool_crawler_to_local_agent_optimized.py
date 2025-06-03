@@ -263,17 +263,15 @@ class ANPToolCrawler:
     def _create_llm_client(self):
         """创建LLM客户端"""
         try:
-            model_provider = os.environ.get("MODEL_PROVIDER", "azure").lower()
-            if model_provider == "azure":
-                from openai import AsyncAzureOpenAI
-                return AsyncAzureOpenAI(
-                    api_key=os.environ.get("AZURE_OPENAI_API_KEY"),
-                    api_version=os.environ.get("AZURE_OPENAI_API_VERSION", "2023-05-15"),
-                    azure_endpoint=os.environ.get("AZURE_OPENAI_ENDPOINT"),
-                    azure_deployment=os.environ.get("AZURE_OPENAI_DEPLOYMENT"),
-                )
+            model_provider = os.environ.get("MODEL_PROVIDER", "openai").lower()
+            if model_provider == "openai":
+                from openai import AsyncOpenAI
+                client = AsyncOpenAI(
+                    api_key=os.environ.get("OPENAI_API_KEY"),
+                    base_url=os.environ.get("OPENAI_API_BASE_URL", "https://api.openai.com/v1"),
+        )
             else:
-                logger.error("需要配置Azure OpenAI")
+                logger.error("需要配置 OpenAI")
                 return None
         except Exception as e:
             logger.error(f"创建LLM客户端失败: {e}")
@@ -300,7 +298,7 @@ class ANPToolCrawler:
                                max_documents: int, anpsdk=None, caller_agent: str = None,
                                target_agent: str = None, use_two_way_auth: bool = True):
         """对话循环处理"""
-        model_name = os.environ.get("AZURE_OPENAI_MODEL_NAME", "gpt-4")
+        model_name = os.environ.get("OPENAI_MODEL_NAME", "gpt-4")
         current_iteration = 0
 
         while current_iteration < max_documents:
@@ -882,7 +880,7 @@ async def call_llm(prompt: str):
         if not llm_client:
             return "# [错误] 无法创建LLM客户端"
             
-        model_name = os.environ.get("AZURE_OPENAI_MODEL_NAME", "gpt-4")
+        model_name = os.environ.get("OPENAI_MODEL_NAME", "gpt-4")
 
         messages = [
             {"role": "system", "content": "你是一个擅长写 Python 代码的助手"},
@@ -905,19 +903,16 @@ async def call_llm(prompt: str):
 def create_llm_client():
     """创建LLM客户端"""
     try:
-        model_provider = os.environ.get("MODEL_PROVIDER", "azure").lower()
-
-        if model_provider == "azure":
-            from openai import AsyncAzureOpenAI
-            client = AsyncAzureOpenAI(
-                api_key=os.environ.get("AZURE_OPENAI_API_KEY"),
-                api_version=os.environ.get("AZURE_OPENAI_API_VERSION", "2023-05-15"),
-                azure_endpoint=os.environ.get("AZURE_OPENAI_ENDPOINT"),
-                azure_deployment=os.environ.get("AZURE_OPENAI_DEPLOYMENT"),
-            )
+        model_provider = os.environ.get("MODEL_PROVIDER", "openai").lower()
+        if model_provider == "openai":
+            from openai import AsyncOpenAI
+            client = AsyncOpenAI(
+                api_key=os.environ.get("OPENAI_API_KEY"),
+                base_url=os.environ.get("OPENAI_API_BASE_URL", "https://api.openai.com/v1"),
+        )
             return client
         else:
-            logger.error("需要配置Azure OpenAI")
+            logger.error("需要配置OpenAI")
             return None
 
     except Exception as e:
