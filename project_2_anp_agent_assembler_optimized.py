@@ -484,7 +484,7 @@ class ANPToolCrawler:
     def _create_code_search_prompt_template(self):
         """创建代码搜索智能体的提示模板"""
         current_date = datetime.now().strftime("%Y-%m-%d")
-        return f"""
+        return f""" 
         你是一个通用的智能代码工具。你的目标是根据用户输入要求调用工具完成代码任务。
 
         ## 当前任务
@@ -1454,7 +1454,6 @@ async def main_assemble_demo():
         logger.info("4. 保持了原有智能体的核心功能不变")
         
     except Exception as e:
-        logger.error(f"演示过程中发生错误: {e}")
         import traceback
         traceback.print_exc()
         
@@ -1464,6 +1463,385 @@ async def main_assemble_demo():
         logger.info("=== ANP智能体组装演示结束 ===")
 
 
+
+async def run_web_agent_crawler_demo(crawler: ANPToolCrawler, 
+                                   task_input: str = "查询北京天津上海今天的天气",
+                                   initial_url: str = "https://agent-search.ai/ad.json"):
+    """运行Web智能体爬虫演示 - 集成自project_1"""
+    logger.info(f"=== Web智能体查询演示 ===")
+    logger.info(f"查询任务: {task_input}")
+    logger.info(f"目标URL: {initial_url}")
+    
+    result = await crawler.run_crawler_demo(
+        task_input=task_input,
+        initial_url=initial_url,
+        use_two_way_auth=True,
+        req_did=None,  # 使用托管身份
+        resp_did=None,  # Web智能体不需要特定目标DID
+        task_type="weather_query"
+    )
+    
+    # 保存结果到文件
+    output_file = "anp_sdk_demo/demo_data/web_agent_crawler_result.json"
+    with open(output_file, 'w', encoding='utf-8') as f:
+        json.dump(result, f, ensure_ascii=False, indent=2, cls=CustomJSONEncoder)
+    logger.info(f"Web智能体查询结果已保存到 {output_file}")
+    
+    return result
+
+
+async def run_information_search_demo(crawler: ANPToolCrawler,
+                                    task_input: str = "搜索人工智能最新发展趋势",
+                                    initial_url: str = "https://agent-search.ai/ad.json"):
+    """运行信息搜索演示"""
+    logger.info(f"=== 信息搜索演示 ===")
+    logger.info(f"搜索任务: {task_input}")
+    
+    result = await crawler.run_crawler_demo(
+        task_input=task_input,
+        initial_url=initial_url,
+        use_two_way_auth=True,
+        req_did=None,
+        resp_did=None,
+        task_type="information_search"
+    )
+    
+    # 保存结果到文件
+    output_file = "anp_sdk_demo/demo_data/information_search_result.json"
+    with open(output_file, 'w', encoding='utf-8') as f:
+        json.dump(result, f, ensure_ascii=False, indent=2, cls=CustomJSONEncoder)
+    logger.info(f"信息搜索结果已保存到 {output_file}")
+    
+    return result
+
+
+async def run_hybrid_agent_collaboration_demo(crawler: ANPToolCrawler, 
+                                            local_agent: LocalAgent):
+    """运行混合智能体协作演示 - 本地智能体 + Web智能体"""
+    logger.info("=== 混合智能体协作演示 ===")
+    
+    # 场景1: 本地代码生成 + Web天气查询
+    logger.info("\n--- 场景1: 代码生成 + 天气查询 ---")
+    
+    # 1. 先用本地智能体生成天气查询代码
+    code_result = await run_assembled_agent_crawler_demo(
+        crawler,
+        local_agent,
+        "生成一个Python函数，用于调用天气API查询指定城市的天气信息",
+        "hybrid_weather_code_demo.json"
+    )
+    
+    # 2. 再用Web智能体查询实际天气
+    weather_result = await run_web_agent_crawler_demo(
+        crawler,
+        "查询北京今天的天气情况",
+        "https://agent-search.ai/ad.json"
+    )
+    
+    # 3. 组合结果
+    hybrid_result = {
+        "scenario": "code_generation_with_weather_query",
+        "local_agent_result": code_result,
+        "web_agent_result": weather_result,
+        "collaboration_summary": "本地智能体生成了天气查询代码，Web智能体提供了实际天气数据"
+    }
+    
+    # 保存组合结果
+    with open("anp_sdk_demo/demo_data/hybrid_collaboration_demo.json", 'w', encoding='utf-8') as f:
+        json.dump(hybrid_result, f, ensure_ascii=False, indent=2, cls=CustomJSONEncoder)
+    
+    logger.info("混合协作演示完成")
+    return hybrid_result
+
+
+# ============================================================================
+# 扩展ANPToolCrawler以支持更多Web查询场景
+# ============================================================================
+
+class EnhancedANPToolCrawler(ANPToolCrawler):
+    """增强版ANP工具爬虫 - 支持更多Web查询场景"""
+    
+    async def run_multi_web_query_demo(self, tasks: list):
+        """运行多个Web查询任务"""
+        logger.info("=== 多Web查询任务演示 ===")
+        
+        results = []
+        for i, task in enumerate(tasks, 1):
+            logger.info(f"\n--- 任务{i}: {task['description']} ---")
+            
+            result = await self.run_crawler_demo(
+                task_input=task['input'],
+                initial_url=task.get('url', 'https://agent-search.ai/ad.json'),
+                use_two_way_auth=True,
+                req_did=None,
+                resp_did=None,
+                task_type=task.get('type', 'general_query')
+            )
+            
+            result['task_description'] = task['description']
+            results.append(result)
+            
+            # 任务间间隔
+            await asyncio.sleep(1)
+        
+        # 保存所有结果
+        output_file = "anp_sdk_demo/demo_data/multi_web_query_results.json"
+        with open(output_file, 'w', encoding='utf-8') as f:
+            json.dump(results, f, ensure_ascii=False, indent=2, cls=CustomJSONEncoder)
+        
+        logger.info(f"多Web查询结果已保存到 {output_file}")
+        return results
+    
+    def _create_information_search_prompt_template(self):
+        """创建信息搜索提示模板"""
+        return """
+        你是一个智能信息搜索工具。你的目标是通过访问各种Web智能体来搜索和汇总信息。
+
+        ## 当前任务
+        {task_description}
+
+        ## 重要提示
+        1. 你将收到一个初始URL（{initial_url}），这是一个智能体描述文件。
+        2. 你需要理解这个智能体的搜索能力和API使用方法。
+        3. 你需要像智能搜索引擎一样发现和访问相关的信息源。
+        4. 你可以使用anp_tool来获取任何URL的内容。
+        5. 重点关注信息的准确性和时效性。
+        6. 你需要自主决定搜索路径，不要等待用户指令。
+        7. 最多可以访问10个不同的信息源。
+
+        ## 搜索策略
+        1. 首先获取初始智能体的能力描述。
+        2. 识别与搜索任务相关的API端点。
+        3. 构建合适的搜索请求。
+        4. 分析搜索结果的可靠性。
+        5. 如果需要，访问更多相关信息源。
+        6. 汇总和总结所有找到的信息。
+
+        对于信息搜索任务，你需要:
+        1. 找到信息搜索API端点
+        2. 构造准确的搜索查询
+        3. 发送搜索请求
+        4. 分析和筛选搜索结果
+        5. 提供准确、全面的信息摘要
+
+        提供详细的信息和清晰的解释，包括信息来源的可靠性评估。
+        """
+
+
+# ============================================================================
+# 更新主函数以包含Web查询功能
+# ============================================================================
+
+async def main_assemble_demo_with_web():
+    """
+    增强版主函数：演示智能体组装 + Web查询的完整流程
+    
+    核心功能:
+    1. 组装本地智能体到ANP网络
+    2. 测试本地智能体ANP通讯
+    3. 测试Web智能体查询功能
+    4. 演示混合智能体协作
+    """
+    logger.info("=== ANP智能体组装 + Web查询演示开始 ===")
+    
+    # 步骤1-4: 组装本地智能体（与原版相同）
+    logger.info("步骤1-4: 组装本地智能体到ANP网络")
+    sdk = ANPSDK()
+    
+    anp_agent, wrapper = await assemble_existing_agent(sdk)
+    if not anp_agent:
+        logger.error("智能体组装失败，退出演示")
+        return
+    
+    success = await configure_agent_interfaces(anp_agent)
+    if not success:
+        logger.error("ANP通讯接口配置失败，退出演示")
+        return
+    
+    sdk_manager = DemoSDKManager()
+    sdk_manager.start_server(sdk)
+    
+    # 步骤5: 创建增强版爬虫
+    logger.info("步骤5: 创建增强版ANP爬虫")
+    crawler = EnhancedANPToolCrawler(sdk)
+    
+    try:
+        # ===== 本地智能体测试 =====
+        logger.info("\n" + "="*60)
+        logger.info("本地智能体ANP通讯测试")
+        logger.info("="*60)
+        
+        # 演示1: 本地智能体 - 算法代码生成
+        await run_assembled_agent_crawler_demo(
+            crawler,
+            anp_agent,
+            "生成一个Python二分查找算法，包含详细注释和测试用例",
+            "local_binary_search_demo.json"
+        )
+        
+        # ===== Web智能体查询测试 =====
+        logger.info("\n" + "="*60)
+        logger.info("Web智能体查询测试")
+        logger.info("="*60)
+        
+        # 演示2: Web智能体 - 天气查询
+        await run_web_agent_crawler_demo(
+            crawler,
+            "查询北京、上海、广州今天的天气情况，包括温度、湿度和空气质量",
+            "https://agent-search.ai/ad.json"
+        )
+        
+        # 演示3: Web智能体 - 信息搜索
+        await run_information_search_demo(
+            crawler,
+            "搜索2024年人工智能领域的最新突破和发展趋势"
+        )
+        
+        # 演示4: 多Web查询任务
+        web_tasks = [
+            {
+                "description": "科技新闻查询",
+                "input": "查询最新的科技新闻和创新动态",
+                "type": "news_query"
+            },
+            {
+                "description": "股市信息查询", 
+                "input": "查询今日股市行情和重要财经新闻",
+                "type": "finance_query"
+            },
+            {
+                "description": "学术论文搜索",
+                "input": "搜索关于机器学习最新研究论文",
+                "type": "academic_search"
+            }
+        ]
+        
+        await crawler.run_multi_web_query_demo(web_tasks)
+        
+        # ===== 混合智能体协作演示 =====
+        logger.info("\n" + "="*60)
+        logger.info("混合智能体协作演示")
+        logger.info("="*60)
+        
+        # 演示5: 本地智能体 + Web智能体协作
+        await run_hybrid_agent_collaboration_demo(crawler, anp_agent)
+        
+        # 演示6: 智能体适配器 + Web查询
+        logger.info("\n--- 适配器模式 + Web查询 ---")
+        adapter_agent = await adapter_demo(sdk)
+        if adapter_agent:
+            # 先让适配器智能体生成数据分析代码
+            await run_assembled_agent_crawler_demo(
+                crawler,
+                adapter_agent,
+                "生成一个Python数据分析脚本，用于分析股票价格趋势",
+                "adapter_data_analysis_demo.json"
+            )
+            
+            # 再查询实际的股市数据
+            await run_information_search_demo(
+                crawler,
+                "获取苹果公司(AAPL)最近一周的股票价格数据"
+            )
+        
+        # ===== 演示总结 =====
+        logger.info("\n" + "="*60)
+        logger.info("演示完成总结")
+        logger.info("="*60)
+        logger.info("✅ 成功完成的功能:")
+        logger.info("1. 本地智能体组装到ANP网络")
+        logger.info("2. 本地智能体ANP通讯测试")
+        logger.info("3. Web智能体天气查询")
+        logger.info("4. Web智能体信息搜索")
+        logger.info("5. 多Web查询任务批处理")
+        logger.info("6. 混合智能体协作（本地+Web）")
+        logger.info("7. 智能体适配器模式测试")
+        logger.info("\n🚀 ANP网络现在支持:")
+        logger.info("   • 本地智能体间通讯")
+        logger.info("   • Web智能体查询")
+        logger.info("   • 混合模式协作")
+        logger.info("   • 多任务并行处理")
+        
+    except Exception as e:
+        logger.error(f"演示过程中发生错误: {e}")
+        import traceback
+        traceback.print_exc()
+        
+    finally:
+        # 步骤6: 清理资源
+        await cleanup_assembled_resources(sdk, anp_agent)
+        logger.info("\n=== ANP智能体组装 + Web查询演示结束 ===")
+
+
+# ============================================================================
+# 更新ANPToolCrawler以支持不同任务类型的提示模板
+# ============================================================================
+
+def _create_enhanced_prompt_template(task_type: str):
+    """根据任务类型创建对应的提示模板"""
+    
+    base_template = """
+    你是一个通用智能网络数据探索工具。你的目标是通过递归访问各种数据格式来完成特定任务。
+
+    ## 当前任务
+    {task_description}
+
+    ## 重要提示
+    1. 你将收到一个初始URL（{initial_url}），这是一个智能体描述文件。
+    2. 你需要理解这个智能体的结构、功能和API使用方法。
+    3. 你需要像网络爬虫一样持续发现和访问新的URL和API端点。
+    4. 你可以使用anp_tool来获取任何URL的内容。
+    5. 此工具可以处理各种响应格式。
+    6. 你需要自己决定爬取路径，不要等待用户指令。
+    7. 注意：你最多可以爬取10个URL。
+    """
+    
+    task_specific = {
+        "weather_query": """
+        对于天气查询任务，你需要:
+        1. 找到天气查询API端点
+        2. 理解如何正确构造请求参数（如城市名、日期等）
+        3. 发送天气查询请求
+        4. 获取并展示天气信息
+        """,
+        
+        "information_search": """
+        对于信息搜索任务，你需要:
+        1. 找到信息搜索API端点
+        2. 构造准确的搜索查询参数
+        3. 发送搜索请求
+        4. 分析和筛选搜索结果
+        5. 提供准确、全面的信息摘要
+        """,
+        
+        "news_query": """
+        对于新闻查询任务，你需要:
+        1. 找到新闻查询API端点
+        2. 设置合适的新闻类别和时间范围
+        3. 发送新闻查询请求
+        4. 获取最新、相关的新闻信息
+        """,
+        
+        "finance_query": """
+        对于财经查询任务，你需要:
+        1. 找到财经数据API端点
+        2. 构造股票、市场查询参数
+        3. 发送财经数据请求
+        4. 获取准确的财经信息和市场数据
+        """,
+        
+        "academic_search": """
+        对于学术搜索任务，你需要:
+        1. 找到学术搜索API端点
+        2. 构造学术关键词和搜索条件
+        3. 发送学术论文搜索请求
+        4. 获取相关的学术研究信息
+        """
+    }
+    
+    return base_template + task_specific.get(task_type, task_specific["information_search"])
+
 if __name__ == "__main__":
     # 运行智能体组装演示
+    asyncio.run(main_assemble_demo_with_web())
     asyncio.run(main_assemble_demo())
