@@ -887,66 +887,7 @@ class ANPSDK:
                 self.logger.error(f"WebSocket广播失败: {e}")
         self.logger.info(f"向{len(self.sse_clients)}个SSE客户端广播消息")
 
-    def visualize_handlers(self, output_format: str = "html", output_path: Optional[str] = None):
-        api_routes_info = []
-        for route_path, func in self.api_routes.items():
-            api_routes_info.append({
-                "path": f"/{route_path}",
-                "name": func.__name__,
-                "module": func.__module__,
-                "doc": func.__doc__ or "",
-                "is_async": asyncio.iscoroutinefunction(func)
-            })
-        message_handlers_info = []
-        for message_type, handler in self.message_handlers.items():
-            message_handlers_info.append({
-                "type": message_type,
-                "name": handler.__name__,
-                "module": handler.__module__,
-                "doc": handler.__doc__ or "",
-                "is_async": asyncio.iscoroutinefunction(handler)
-            })
-        default_routes_info = [
-            {"path": "/api/message", "method": "POST", "description": "HTTP POST消息接收路由"},
-            {"path": "/ws/message", "method": "WebSocket", "description": "WebSocket消息接收路由"},
-            {"path": "/sse/message", "method": "POST", "description": "SSE消息接收路由"},
-            {"path": "/sse/connect", "method": "GET", "description": "SSE连接端点"}
-        ]
-        if output_format.lower() == "json":
-            result = json.dumps({
-                "api_routes": api_routes_info,
-                "message_handlers": message_handlers_info,
-                "default_routes": default_routes_info
-            }, indent=2, ensure_ascii=False)
-        elif output_format.lower() == "text":
-            result = "ANP SDK 路由和处理器注册顺序\n"
-            result += "=========================\n\n"
-            result += "API路由:\n"
-            for i, route in enumerate(api_routes_info, 1):
-                result += f"{i}. {route['path']} -> {route['name']}() {'[异步]' if route['is_async'] else ''}\n"
-                if route['doc']:
-                    result += f"   描述: {route['doc'].strip()}\n"
-            result += "\n消息处理器:\n"
-            for i, handler in enumerate(message_handlers_info, 1):
-                result += f"{i}. 类型: {handler['type']} -> {handler['name']}() {'[异步]' if handler['is_async'] else ''}\n"
-                if handler['doc']:
-                    result += f"   描述: {handler['doc'].strip()}\n"
-            result += "\n默认路由:\n"
-            for i, route in enumerate(default_routes_info, 1):
-                result += f"{i}. {route['path']} [{route['method']}] - {route['description']}\n"
-        else:
-            from templates.template_generator import generate_visualization_html
-            result = generate_visualization_html(api_routes_info, message_handlers_info, default_routes_info)
-        if output_path:
-            try:
-                with open(output_path, 'w', encoding='utf-8') as f:
-                    f.write(result)
-                self.logger.info(f"已将可视化结果写入文件: {output_path}")
-                return True
-            except Exception as e:
-                self.logger.error(f"写入文件时出错: {e}")
-                return False
-        return result
+
 
     def __enter__(self):
         self.start_server()
