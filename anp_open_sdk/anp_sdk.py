@@ -121,8 +121,8 @@ class LocalUserDataManager:
                     if did_doc and agent_cfg:
                          user_data = LocalUserData(folder_name, agent_cfg, did_doc, did_doc_path, password_paths,user_folder_path)
                          self.users[user_data.did] = user_data
-                    else:
-                         logger.warning(f"跳过加载用户数据 (缺少 agent_cfg.yaml 或 did_document.json): {folder_name}")
+                    # else:
+                         # logger.warning(f"跳过加载用户数据 (缺少 agent_cfg.yaml 或 did_document.json): {folder_name}")
 
                 except Exception as e:
                     logger.error(f"加载用户数据失败 ({folder_name}): {e}")

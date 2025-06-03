@@ -625,8 +625,8 @@ class ANPToolCrawler:
                 client = AsyncOpenAI(
                     api_key=os.environ.get("OPENAI_API_KEY"),
                     base_url=os.environ.get("OPENAI_API_BASE_URL", "https://api.openai.com/v1"),
-        )
-            
+                )
+                return client
             else:
                 logger.error("需要配置 OpenAI")
                 return None

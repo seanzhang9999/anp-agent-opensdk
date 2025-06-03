@@ -219,6 +219,8 @@ class ANPToolCrawler:
                     api_key=os.environ.get("OPENAI_API_KEY"),
                     base_url=os.environ.get("OPENAI_API_BASE_URL", "https://api.openai.com/v1"),
         )
+                return client
+
             else:
                 logger.error(f"创建LLM客户端失败: 需要 openai配置")
                 return {

@@ -277,7 +277,7 @@ def get_response_DIDAuthHeader_Token(response_header: Dict) -> Tuple[Optional[st
                 token = auth_value.get("access_token")
                 did_auth_header =auth_value.get("resp_did_auth_header", {}).get("Authorization")
                 if did_auth_header and token:
-                    logger.info("获得认证方返回的 'Authorization' 字段，进行双向校验")
+                    logger.info("令牌包含双向认证信息，进行双向校验")
                     return did_auth_header, token
                 else:
                     logger.error("[错误] 解析失败，缺少必要字段" + str(auth_value))
@@ -286,7 +286,7 @@ def get_response_DIDAuthHeader_Token(response_header: Dict) -> Tuple[Optional[st
                 logger.error("[错误] 处理 Authorization 字典时出错: " + str(e))
                 return None, None
     else:
-        logger.info("response_header 没有 'Authorization' 字段")
+        logger.info("response_header不包含'Authorization',无需处理令牌")
         return None, None
 
 async def handle_response(response: Any) -> Dict:
