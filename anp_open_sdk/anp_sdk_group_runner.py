@@ -103,17 +103,26 @@ class GroupRunner(ABC):
         """
         pass
 
-    def get_members(self) -> List[Agent]:
-        """获取所有成员"""
-        return list(self.agents.values())
+    async def broadcast(self, message: Message, exclude: List[str] = None):
+        """广播消息给所有监听的 agent"""
+        exclude = exclude or []
+        message_dict = message.to_dict()
 
-    def get_member(self, agent_id: str) -> Optional[Agent]:
-        """获取特定成员"""
-        return self.agents.get(agent_id)
+        for agent_id, queue in self.listeners.items():
+            if agent_id not in exclude:
+                try:
+                    await queue.put(message_dict)
+                except Exception as e:
+                    logger.error(f"Failed to send message to {agent_id}: {e}")
 
-    def is_member(self, agent_id: str) -> bool:
-        """检查是否是成员"""
-        return agent_id in self.agents
+
+    async def send_to_agent(self, agent_id: str, message: Message):
+        """发送消息给特定 agent"""
+        if agent_id in self.listeners:
+            try:
+                await self.listeners[agent_id].put(message.to_dict())
+            except Exception as e:
+                logger.error(f"Failed to send message to {agent_id}: {e}")
 
     async def remove_member(self, agent_id: str) -> bool:
         """移除成员"""
@@ -127,6 +136,19 @@ class GroupRunner(ABC):
             return True
         return False
 
+    def get_members(self) -> List[Agent]:
+        """获取所有成员"""
+        return list(self.agents.values())
+
+    def get_member(self, agent_id: str) -> Optional[Agent]:
+        """获取特定成员"""
+        return self.agents.get(agent_id)
+
+    def is_member(self, agent_id: str) -> bool:
+        """检查是否是成员"""
+        return agent_id in self.agents
+
+
     def register_listener(self, agent_id: str, queue: asyncio.Queue):
         """注册消息监听器"""
         self.listeners[agent_id] = queue
@@ -138,25 +160,7 @@ class GroupRunner(ABC):
             del self.listeners[agent_id]
             logger.info(f"Unregistered listener for {agent_id} in group {self.group_id}")
 
-    async def broadcast(self, message: Message, exclude: List[str] = None):
-        """广播消息给所有监听的 agent"""
-        exclude = exclude or []
-        message_dict = message.to_dict()
 
-        for agent_id, queue in self.listeners.items():
-            if agent_id not in exclude:
-                try:
-                    await queue.put(message_dict)
-                except Exception as e:
-                    logger.error(f"Failed to send message to {agent_id}: {e}")
-
-    async def send_to_agent(self, agent_id: str, message: Message):
-        """发送消息给特定 agent"""
-        if agent_id in self.listeners:
-            try:
-                await self.listeners[agent_id].put(message.to_dict())
-            except Exception as e:
-                logger.error(f"Failed to send message to {agent_id}: {e}")
 
     async def start(self):
         """启动 GroupRunner"""

@@ -138,7 +138,7 @@ class ExistingPythonAgent:
             if model_provider == "openai":
                 from openai import AsyncOpenAI
                 client = AsyncOpenAI(
-                    api_key=os.environ.get("OPENAI_API_KlEY"),
+                    api_key=os.environ.get("OPENAI_API_KEY"),
                     base_url=os.environ.get("OPENAI_API_BASE_URL", "https://api.openai.com/v1"),
         )
                 return client

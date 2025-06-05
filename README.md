@@ -1,7 +1,7 @@
 # anp agent opensdk
 
-> **Assemble once, Network anywhere, Participate openly**  
-> 一次组装，随处联网，开放参与
+> **Apply once, Navigate freely, Partner openly**
+> 一次应用，自由探索，开放参与
 
 anp agent opensdk是基于ANP核心协议栈agent_connect开发的一个anp快速集成开发工具包
 
@@ -10,12 +10,15 @@ anp agent opensdk是基于ANP核心协议栈agent_connect开发的一个anp快�
 - 克隆项目
 - python -m venv .venv
 - 激活.venv
+  - win:. venv\Scripts\activate
+  - mac/linux: source .venv/bin/activate
 - poetry install
 - python project_1_anp_tool_crawler_to_web_agent.py
 - python project_2_anp_tool_crawler_to_local_agent_optimized.py
 - python anp_demo_main.py
 
 ## 场景体验
+
 通过sdk，可以快速上手，在自己的开发环境上实现anp的四个场景，当前进度：1和2已完成
 
 [1 演示代码](project_1_anp_tool_crawler_to_web_agent.py)
@@ -81,15 +84,18 @@ anp agent opensdk是基于ANP核心协议栈agent_connect开发的一个anp快�
 🤝 基于信任度的智能匹配
 🎯 动态组群管理与优化
 组群构建流程：
+
 - 启动本地ANP节点
 - 设置信任策略和协作规则
 - 智能发现和邀请相关Agent
 - 建立安全通信隧道
 - 开始跨网络智能协作
-让智能体不再孤单，让AI协作成为现实！
+  让智能体不再孤单，让AI协作成为现实！
 
 ## 项目目标
-> **Assemble once, Network anywhere, Participate openly**  
+
+> **Apply once, Navigate freely, Partner openly**
+> 一次应用，自由探索，开放参与
 
 ![sdk主要作用](./docs/sdk主要作用.jpg)
 
