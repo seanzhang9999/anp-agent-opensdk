@@ -207,8 +207,8 @@ async def get_agent_openapi_yaml(resp_did: str, yaml_file_name, request: Request
 
 
 
-@router.get("/wba/user/{resp_did}/{jsonrpc_file_name}.json", summary="Get agent OpenAPI YAML")
-async def get_agent_openapi_yaml(resp_did: str, jsonrpc_file_name, request: Request):
+@router.get("/wba/user/{resp_did}/{jsonrpc_file_name}.json", summary="Get agent JSON-RPC")
+async def get_agent_jsonrpc(resp_did: str, jsonrpc_file_name, request: Request):
     import urllib.parse
     import json
 
