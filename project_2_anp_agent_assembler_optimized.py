@@ -152,84 +152,297 @@ class ExistingPythonAgent:
 # ============================================================================
 
 class ANPAgentWrapper:
-    """ANP智能体包装器 - 将现有智能体包装为ANP兼容智能体"""
-    
-    def __init__(self, existing_agent: ExistingPythonAgent, agent_identity: str):
+    """ANP智能体包装器 - 将现有智能体的服务直接外挂到一个ANP智能体"""
+
+    def __init__(self, existing_agent: ExistingPythonAgent, agent_identity: str, anp_agent=None):
         self.existing_agent = existing_agent
         self.agent_identity = agent_identity
+        self.anp_agent = anp_agent
         self.anp_capabilities = []
         self.capability_mapping = {}
-        
         logger.info(f"创建ANP包装器: {existing_agent.name} -> {agent_identity}")
-    
-    def wrap_capability(self, capability_name: str, anp_endpoint: str, method_name: str = None):
+
+    def set_anp_agent(self, anp_agent):
+        """设置ANP智能体并注册所有已包装的能力"""
+        self.anp_agent = anp_agent
+
+        # 注册所有已包装的能力
+        success_count = 0
+        for capability_info in self.anp_capabilities:
+            if self._register_api_handler(capability_info):
+                success_count += 1
+
+        logger.info(f"✅ 设置ANP智能体并注册了 {success_count}/{len(self.anp_capabilities)} 个能力")
+        return success_count == len(self.anp_capabilities)
+
+    def wrap_capability(self, capability_name: str, anp_endpoint: str, method_name: str = None, methods: list = None):
         """包装现有能力为ANP接口"""
         if method_name is None:
             method_name = capability_name
-            
+
+        if methods is None:
+            methods = ["POST"]
+
+        # 验证输入参数
+        if not capability_name or not anp_endpoint:
+            logger.error("能力名称和端点不能为空")
+            return False
+
         if not hasattr(self.existing_agent, method_name):
             logger.error(f"现有智能体不存在方法: {method_name}")
             return False
-            
+
+        # 检查端点是否已存在
+        if anp_endpoint in self.capability_mapping:
+            logger.warning(f"端点 {anp_endpoint} 已存在，将覆盖原有映射")
+
+        # 获取原始方法
+        original_method = getattr(self.existing_agent, method_name)
+
         capability_info = {
             "name": capability_name,
             "endpoint": anp_endpoint,
             "method_name": method_name,
-            "original_method": getattr(self.existing_agent, method_name)
+            "methods": methods,
+            "original_method": original_method,
+            "wrapped_at": datetime.now().isoformat()
         }
-        
+
         self.anp_capabilities.append(capability_info)
         self.capability_mapping[anp_endpoint] = capability_info
-        
-        logger.info(f"包装能力: {capability_name} -> {anp_endpoint} -> {method_name}")
+
+        # 如果有ANP智能体引用，立即注册API处理器
+        if self.anp_agent:
+            success = self._register_api_handler(capability_info)
+            if success:
+                logger.info(f"✅ 包装并注册能力: {capability_name} -> {anp_endpoint} -> {method_name}")
+            else:
+                logger.error(f"❌ 包装成功但注册失败: {capability_name}")
+                return False
+        else:
+            logger.info(f"📦 包装能力: {capability_name} -> {anp_endpoint} (待注册)")
+
         return True
-    
-    async def handle_anp_request(self, endpoint: str, data: dict) -> dict:
-        """处理ANP请求并转发给原有智能体"""
-        logger.info(f"处理ANP请求: {endpoint}")
-        
-        if endpoint not in self.capability_mapping:
-            logger.error(f"未找到对应的能力映射: {endpoint}")
-            return {"error": f"未找到对应的能力: {endpoint}"}
-        
-        capability = self.capability_mapping[endpoint]
-        
+
+    def _register_api_handler(self, capability_info):
+        """内部方法：为包装的能力注册API处理器"""
         try:
-            # 提取消息内容
-            message = data.get("message", "")
-            if not message:
-                # 尝试从不同字段提取消息
-                message = data.get("content", data.get("task", data.get("prompt", "")))
-            
-            if not message:
-                return {"error": "请求中缺少消息内容"}
-            
-            # 调用原有智能体的方法
-            result = await capability["original_method"](message)
-            
-            logger.info(f"ANP请求处理完成: {endpoint}")
-            return {"result": result, "agent": self.existing_agent.name}
-            
+            endpoint = capability_info["endpoint"]
+            methods = capability_info["methods"]
+
+            async def wrapped_handler(request_data, request):
+                return await self._handle_wrapped_capability(capability_info, request_data, request)
+
+            # 使用 LocalAgent 的 expose_api 方法注册
+            self.anp_agent.expose_api(endpoint, wrapped_handler, methods=methods)
+
+            logger.debug(f"成功注册API处理器: {endpoint} ({', '.join(methods)})")
+            return True
+
         except Exception as e:
-            logger.error(f"ANP请求处理失败: {e}")
-            return {"error": str(e), "agent": self.existing_agent.name}
-    
+            logger.error(f"注册API处理器失败 {capability_info['name']}: {e}")
+            return False
+
+    async def _handle_wrapped_capability(self, capability_info, request_data, request):
+        """处理包装能力的请求"""
+        try:
+            capability_name = capability_info["name"]
+            original_method = capability_info["original_method"]
+
+            logger.info(f"处理包装能力请求: {capability_name}")
+            logger.debug(f"请求数据: {request_data}")
+            logger.debug(f"请求对象: {type(request)}")
+
+            # 解析请求数据 - 从 request_data 中提取消息
+            message = self._extract_message_from_request(request_data)
+
+            # 如果没有从 request_data 中提取到消息，尝试从 request 对象中获取
+            if not message and hasattr(request, 'json'):
+                try:
+                    request_body = await request.json()
+                    message = self._extract_message_from_request(request_body)
+                    logger.debug(f"从request对象提取的消息: {message}")
+                except Exception as e:
+                    logger.debug(f"无法从request对象解析JSON: {e}")
+
+            # 3. 如果还是没有消息，尝试从查询参数获取
+            if not message and hasattr(request, 'query_params'):
+                query_params = dict(request.query_params)
+                logger.debug(f"查询参数: {query_params}")
+                message = self._extract_message_from_request(query_params)
+
+            # 4. 如果仍然没有消息，使用默认值
+            if not message:
+                return {
+                    "status": "error",
+                    "capability": capability_info["name"],
+                    "error": "没有收到message",
+                    "agent": self.existing_agent.name,
+                    "timestamp": datetime.now().isoformat(),
+                    "endpoint": capability_info["endpoint"]
+                }
+
+            # 调用原始方法
+            result = await self._call_original_method(original_method, message)
+
+            # 包装返回结果 - 根据 anp_sdk_agent.py 的要求返回格式
+            response = {
+                "status": "success",
+                "capability": capability_name,
+                "result": result,
+                "agent": self.existing_agent.name,
+                "timestamp": datetime.now().isoformat(),
+                "endpoint": capability_info["endpoint"]
+            }
+
+            logger.info(f"✅ 包装能力执行成功: {capability_name}")
+            return response
+
+        except Exception as e:
+            logger.error(f"包装能力执行失败 {capability_info['name']}: {e}")
+            import traceback
+            logger.error(f"详细错误: {traceback.format_exc()}")
+
+            return {
+                "status": "error",
+                "capability": capability_info["name"],
+                "error": str(e),
+                "agent": self.existing_agent.name,
+                "timestamp": datetime.now().isoformat(),
+                "endpoint": capability_info["endpoint"]
+            }
+
+    def _extract_message_from_request(self, request_data):
+        """从请求数据中提取消息内容"""
+
+        # 如果 request_data 是字符串，直接返回
+        if isinstance(request_data, str):
+            return request_data
+
+        # 如果不是字典，转换为字符串
+        if not isinstance(request_data, dict):
+            return str(request_data) if request_data else ""
+
+
+
+        # 兼容不同的字段名
+        message = request_data.get("message") or \
+                  request_data.get("content") or \
+                  request_data.get("task") or \
+                  request_data.get("prompt") or \
+                  request_data.get("input") or \
+                  request_data.get("text", "")
+
+        # 如果没有找到消息，尝试将整个 request_data 作为参数
+        if not message:
+            # 过滤掉一些系统字段
+            filtered_data = {k: v for k, v in request_data.items()
+                             if k not in ['type', 'path', 'method', 'timestamp']}
+            if filtered_data:
+                message = filtered_data
+
+        logger.debug(f"提取的消息: {message}")
+        return message
+
+    async def _call_original_method(self, original_method, message):
+        """调用原始方法"""
+        try:
+            logger.debug(f"调用原始方法: {original_method.__name__}, 参数: {message}")
+
+            if asyncio.iscoroutinefunction(original_method):
+                # 异步方法
+                if message:
+                    if isinstance(message, dict) and len(message) > 0:
+                        # 如果消息是字典，尝试作为关键字参数传递
+                        try:
+                            return await original_method(**message)
+                        except TypeError as e:
+                            logger.debug(f"关键字参数调用失败: {e}, 尝试位置参数")
+                            # 如果关键字参数失败，作为位置参数传递
+                            return await original_method(message)
+                    else:
+                        return await original_method(message)
+                else:
+                    return await original_method()
+            else:
+                # 同步方法
+                if message:
+                    if isinstance(message, dict) and len(message) > 0:
+                        try:
+                            return original_method(**message)
+                        except TypeError as e:
+                            logger.debug(f"关键字参数调用失败: {e}, 尝试位置参数")
+                            return original_method(message)
+                    else:
+                        return original_method(message)
+                else:
+                    return original_method()
+
+        except Exception as e:
+            logger.error(f"调用原始方法失败: {e}")
+            import traceback
+            logger.error(f"详细错误: {traceback.format_exc()}")
+            raise
+
+    async def _parse_request_data(self, request):
+        """解析请求数据"""
+        try:
+            if hasattr(request, 'json'):
+                return await request.json()
+            elif isinstance(request, dict):
+                return request
+            else:
+                return {}
+        except Exception as e:
+            logger.warning(f"解析请求数据失败: {e}")
+            return {}
+
+
     def get_capabilities_info(self) -> dict:
         """获取包装后的能力信息"""
         return {
             "agent_name": self.existing_agent.name,
             "agent_identity": self.agent_identity,
-            "original_capabilities": self.existing_agent.capabilities,
+            "has_anp_agent": self.anp_agent is not None,
+            "original_capabilities": getattr(self.existing_agent, 'capabilities', []),
             "anp_capabilities": [
                 {
                     "name": cap["name"],
                     "endpoint": cap["endpoint"],
-                    "method": cap["method_name"]
+                    "method": cap["method_name"],
+                    "methods": cap["methods"],
+                    "wrapped_at": cap["wrapped_at"]
                 }
                 for cap in self.anp_capabilities
-            ]
+            ],
+            "total_wrapped": len(self.anp_capabilities)
         }
 
+    def remove_capability(self, capability_name: str) -> bool:
+        """移除已包装的能力"""
+        for i, cap in enumerate(self.anp_capabilities):
+            if cap["name"] == capability_name:
+                endpoint = cap["endpoint"]
+                # 从映射中移除
+                if endpoint in self.capability_mapping:
+                    del self.capability_mapping[endpoint]
+                # 从列表中移除
+                self.anp_capabilities.pop(i)
+                logger.info(f"✅ 移除能力: {capability_name}")
+                return True
+
+        logger.warning(f"未找到要移除的能力: {capability_name}")
+        return False
+
+    def list_capabilities(self) -> list:
+        """列出所有已包装的能力"""
+        return [
+            f"{cap['name']} -> {cap['endpoint']} ({', '.join(cap['methods'])})"
+            for cap in self.anp_capabilities
+        ]
+
+    def __str__(self):
+        return f"ANPAgentWrapper({self.existing_agent.name} -> {self.agent_identity}, {len(self.anp_capabilities)} capabilities)"
 
 # ============================================================================
 # ANP智能体适配器 - 让现有智能体'穿上'ANP通讯能力
@@ -481,7 +694,7 @@ class ANPToolCrawler:
         """创建代码搜索智能体的提示模板"""
         current_date = datetime.now().strftime("%Y-%m-%d")
         return f""" 
-        你是一个通用的智能代码工具。你的目标是根据用户输入要求调用工具完成代码任务。
+        你是一个代码工具的调用者。你的目标是根据用户输入要求去寻找调用工具完成代码任务。
 
         ## 当前任务
         {{task_description}}
@@ -772,7 +985,7 @@ class ANPToolCrawler:
                     url=url, method=method, headers=headers, params=params, body=body
                 )
             
-            logger.info(f"ANPTool 响应 [url: {url}]")
+            logger.info(f"ANPTool 响应 [url: {url}]\n{result}")
             
             visited_urls.add(url)
             crawled_documents.append({"url": url, "method": method, "content": result})
@@ -869,27 +1082,36 @@ async def assemble_existing_agent(sdk: ANPSDK) -> tuple:
     if not agent_identity:
         logger.error("无法为现有智能体分配ANP身份")
         return None, None
-    
-    # 3. 创建ANP包装器
-    wrapper = ANPAgentWrapper(existing_agent, agent_identity)
-    
-    # 4. 包装现有能力
-    wrapper.wrap_capability("generate_code", "/tasks/send", "generate_code")
-    wrapper.wrap_capability("process_message", "/communicate", "process_message") 
-    wrapper.wrap_capability("review_code", "/review", "review_code")
-    
-    # 5. 创建LocalAgent作为ANP适配器
+
+    # 3. 创建LocalAgent作为ANP适配器
     anp_agent = LocalAgent(sdk, agent_identity, existing_agent.name)
+    # 4. 创建ANP包装器
+    wrapper = ANPAgentWrapper(existing_agent, agent_identity,anp_agent)
     
-    # 6. 注册包装后的API处理器
-    register_wrapped_api_handlers(anp_agent, wrapper)
+    # 5. 包装现有能力
+    success1 = wrapper.wrap_capability("generate_code", "/tasks/send", "generate_code")
+    success2 = wrapper.wrap_capability("process_message", "/communicate", "process_message")
+
+    if not (success1 and success2):
+        logger.error("能力包装失败")
+        return None, None
+
     
-    # 7. 注册到SDK
+
+    # 6. 注册到SDK
     sdk.register_agent(anp_agent)
     
     logger.info(f"智能体 {existing_agent.name} 已成功组装到ANP网络")
-    logger.info(f"包装能力信息: {wrapper.get_capabilities_info()}")
-    
+    # 7. 显示包装信息
+    capabilities_info = wrapper.get_capabilities_info()
+    logger.info(f"📋 包装能力信息:")
+    logger.info(f"  - 原始智能体: {capabilities_info['agent_name']}")
+    logger.info(f"  - ANP身份: {capabilities_info['agent_identity']}")
+    logger.info(f"  - 包装能力数量: {capabilities_info['total_wrapped']}")
+
+    for cap in capabilities_info['anp_capabilities']:
+        logger.info(f"  - {cap['name']}: {cap['endpoint']} ({', '.join(cap['methods'])})")
+
     return anp_agent, wrapper
 
 
@@ -901,7 +1123,10 @@ def register_wrapped_api_handlers(anp_agent: LocalAgent, wrapper: ANPAgentWrappe
     async def wrapped_task_handler(request_data, request: Request):
         """包装后的任务处理器 - 代码生成"""
         try:
-            body = await request.json()
+            try:
+                body = await request.json()
+            except Exception:
+                body = {}
             message = extract_message_from_body(body)
             
             if not message:
@@ -928,7 +1153,10 @@ def register_wrapped_api_handlers(anp_agent: LocalAgent, wrapper: ANPAgentWrappe
     async def wrapped_communication_handler(request_data, request: Request):
         """包装后的通讯处理器"""
         try:
-            body = await request.json()
+            try:
+                body = await request.json()
+            except Exception:
+                body = {}
             message = extract_message_from_body(body)
             
             if not message:
@@ -1294,21 +1522,33 @@ async def run_multi_agent_collaboration_demo(sdk: ANPSDK, anp_agent: LocalAgent,
     if user_data:
         collaborator = LocalAgent(sdk, user_data.did,user_data.name)
         logger.info(f"找到协作智能体: {collaborator.name}")
-        
-        # 模拟智能体间协作
-        from anp_open_sdk.service.agent_message_p2p import agent_msg_post
-        
-        # 协作智能体向组装后的智能体发送消息
-        resp = await agent_msg_post(
-            sdk, 
-            collaborator.id, 
-            anp_agent.id, 
-            "你好，我需要一个计算斐波那契数列的Python函数"
-        )
-        logger.info(f"协作消息响应: {resp}")
-        
+
+        # 模拟智能体间协作 - 通过智能爬虫完成任务
+        # 创建爬虫实例
+        crawler = ANPToolCrawler(sdk)
+
+        # 协作智能体通过爬虫向组装后的智能体请求服务
+        task_description = "我需要一个计算斐波那契数列的Python函数，请帮我生成代码"
+
+        try:
+            result = await crawler.run_crawler_demo(
+                req_did=collaborator.id,  # 请求方是协作智能体
+                resp_did=anp_agent.id,  # 目标是组装后的智能体
+                task_input=task_description,
+                initial_url=f"http://localhost:{sdk.port}/wba/user/{anp_agent.id}/ad.json",
+                use_two_way_auth=True,  # 使用双向认证
+            )
+            logger.info(f"智能协作结果: {result}")
+            return
+
+        except Exception as e:
+            logger.error(f"智能协作过程中出错: {e}")
+            return
+
     else:
         logger.info("未找到协作智能体，跳过协作演示")
+        return
+
 
 
 async def cleanup_assembled_resources(sdk: ANPSDK, anp_agent: LocalAgent):
@@ -1418,7 +1658,7 @@ async def main_assemble_demo():
             "assembled_quicksort_demo.json"
         )
             # 演示2: 测试智能体适配器模式
-        logger.info("\n=== 演示3: 智能体适配器模式演示 ===")
+        logger.info("\n=== 演示2: 智能体适配器模式演示 ===")
         adapter_agent = await adapter_demo(sdk)
         if adapter_agent:
             await run_assembled_agent_crawler_demo(
@@ -1428,7 +1668,7 @@ async def main_assemble_demo():
                 "adapter_decorator_demo.json"
             )
             
-        logger.info("\n=== 演示4: Web智能体 - 天气查询功能 ===")
+        logger.info("\n=== 演示3: Web智能体 - 天气查询功能 ===")
         await run_web_agent_crawler_demo(
             crawler,
             "查询北京天津上海今天的天气",
@@ -1438,7 +1678,7 @@ async def main_assemble_demo():
 
         
         # 演示3: 多智能体协作
-        logger.info("\n=== 演示5: 多智能体协作演示 ===")
+        logger.info("\n=== 演示4: 多智能体协作演示 ===")
         await run_multi_agent_collaboration_demo(sdk, anp_agent, wrapper)
         
         logger.info("\n=== 智能体组装演示完成 ===")
