@@ -118,7 +118,7 @@ paths:
                 type: object
   /wba/user/{resp_did}/{jsonrpc_file_name}.json:
     get:
-      summary: Get agent OpenAPI YAML
+      summary: Get agent JSON-RPC
       operationId: get__wba_user_resp_did_jsonrpc_file_name.json
       parameters:
       - name: req_did

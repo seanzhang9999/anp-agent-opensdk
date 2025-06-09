@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="style.css">
+  <title>MCP Chat</title>
+</head>
+<body>
+  <div id="app">
+    <!-- 头部 -->
+    <div class="header">
+      <h1>MCP Chat</h1>
+      <div class="connection-status">
+        <span id="status-indicator" class="status-indicator disconnected" aria-label="连接状态指示器"></span>
+        <span id="status-text">Disconnected</span>
+      </div>
+    </div>
+
+    <!-- 配置面板 -->
+    <div id="config-panel" class="config-panel">
+      <div class="config-row">
+        <label for="server-url">MCP Server:</label>
+        <input type="text" 
+               id="server-url" 
+               value="http://localhost:8000"
+               title="MCP服务器地址"
+               placeholder="http://localhost:8000"
+               aria-describedby="server-url-help">
+        <small id="server-url-help" class="help-text">MCP服务器的URL地址</small>
+      </div>
+      <div class="config-row">
+        <label for="did-provider-url">DID Provider:</label>
+        <input type="text" 
+               id="did-provider-url" 
+               value="http://localhost:9511"
+               title="DID Provider服务器地址"
+               placeholder="http://localhost:9511"
+               aria-describedby="did-provider-help">
+        <small id="did-provider-help" class="help-text">DID认证服务器的URL地址</small>
+      </div>
+      <div class="config-actions">
+        <button id="connect-btn" class="btn btn-primary" title="连接到MCP服务">Connect</button>
+        <button id="test-connection-btn" class="btn btn-secondary" title="测试服务器连接">Test</button>
+      </div>
+    </div>
+
+    <!-- 聊天区域 -->
+    <div id="chat-container" class="chat-container">
+      <div id="messages" class="messages" role="log" aria-live="polite" aria-label="聊天消息历史"></div>
+      <div class="input-container">
+        <label for="message-input" class="sr-only">输入消息</label>
+        <input type="text" 
+               id="message-input" 
+               placeholder="输入消息或命令..."
+               title="输入要发送的消息"
+               aria-describedby="message-input-help" />
+        <small id="message-input-help" class="sr-only">输入消息后按回车或点击发送按钮</small>
+        <button id="send-btn" class="btn btn-primary" title="发送消息">Send</button>
+      </div>
+    </div>
+
+    <!-- 工具面板 -->
+    <div id="tools-panel" class="tools-panel hidden" role="region" aria-label="可用工具">
+      <h3>Available Tools</h3>
+      <!-- 修复：移除role="list"，或者确保正确的子元素结构 -->
+      <div id="tools-list" class="tools-list" aria-label="工具列表">
+        <div class="loading" role="status" aria-live="polite">Loading tools...</div>
+      </div>
+    </div>
+
+    <!-- 状态栏 -->
+    <div class="status-bar" role="status" aria-live="polite">
+      <span id="status-message">Ready to connect</span>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

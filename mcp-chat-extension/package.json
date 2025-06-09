@@ -1,0 +1,21 @@
+{
+  "name": "mcp-chat-extension",
+  "version": "1.0.0",
+  "description": "Browser extension for MCP (Model Context Protocol) chat client",
+  "main": "src/background.js",
+  "scripts": {
+    "build": "node scripts/build.js",
+    "dev": "node scripts/build.js --dev",
+    "package": "npm run build && node scripts/package.js",
+    "clean": "rimraf dist"
+  },
+  "keywords": ["mcp", "chat", "browser-extension", "did", "authentication"],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "fs-extra": "^11.1.1",
+    "archiver": "^6.0.1",
+    "rimraf": "^5.0.5"
+  },
+  "dependencies": {}
+}
