@@ -3,6 +3,14 @@ anp_open_sdk/anp_users_hosted/*
 !anp_open_sdk/anp_users/user_hosted_agent-did.com*
 !anp_open_sdk/anp_users/user_hosted_agent-did.com*/*
 anp_open_sdk/testuse/*
+mcp-chat-extension/node_modules/
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
