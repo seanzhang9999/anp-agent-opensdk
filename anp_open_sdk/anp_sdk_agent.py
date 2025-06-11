@@ -13,19 +13,17 @@
 # limitations under the License.
 from starlette.responses import JSONResponse
 
-from anp_open_sdk.anp_sdk_publisher_mail_backend import EnhancedMailManager
-from anp_open_sdk.config.dynamic_config import dynamic_config,get_config_value
+from anp_open_sdk.service.anp_sdk_publisher_mail_backend import EnhancedMailManager
+from anp_open_sdk.config.dynamic_config import get_config_value
 import os
 import json
 from datetime import datetime
-from anp_open_sdk.config.path_resolver import path_resolver
 import inspect
-from typing import Dict, Any, Callable, Optional, Union, List
-from warnings import simplefilter
+from typing import Dict, Any, Callable
 from loguru import logger
 from fastapi import Request
 
-from anp_open_sdk.anp_sdk_tool import get_user_dir_did_doc_by_did
+from anp_open_sdk.anp_sdk_userdata_tool import get_user_dir_did_doc_by_did
 from anp_open_sdk.config.dynamic_config import dynamic_config
 import asyncio
 import nest_asyncio
@@ -348,7 +346,7 @@ class LocalAgent:
             token: 生成的token
             expires_delta: 过期时间（秒）
         """
-        from datetime import datetime, timedelta, timezone
+        from datetime import datetime, timezone
         now = datetime.now(timezone.utc)
         """存储颁发给其他方的token信息
         
@@ -494,7 +492,7 @@ class LocalAgent:
     async def register_hosted_did(self,sdk):
         """注册托管DID，将 did_document 邮件发送申请开通"""
         try:
-            from anp_open_sdk.anp_sdk_publisher_mail_backend import EnhancedMailManager
+            from anp_open_sdk.service.anp_sdk_publisher_mail_backend import EnhancedMailManager
             
             user_data_manager = sdk.user_data_manager
             user_data = user_data_manager.get_user_data(self.id)

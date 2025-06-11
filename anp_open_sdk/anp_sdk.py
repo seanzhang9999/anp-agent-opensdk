@@ -11,142 +11,35 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from math import lgamma
+from anp_open_sdk.anp_user_tool import LocalUserDataManager
 from anp_open_sdk.config.dynamic_config import get_config_value
-import os
 import urllib.parse
 import os
 import time
-import logging
-import threading
 import asyncio
 import json
-import aiohttp
-from datetime import datetime, timedelta
-from typing import Dict, Any, Callable, Optional, Union, List, Type
-from enum import Enum
+from datetime import datetime
+from typing import Dict, Any, Optional, List
 from fastapi.middleware.cors import CORSMiddleware
-import inspect
-import yaml
-import pathlib
 
 # 安全中间件
-from anp_open_sdk.anp_sdk_tool import get_user_dir_did_doc_by_did
 from anp_open_sdk.auth.auth_middleware import auth_middleware
-from anp_open_sdk.anp_sdk_tool import path_resolver
 
 # 路由模块导入
 from anp_open_sdk.service import router_auth, router_did, router_publisher
 
 # 导入ANP核心组件
 from anp_open_sdk.config.dynamic_config import dynamic_config
-from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect, Response, FastAPI
+from fastapi import Request, WebSocket, WebSocketDisconnect, FastAPI
 from fastapi.responses import StreamingResponse
 
 # 配置日志
 from loguru import logger
 
-from anp_open_sdk.anp_sdk_agent import RemoteAgent
 from anp_open_sdk.anp_sdk_agent import LocalAgent
 
 # Group SDK
-from anp_open_sdk.anp_sdk_group_runner import GroupManager, GroupRunner, Message, MessageType, Agent
-
-class LocalUserData:
-    """存储单个用户的配置、DID文档和密码文件路径"""
-    def __init__(self, folder_name: str, agent_cfg: Dict[str, Any], did_doc: Dict[str, Any], did_doc_path, password_paths: Dict[str, str] , user_folder_path):
-        self.folder_name = folder_name
-        self.agent_cfg = agent_cfg
-        self.did_doc = did_doc
-        self.password_paths = password_paths
-        self.did = did_doc.get("id")
-        self.name = agent_cfg.get("name")
-        self.unique_id = agent_cfg.get("unique_id")
-        self.user_dir = user_folder_path
-        self.did_doc_path=did_doc_path
-        
-        self.did_private_key_file_path=password_paths.get("did_private_key_file_path")
-        self.did_public_key_file_path=password_paths.get("did_public_key_file_path")
-        self.jwt_private_key_file_path=password_paths.get("jwt_private_key_file_path")
-        self.jwt_public_key_file_path=password_paths.get("jwt_public_key_file_path")
-        self.key_id = dynamic_config.get('anp_sdk.user_did_key_id')
-
-
-class LocalUserDataManager:
-    """管理本地用户数据，加载配置和DID文档"""
-    def __init__(self, user_dir: Optional[str] = None):
-        self.user_dir = user_dir or dynamic_config.get('anp_sdk.user_did_path')
-        self.users: Dict[str, LocalUserData] = {}
-        self.load_users()
-
-    def load_users(self):
-        """遍历用户目录，加载每个用户的数据"""
-        if not os.path.isdir(self.user_dir):
-            logger.warning(f"用户目录不存在: {self.user_dir}")
-            return
-
-        for entry in os.scandir(self.user_dir):
-            if entry.is_dir() and (entry.name.startswith('user_') or entry.name.startswith('user_hosted_')):
-                user_folder_path = entry.path
-                folder_name = entry.name
-                try:
-                    # 读取 agent_cfg.yaml
-                    cfg_path = os.path.join(user_folder_path, 'agent_cfg.yaml')
-                    agent_cfg = {}
-                    if os.path.exists(cfg_path):
-                        with open(cfg_path, 'r', encoding='utf-8') as f:
-                            agent_cfg = yaml.safe_load(f)
-
-                    # 读取 did_document.json
-                    did_doc_path = os.path.join(user_folder_path, 'did_document.json')
-                    did_doc = {}
-                    if os.path.exists(did_doc_path):
-                        with open(did_doc_path, 'r', encoding='utf-8') as f:
-                            did_doc = json.load(f)
-                    key_id = dynamic_config.get('anp_sdk.user_did_key_id')
-
-                    # 获取密码文件路径
-                    did_private_key_file_path = os.path.join(user_folder_path, f"{key_id}_private.pem")
-                    did_public_key_file_path = os.path.join(user_folder_path, f"{key_id}_public.pem")
-                    jwt_private_key_file_path = os.path.join(user_folder_path, 'private_key.pem')
-                    jwt_public_key_file_path = os.path.join(user_folder_path, 'public_key.pem')
-                    password_paths = {
-                        "did_private_key_file_path": did_private_key_file_path,
-                        "did_public_key_file_path": did_public_key_file_path,
-                        "jwt_private_key_file_path": jwt_private_key_file_path,
-                        "jwt_public_key_file_path": jwt_public_key_file_path
-                    }
-
-                    # 创建 LocalUserData 对象并存储
-                    if did_doc and agent_cfg:
-                         user_data = LocalUserData(folder_name, agent_cfg, did_doc, did_doc_path, password_paths,user_folder_path)
-                         self.users[user_data.did] = user_data
-                    # else:
-                         # logger.warning(f"跳过加载用户数据 (缺少 agent_cfg.yaml 或 did_document.json): {folder_name}")
-
-                except Exception as e:
-                    logger.error(f"加载用户数据失败 ({folder_name}): {e}")
-            else:
-                logger.warning(f"不合格的文件或文件夹: {entry.name}")
-
-        
-        logger.info(f"加载用户数据共 {len(self.users)} 个用户")
-
-
-    def get_user_data(self, did: str) -> Optional[LocalUserData]:
-        """根据DID获取用户数据"""
-        return self.users.get(did)
-
-    def get_all_users(self) -> List[LocalUserData]:
-        """获取所有加载的用户数据"""
-        return list(self.users.values())
-
-    def get_user_data_by_name(self, name: str) -> Optional[LocalUserData]:
-        """根据智能体名称获取用户数据"""
-        for user_data in self.users.values():
-            if user_data.name == name:
-                return user_data
-        return None
+from anp_open_sdk.service.anp_sdk_group_runner import GroupManager, GroupRunner, Message, MessageType, Agent
 
 
 class ANPSDK:
@@ -256,8 +149,8 @@ class ANPSDK:
         return self.group_manager.list_groups()
 
     async def check_did_host_request(self):
-        from anp_open_sdk.anp_sdk_publisher_mail_backend import EnhancedMailManager
-        from anp_open_sdk.anp_sdk_publisher import DIDManager
+        from anp_open_sdk.service.anp_sdk_publisher_mail_backend import EnhancedMailManager
+        from anp_open_sdk.service.anp_sdk_publisher import DIDManager
         
         try:
             use_local = get_config_value('USE_LOCAL_MAIL', False)

@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "LLM Chat Extension",
+  "version": "1.0.0",
+  "description": "一个极简的 LLM 聊天 Chrome 扩展，支持自定义 OpenAI 兼容 API。",
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icon16.png",
+      "48": "icon48.png",
+      "128": "icon128.png"
+    }
+  },
+  "permissions": [
+    "storage"
+  ],
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+}

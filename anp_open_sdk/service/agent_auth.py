@@ -21,8 +21,8 @@ from urllib.parse import urlencode, quote
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
 from anp_open_sdk.anp_sdk_agent import LocalAgent
-from anp_open_sdk.anp_sdk_tool import get_response_DIDAuthHeader_Token
-from anp_open_sdk.auth.did_auth import send_authenticated_request, send_request_with_token, DIDWbaAuthHeader
+from anp_open_sdk.auth.did_auth import send_authenticated_request, send_request_with_token, DIDWbaAuthHeader, \
+    get_response_DIDAuthHeader_Token
 from loguru import logger
 from anp_open_sdk.auth.custom_did_resolver import resolve_local_did_document
 from agent_connect.authentication.did_wba import resolve_did_wba_document

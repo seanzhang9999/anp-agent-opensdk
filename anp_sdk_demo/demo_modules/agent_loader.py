@@ -1,6 +1,7 @@
 from typing import List, Optional
 from loguru import logger
-from anp_open_sdk.anp_sdk import ANPSDK, LocalAgent, LocalUserDataManager
+from anp_open_sdk.anp_sdk import ANPSDK, LocalAgent
+from anp_open_sdk.anp_user_tool import LocalUserDataManager
 from anp_open_sdk.config.dynamic_config import dynamic_config
 
 

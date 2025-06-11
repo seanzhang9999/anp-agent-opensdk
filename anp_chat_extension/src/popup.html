@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title></title>
+</head>
+<body>
+
+  <!-- Login View (Initially Visible) -->
+  <div id="login-view" class="view">
+    <div class="container">
+      <h2>Login to Personal Agent</h2>
+      <form id="login-form">
+        <div class="config-row">
+          <label for="username">Username</label>
+          <input type="text" id="username" name="username" required value="anp_user">
+        </div>
+        <div class="config-row">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" required value="anp_666">
+        </div>
+        <button type="submit" class="btn">Login</button>
+        <p id="login-error" class="error-message"></p>
+      </form>
+    </div>
+  </div>
+
+  <!-- Main App View (Initially Hidden) -->
+  <div id="main-view" class="view" style="display: none;">
+    <div class="header">
+      <div>
+        <div id="user-info"></div>
+        <div id="user-did" style="font-size: 12px; color: #888;"></div>
+      </div>
+      <div class="header-buttons">
+        <button id="settings-btn" class="btn">Settings</button>
+        <button id="logout-btn" class="btn">Logout</button>
+      </div>
+    </div>
+
+    <!-- 配置面板 -->
+    <div id="config-panel" class="panel" style="display:none;">
+      <h3>LLM 配置</h3>
+      <form id="config-form">
+        <label>API Base: <input id="api-base" type="text" placeholder="API Base URL"></label><br>
+        <label>API Key: <input id="api-key" type="text" placeholder="API Key"></label><br>
+        <label>Model: <input id="model" type="text" placeholder="模型" value="gpt-3.5-turbo"></label><br>
+        <button type="submit">保存配置</button>
+        <button type="button" id="close-config-btn">关闭</button>
+      </form>
+    </div>
+
+    <div id="chat-container">
+      <!-- Chat Mode Switcher -->
+      <div id="chat-mode-switcher">
+        <div id="mode-generic" class="chat-mode active-mode" data-mode="generic">Generic LLM</div>
+        <div id="mode-agent" class="chat-mode" data-mode="agent">Personal Agent</div>
+      </div>
+      <div id="messages"></div>
+      <div id="input-container">
+        <form id="message-form">
+          <input id="message-input" type="text" placeholder="输入消息..." required>
+          <button type="submit">发送</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

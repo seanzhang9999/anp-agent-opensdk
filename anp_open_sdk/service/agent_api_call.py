@@ -28,12 +28,11 @@ from urllib.parse import urlencode, quote
 from loguru import logger
 from anp_open_sdk.config.dynamic_config import dynamic_config
 from anp_open_sdk.anp_sdk import RemoteAgent,LocalAgent
-from anp_open_sdk.anp_sdk_tool import handle_response
 from anp_open_sdk.service.agent_auth import agent_auth_two_way
 from anp_open_sdk.service.agent_auth import check_response_DIDAtuhHeader
-from anp_open_sdk.auth.did_auth import send_authenticated_request, send_request_with_token
+from anp_open_sdk.auth.did_auth import send_authenticated_request, send_request_with_token, \
+    get_response_DIDAuthHeader_Token, handle_response
 from anp_open_sdk.agent_connect_hotpatch.authentication.did_wba_auth_header import DIDWbaAuthHeader
-from anp_open_sdk.anp_sdk_tool import get_response_DIDAuthHeader_Token
 
 
 async def agent_api_call_post(sdk, caller_agent: str, target_agent: str, api_path: str, params: Optional[Dict] = None) -> Dict:

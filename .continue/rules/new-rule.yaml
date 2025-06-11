@@ -3,4 +3,4 @@ version: 0.0.1
 schema: v1
 rules:
   - Always give concise responses
-  - 中文回复
+  - always use chinese response

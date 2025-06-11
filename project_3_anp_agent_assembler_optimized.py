@@ -375,8 +375,8 @@ class ANPAgentWrapper:
             return user_data.did
         
         # 2. 创建新身份
-        from anp_open_sdk.anp_sdk_tool import did_create_user
-        
+        from anp_open_sdk.anp_sdk_userdata_tool import did_create_user
+
         temp_user_params = {
             'name': self.existing_agent.name,
             'host': self.agent_config.get('host', 'localhost'),
@@ -1027,9 +1027,9 @@ async def assemble_existing_agent(sdk: ANPSDK) -> ANPAgentWrapper:
 async def configure_agent_interfaces(anp_agent: LocalAgent):
     """步骤3: 配置智能体ANP通讯接口"""
     logger.info("步骤3: 配置智能体ANP通讯接口")
-    
-    from anp_open_sdk.anp_sdk_tool import get_user_dir_did_doc_by_did
-    
+
+    from anp_open_sdk.anp_sdk_userdata_tool import get_user_dir_did_doc_by_did
+
     # 获取用户目录
     success, did_doc, user_dir = get_user_dir_did_doc_by_did(anp_agent.id)
     if not success:
@@ -1360,8 +1360,8 @@ async def cleanup_assembled_resources(sdk: ANPSDK, wrapper: ANPAgentWrapper):
     logger.info("步骤4: 清理组装后的智能体资源")
     
     try:
-        from anp_open_sdk.anp_sdk_tool import get_user_dir_did_doc_by_did
-        
+        from anp_open_sdk.anp_sdk_userdata_tool import get_user_dir_did_doc_by_did
+
         # 获取用户目录
         success, _, user_dir = get_user_dir_did_doc_by_did(wrapper.anp_agent.id)
         if not success:

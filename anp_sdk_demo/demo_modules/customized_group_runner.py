@@ -3,8 +3,8 @@ import time
 import os
 from typing import Dict, Any
 from datetime import datetime
-from anp_open_sdk.anp_sdk_group_runner import GroupRunner, Message, MessageType, Agent
-from anp_open_sdk.anp_sdk_tool import path_resolver
+from anp_open_sdk.service.anp_sdk_group_runner import GroupRunner, Message, MessageType, Agent
+from anp_open_sdk.config.path_resolver import path_resolver
 
 
 class FileLoggingGroupRunner(GroupRunner):

@@ -25,9 +25,11 @@ from urllib.parse import urlencode, quote
 from anp_open_sdk.config.dynamic_config import dynamic_config
 from loguru import logger
 from anp_open_sdk.anp_sdk import RemoteAgent
-from anp_open_sdk.anp_sdk_tool import handle_response
 from anp_open_sdk.service.agent_auth import agent_auth_two_way
-from anp_open_sdk.auth.did_auth import send_authenticated_request, send_request_with_token, DIDWbaAuthHeader
+from anp_open_sdk.auth.did_auth import send_authenticated_request, send_request_with_token, DIDWbaAuthHeader, \
+    handle_response
+
+
 async def agent_msg_post(sdk, caller_agent:str , target_agent :str, content: str, message_type: str = "text"):
     """发送消息给目标智能体
     

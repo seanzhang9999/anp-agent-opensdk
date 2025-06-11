@@ -3,6 +3,12 @@ llm:
   default_model: deepseek/deepseek-chat-v3-0324:free
   max_tokens: 512
   system_prompt: 你是一个智能助手，请根据用户的提问进行专业、简洁的回复。
+
+anp_user_service:
+  user_did_path: anp_user_service/anp_users
+  model_name: gpt-4.1-nano
+  temperature: 0.3
+  api_base: https://api.302ai.cn/v1
 agent:
   bookmark_dir: anp_core/anp_bookmark
   default_greeting: ANPbot的问候，请二十字内回复我

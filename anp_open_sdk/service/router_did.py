@@ -18,7 +18,7 @@ DID document API router.
 from fastapi.responses import JSONResponse
 import sys
 import os
-from anp_open_sdk.anp_sdk_tool import get_user_dir_did_doc_by_did
+from anp_open_sdk.anp_sdk_userdata_tool import get_user_dir_did_doc_by_did, get_agent_cfg_by_user_dir
 from urllib3 import response
 
 from anp_open_sdk.anp_sdk_agent import LocalAgent
@@ -87,8 +87,6 @@ async def get_agent_description(resp_did: str, request: Request) -> Dict:
     if agent.is_hosted_did:
         raise HTTPException(status_code=403, detail=f"{resp_did} is hosted did")
 
-    
-    from anp_open_sdk.anp_sdk_tool import get_agent_cfg_by_user_dir
     user_cfg = get_agent_cfg_by_user_dir(user_dir)
     
     # 获取基础端点

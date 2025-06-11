@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+pydantic
+python-dotenv
+httpx
+# Add anp_open_sdk if it's a pip-installable package, otherwise ensure PYTHONPATH
+# For example, if anp_open_sdk is in the parent directory:
+# You might need to adjust your PYTHONPATH environment variable when running the backend:
+# export PYTHONPATH=$PYTHONPATH:/path/to/mcp-chat-extension/

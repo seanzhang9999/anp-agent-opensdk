@@ -466,9 +466,9 @@ class ANPToolCrawler:
 async def create_python_agent(sdk: ANPSDK):
     """创建Python代码生成智能体"""
     logger.info("步骤1: 创建Python代码生成智能体")
-    
-    from anp_open_sdk.anp_sdk_tool import did_create_user
-    
+
+    from anp_open_sdk.anp_sdk_userdata_tool import did_create_user
+
     # 创建临时用户参数
     temp_user_params = {
         'name': 'Python任务智能体',
@@ -554,9 +554,9 @@ def register_agent_api_handlers(sdk: ANPSDK, python_agent: LocalAgent):
 async def configure_agent_interfaces(python_agent: LocalAgent):
     """配置智能体API和接口描述"""
     logger.info("步骤3: 配置智能体接口")
-    
-    from anp_open_sdk.anp_sdk_tool import get_user_dir_did_doc_by_did
-    
+
+    from anp_open_sdk.anp_sdk_userdata_tool import get_user_dir_did_doc_by_did
+
     # 获取用户目录
     success, did_doc, user_dir = get_user_dir_did_doc_by_did(python_agent.id)
     if not success:
@@ -815,8 +815,8 @@ async def cleanup_resources(sdk: ANPSDK, python_agent: LocalAgent):
     logger.info("步骤6: 清理临时资源")
     
     try:
-        from anp_open_sdk.anp_sdk_tool import get_user_dir_did_doc_by_did
-        
+        from anp_open_sdk.anp_sdk_userdata_tool import get_user_dir_did_doc_by_did
+
         # 获取用户目录
         success, _, user_dir = get_user_dir_did_doc_by_did(python_agent.id)
         if not success:

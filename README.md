@@ -233,7 +233,8 @@ async def run_all_demos(self):
 1. 创建 DID 身份，此时在anp_open_sdk/anp_users建立DID用户目录，存储密钥/did doc/配置文件
 
    ```python
-      from anp_open_sdk.anp_sdk_tool import did_create_user
+
+from anp_open_sdk.anp_sdk_userdata_tool import did_create_user
         params = {
             'name': 'MyAgent',
             'host': 'localhost',

@@ -123,8 +123,10 @@ Parameters:
 ### Basic Integration Steps
 
 1. **Create DID Identity**
+
 ```python
-from anp_open_sdk.anp_sdk_tool import did_create_user
+
+from anp_open_sdk.anp_sdk_userdata_tool import did_create_user
 
 params = {
     'name': 'MyAgent',

@@ -109,7 +109,7 @@ class DemoTaskRunner:
 
     async def run_agent_lifecycle_demo(self, agent1,agent2,agent3):
         # 导入必要的模块
-        from anp_open_sdk.anp_sdk_tool import did_create_user, get_user_dir_did_doc_by_did
+        from anp_open_sdk.anp_sdk_user_data import did_create_user, get_user_dir_did_doc_by_did
         from anp_open_sdk.anp_sdk_agent import LocalAgent
         from anp_open_sdk.config.dynamic_config import dynamic_config
         from pathlib import Path
@@ -421,7 +421,9 @@ class DemoTaskRunner:
 
         提供详细的信息和清晰的解释，帮助用户理解你找到的信息和你的建议。
         """
-        
+        # 获取 did_document_path, private_key_path
+        did_document_path = user_data.did_doc_path
+        private_key_path = user_data.jwt_private_key_file_path
         
 
         # 调用通用智能爬虫
@@ -433,8 +435,8 @@ class DemoTaskRunner:
             user_input=task["input"],
             initial_url=search_agent_url,
             prompt_template=SEARCH_AGENT_PROMPT_TEMPLATE,
-            did_document_path=agent_anptool.did_document_path,
-            private_key_path=agent_anptool.private_key_path,
+            did_document_path=did_document_path,
+            private_key_path=private_key_path,
             task_type=task["type"],
             max_documents=10,
             agent_name="搜索智能体"
