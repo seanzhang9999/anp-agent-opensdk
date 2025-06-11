@@ -15,168 +15,100 @@
 """
 Authentication middleware module.
 """
+
 import logging
-from typing import List, Optional, Callable
-import re
+from typing import Optional, Callable, Dict, Any
+import fnmatch
+import json
 from fastapi import Request, HTTPException, Response
 from fastapi.responses import JSONResponse
-from pydantic_core.core_schema import none_schema
-from anp_open_sdk.auth.did_auth import handle_did_auth, get_and_validate_domain
-from anp_open_sdk.auth.token_auth import handle_bearer_auth
-import json
-import fnmatch
-# from anp_open_sdk.anp_sdk import ANPSDK
 
-# Define exempt paths that don't require authentication
-
+from .base_auth import BaseDIDAuthenticator
+from .schemas import AuthenticationContext
 EXEMPT_PATHS = [
-    "/docs",
-    "/anp-nlp/",
-    "/ws/",
-    "/publisher/agents",
-    "/agent/group/*",
-    "/redoc", 
-    "/openapi.json",
-    "/wba/hostuser/*",
-    "/wba/user/*",  # Allow access to DID documents
-    "/",           # Allow access to root endpoint
-    "/favicon.ico",
-    "/agents/example/ad.json"  # Allow access to agent description
-]  # "/wba/test" path removed from exempt list, now requires authentication
-
-
-async def verify_auth_header(request: Request , sdk = None) -> dict:
-    """
-    Verify authentication header and return authenticated user data.
-    
-    Args:
-        request: FastAPI request object
-        
-    Returns:
-        dict: Authenticated user data
-        
-    Raises:
-        HTTPException: When authentication fails
-    """
-    from anp_open_sdk.anp_sdk import ANPSDK
-    from anp_open_sdk.auth.did_auth import handle_did_auth, get_and_validate_domain
-    # Get authorization header
-    req_did = None
-    auth_header = request.headers.get("Authorization")
-    match = re.search(r'did="([^"]+)"', auth_header)
-    if match:
-        req_did = match.group(1)  # 提取 DID 值
-    match = re.search(r'resp_did="([^"]+)"', auth_header)
-    if match:
-        resp_did = match.group(1)  # 提取 DID 值
-
-    if req_did is None:
-            raise HTTPException(status_code=401, detail="Missing req_did in headers or query parameters")
-    # Check if authorization header is present
-
-    if not auth_header:
-        raise HTTPException(status_code=401, detail="Missing authorization header")
-    
-    # Handle DID WBA authentication
-    if not auth_header.startswith("Bearer "):
-        domain = get_and_validate_domain(request)
-        result = await handle_did_auth(auth_header, domain,request , sdk)
-        return result
-    
-    # Handle Bearer token authentication
-    
-    return await handle_bearer_auth(auth_header,req_did,resp_did , sdk)
-
+    "/docs", "/anp-nlp/", "/ws/", "/publisher/agents", "/agent/group/*",
+    "/redoc", "/openapi.json", "/wba/hostuser/*", "/wba/user/*", "/", "/favicon.ico",
+    "/agents/example/ad.json"
+]
 def is_exempt(path):
     return any(fnmatch.fnmatch(path, pattern) for pattern in EXEMPT_PATHS)
 
-async def authenticate_request(request: Request , sdk= None) -> Optional[dict]:
-    """
-    Authenticate a request and return user data if successful.
-    
-    Args:
-        request: FastAPI request object
-        
-    Returns:
-        Optional[dict]: Authenticated user data or None for exempt paths
-        
-    Raises:
-        HTTPException: When authentication fails
-    """
-    # Log request path and headers for debugging
+def create_authenticator(auth_method: str = "wba") -> BaseDIDAuthenticator:
+    if auth_method == "wba":
+        from .wba_auth import WBADIDResolver, WBADIDSigner, WBAAuthHeaderBuilder, WBADIDAuthenticator
+        resolver = WBADIDResolver()
+        signer = WBADIDSigner()
+        header_builder = WBAAuthHeaderBuilder()
+        return WBADIDAuthenticator(resolver, signer, header_builder)
+    else:
+        raise ValueError(f"Unsupported authentication method: {auth_method}")
 
-    
-    # 特别检查 /wba/test 路径，确保它不被视为免认证
+class AgentAuthServer:
+    def __init__(self, authenticator: BaseDIDAuthenticator):
+        self.authenticator = authenticator
+
+    async def verify_request(self, request: Request) -> (bool, str, Dict[str, Any]):
+        auth_header = request.headers.get("Authorization")
+        if not auth_header:
+            raise HTTPException(status_code=401, detail="Missing Authorization header")
+        context = AuthenticationContext(
+            caller_did=None,
+            target_did=None,
+            request_url=str(request.url),
+            method=request.method,
+            custom_headers=dict(request.headers),
+            json_data=None,
+            use_two_way_auth=True
+        )
+        try:
+            success, msg = await self.authenticator.verify_response(auth_header, context)
+            return success, msg, dict()
+        except Exception as e:
+                logging.error(f"服务端认证验证失败: {e}")
+                return False, str(e), {}
+
+async def authenticate_request(request: Request, auth_server: AgentAuthServer) -> Optional[dict]:
     if request.url.path == "/wba/auth":
-        logging.info(f"安全中间件拦截/wba/auth进行did认证兼token颁发或token校验")
-        result = await verify_auth_header(request,sdk)
-        return result
+        logging.info(f"安全中间件拦截/wba/auth进行认证")
+        success, msg, extra = await auth_server.verify_request(request)
+        if not success:
+            raise HTTPException(status_code=401, detail=f"认证失败: {msg}")
+        return extra
     else:
         for exempt_path in EXEMPT_PATHS:
-            # logging.info(f"Checking if {request.url.path} matches exempt path {exempt_path}")
-            # 特殊处理根路径"/"，它只应该精确匹配
-            if exempt_path == "/":
-                if request.url.path == "/":
-            #        logging.info(f"Path {request.url.path} is exempt from authentication (matched root path)")
-                    return None
-            # 其他路径的匹配逻辑
+            if exempt_path == "/" and request.url.path == "/":
+                return None
             elif request.url.path == exempt_path or (exempt_path.endswith('/') and request.url.path.startswith(exempt_path)):
                 return None
             elif is_exempt(request.url.path):
-            #    logging.info(f"Path {request.url.path} is exempt from authentication (matched {exempt_path})")
                 return None
-    
     logging.info(f"安全中间件拦截检查url:\n{request.url}")
-    result = await verify_auth_header(request , sdk)
-    return result
+    success, msg, extra = await auth_server.verify_request(request)
+    if not success:
+        raise HTTPException(status_code=401, detail=f"认证失败: {msg}")
+    return extra
 
-
-async def auth_middleware(request: Request, call_next: Callable, sdk = None) -> Response:
-    """
-    Authentication middleware for FastAPI.
-    
-    Args:
-        request: FastAPI request object
-        call_next: Next middleware or endpoint handler
-        
-    Returns:
-        Response: API response
-    """
+async def auth_middleware(request: Request, call_next: Callable, auth_method: str = "wba") -> Response:
     try:
-        # Add user data to request state if authenticated
-        response_auth = await authenticate_request(request,sdk)
+        auth_server = AgentAuthServer(create_authenticator(auth_method))
+        response_auth = await authenticate_request(request, auth_server)
 
-        headers = dict(request.headers) # 读取请求头
-        request.state.headers = headers  # 存储在 request.state
+        headers = dict(request.headers)
+        request.state.headers = headers
 
         if response_auth is not None:
             response = await call_next(request)
-            if isinstance(response_auth, str): # 兼容老模式 只返回bearer 开头token
-                response.headers['authorization'] = response_auth
-                return response
-            else:
-                response.headers['authorization'] = json.dumps(response_auth[0])
-                return response
-            # for key, value in response_auth[0].items():
-            #     if isinstance(value, dict):  
-            #         response.headers[key] = json.dumps(value, separators=(",", ":"))  # ✅ 转换为 JSON 字符串
-            #    else:
-            #        response.headers[key] = str(value)
-            # response.headers["authorization"] = str("ABC")
-
+            response.headers['authorization'] = json.dumps(response_auth) if response_auth else ""
+            return response
         else:
-        #    logging.info("Authentication skipped for exempt path")
             return await call_next(request)
 
-
-    
     except HTTPException as exc:
         logging.error(f"Authentication error: {exc.detail}")
         return JSONResponse(
             status_code=exc.status_code,
             content={"detail": exc.detail}
         )
-    
     except Exception as e:
         logging.error(f"Unexpected error in auth middleware: {e}")
         return JSONResponse(

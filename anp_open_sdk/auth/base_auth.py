@@ -1,13 +1,13 @@
 # anp_open_sdk/auth/base_auth.py
 from abc import ABC, abstractmethod
 from typing import Optional, Dict, Any, Tuple
-from .schemas import DIDCredentials, AuthenticationContext
+from .schemas import DIDCredentials, AuthenticationContext,DIDDocument,DIDKeyPair
 
 class BaseDIDResolver(ABC):
     """DID解析器基类"""
     
     @abstractmethod
-    async def resolve_did_document(self, did: str) -> Optional[DIDDocument]:
+    async def resolve_did_document(self, did: str) -> Optional[ DIDDocument ]:
         """解析DID文档"""
         pass
     

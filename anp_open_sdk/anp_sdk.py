@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from anp_open_sdk.anp_user_tool import LocalUserDataManager
+from anp_open_sdk.anp_sdk_user_data import LocalUserDataManager
 from anp_open_sdk.config.dynamic_config import get_config_value
 import urllib.parse
 import os
@@ -23,7 +23,7 @@ from typing import Dict, Any, Optional, List
 from fastapi.middleware.cors import CORSMiddleware
 
 # 安全中间件
-from anp_open_sdk.auth.auth_middleware import auth_middleware
+from anp_open_sdk.auth.auth_server import auth_middleware
 
 # 路由模块导入
 from anp_open_sdk.service import router_auth, router_did, router_publisher

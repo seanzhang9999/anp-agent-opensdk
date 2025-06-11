@@ -43,13 +43,9 @@ from typing import Dict, List, Tuple, Optional, Any
 from anp_open_sdk.config import path_resolver
 from anp_open_sdk.config.path_resolver import path_resolver
 from anp_open_sdk.config.dynamic_config import dynamic_config
+from anp_open_sdk.base_user_data import BaseUserData, BaseUserDataManager
 
 def create_user(args):
-    """创建新用户
-    
-    Args:
-        args: 包含用户信息的命令行参数
-    """
     name, host, port, host_dir, agent_type = args.n
     params = {
         'name': name,
@@ -65,7 +61,6 @@ def create_user(args):
         logger.error(f"用户 {name} 创建失败")
 
 def list_users():
-    """列出所有用户信息，按从新到旧创建顺序排序"""
     user_list, name_to_dir = get_user_cfg_list()
     if not user_list:
         print("未找到任何用户")
@@ -120,7 +115,6 @@ def list_users():
         print("---")
 
 def sort_users_by_server():
-    """按服务器信息（主机、端口、用户类型）排序显示用户"""
     user_list, name_to_dir = get_user_cfg_list()
     if not user_list:
         print("未找到任何用户")
@@ -189,8 +183,7 @@ def main():
 if __name__ == "__main__":
     main()
 
-class LocalUserData:
-    """存储单个用户的配置、DID文档和密码文件路径"""
+class LocalUserData(BaseUserData):
     def __init__(self, folder_name: str, agent_cfg: Dict[str, Any], did_doc: Dict[str, Any], did_doc_path, password_paths: Dict[str, str], user_folder_path):
         self.folder_name = folder_name
         self.agent_cfg = agent_cfg
@@ -208,8 +201,57 @@ class LocalUserData:
         self.jwt_public_key_file_path = password_paths.get("jwt_public_key_file_path")
         self.key_id = did_doc.get('key_id') or did_doc.get('publicKey', [{}])[0].get('id') if did_doc.get('publicKey') else None
 
-class LocalUserDataManager:
-    """管理本地用户数据，加载配置和DID文档"""
+        self.token_to_remote_dict = {}
+        self.token_from_remote_dict = {}
+        self.contacts = {}
+
+    def get_did(self) -> str:
+        return self.did
+
+    def get_private_key_path(self) -> str:
+        return self.did_private_key_file_path
+
+    def get_public_key_path(self) -> str:
+        return self.did_public_key_file_path
+
+    def get_token_to_remote(self, remote_did: str) -> Optional[Dict[str, Any]]:
+        return self.token_to_remote_dict.get(remote_did)
+
+    def store_token_to_remote(self, remote_did: str, token: str, expires_delta: int):
+        from datetime import datetime, timedelta, timezone
+        now = datetime.now(timezone.utc)
+        expires_at = now + timedelta(seconds=expires_delta)
+        self.token_to_remote_dict[remote_did] = {
+            "token": token,
+            "created_at": now.isoformat(),
+            "expires_at": expires_at.isoformat(),
+            "is_revoked": False,
+            "req_did": remote_did
+        }
+    def get_token_from_remote(self, remote_did: str) -> Optional[Dict[str, Any]]:
+        return self.token_from_remote_dict.get(remote_did)
+
+    def store_token_from_remote(self, remote_did: str, token: str):
+        from datetime import datetime
+        now = datetime.now()
+        self.token_from_remote_dict[remote_did] = {
+            "token": token,
+            "created_at": now.isoformat(),
+            "req_did": remote_did
+        }
+
+    def add_contact(self, contact: Dict[str, Any]):
+        did = contact.get("did")
+        if did:
+            self.contacts[did] = contact
+
+    def get_contact(self, remote_did: str) -> Optional[Dict[str, Any]]:
+        return self.contacts.get(remote_did)
+
+    def list_contacts(self) -> List[Dict[str, Any]]:
+        return list(self.contacts.values())
+
+class LocalUserDataManager(BaseUserDataManager):
     def __init__(self, user_dir: Optional[str] = None):
         self._user_dir = user_dir or dynamic_config.get('anp_sdk.user_did_path')
         self.users: Dict[str, LocalUserData] = {}
@@ -220,7 +262,6 @@ class LocalUserDataManager:
         return self._user_dir
 
     def load_users(self):
-        """遍历用户目录，加载每个用户的数据"""
         if not os.path.isdir(self._user_dir):
             logger.warning(f"用户目录不存在: {self._user_dir}")
             return
@@ -261,23 +302,19 @@ class LocalUserDataManager:
 
         logger.info(f"加载用户数据共 {len(self.users)} 个用户")
 
-    def get_user_data(self, did: str) -> Optional[LocalUserData]:
-        """根据DID获取用户数据"""
+    def get_user_data(self, did: str) -> Optional[BaseUserData]:
         return self.users.get(did)
 
-    def get_all_users(self) -> List[LocalUserData]:
-        """获取所有加载的用户数据"""
+    def get_all_users(self) -> List[BaseUserData]:
         return list(self.users.values())
 
-    def get_user_data_by_name(self, name: str) -> Optional[LocalUserData]:
-        """根据智能体名称获取用户数据"""
+    def get_user_data_by_name(self, name: str) -> Optional[BaseUserData]:
         for user_data in self.users.values():
             if user_data.name == name:
                 return user_data
         return None
 
 def get_user_cfg_list():
-    """获取用户列表和目录映射"""
     user_list = []
     name_to_dir = {}
     user_dirs = dynamic_config.get('anp_sdk.user_did_path')
@@ -287,17 +324,14 @@ def get_user_cfg_list():
             try:
                 with open(cfg_path, 'r', encoding='utf-8') as f:
                     cfg = yaml.safe_load(f)
-                if cfg and 'name' in cfg:
-                    user_list.append(cfg['name'])
-                    name_to_dir[cfg['name']] = user_dir
+                    if cfg and 'name' in cfg:
+                        user_list.append(cfg['name'])
+                        name_to_dir[cfg['name']] = user_dir
             except Exception as e:
                 print(f"读取配置文件 {cfg_path} 出错: {e}")
     return user_list, name_to_dir
 
 def get_user_dir_did_doc_by_did(did):
-    """根据did查找对应的用户文件夹并加载配置
-    返回 did_doc, user_dir
-    """
     user_dirs = dynamic_config.get('anp_sdk.user_did_path')
     for user_dir in os.listdir(user_dirs):
         did_path = os.path.join(user_dirs, user_dir, "did_document.json")
@@ -315,17 +349,6 @@ def get_user_dir_did_doc_by_did(did):
     return False, None, None
 
 def did_create_user(user_iput: dict, *, did_hex: bool = True, did_check_unique: bool = True):
-    """创建DID
-    Args:
-        params: 包含以下字段的字典：
-            name: 用户名
-            host: 主机名
-            port: 端口号
-            dir: 路径段
-            type: 智能体类型
-        did_hex: 是否在DID末尾加8位hex
-        did_check_unique: 如果不加hex，是否强制检查唯一性
-    """
     from agent_connect.authentication.did_wba import create_did_wba_document
     import json
     import os
@@ -464,15 +487,6 @@ def did_create_user(user_iput: dict, *, did_hex: bool = True, did_check_unique: 
     return did_document
 
 def create_jwt(content: dict, private_key: str) -> str:
-    """使用私钥创建 JWT token
-
-    Args:
-        content: 需要编码的内容
-        private_key: RSA 私钥字符串
-
-    Returns:
-        str: JWT token
-    """
     try:
         headers = {
             'alg': 'RS256',
@@ -490,15 +504,6 @@ def create_jwt(content: dict, private_key: str) -> str:
         return None
 
 def verify_jwt(token: str, public_key: str) -> dict:
-    """验证 JWT token
-
-    Args:
-        token: JWT token 字符串
-        public_key: RSA 公钥字符串
-
-    Returns:
-        dict: 解码后的 payload，验证失败返回 None
-    """
     try:
         payload = jwt.decode(
             jwt=token,
@@ -511,9 +516,6 @@ def verify_jwt(token: str, public_key: str) -> dict:
         return None
 
 def get_agent_cfg_by_user_dir(user_dir: str) -> dict:
-    """
-    从指定 user_dir 目录下加载 agent_cfg.yaml 文件，返回为字典对象。
-    """
     import os
     import yaml
     did_path = Path(dynamic_config.get('anp_sdk.user_did_path'))

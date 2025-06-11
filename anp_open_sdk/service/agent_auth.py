@@ -29,7 +29,7 @@ from agent_connect.authentication.did_wba import resolve_did_wba_document
 from anp_open_sdk.auth.did_auth import verify_timestamp
 from anp_open_sdk.agent_connect_hotpatch.authentication.did_wba import verify_auth_header_signature_two_way
 from anp_open_sdk.agent_connect_hotpatch.authentication.did_wba import extract_auth_header_parts_two_way
-from anp_open_sdk.anp_sdk import RemoteAgent
+from anp_open_sdk.anp_sdk_agent import RemoteAgent
 
 from anp_open_sdk.config.dynamic_config import dynamic_config
 from anp_open_sdk.agent_connect_hotpatch.authentication.did_wba_auth_header import DIDWbaAuthHeader

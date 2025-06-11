@@ -18,7 +18,7 @@ DID document API router.
 from fastapi.responses import JSONResponse
 import sys
 import os
-from anp_open_sdk.anp_sdk_userdata_tool import get_user_dir_did_doc_by_did, get_agent_cfg_by_user_dir
+from anp_open_sdk.anp_sdk_user_data import get_user_dir_did_doc_by_did, get_agent_cfg_by_user_dir
 from urllib3 import response
 
 from anp_open_sdk.anp_sdk_agent import LocalAgent
