@@ -36,11 +36,11 @@ class AgentAuthManager:
         context = AuthenticationContext(
             caller_did=caller_credentials.did_document.did,
             target_did=target_did,
-        request_url=request_url,
-        method=method,
-        custom_headers=custom_headers,
+            request_url=request_url,
+            method=method,
+            custom_headers=custom_headers,
             json_data=json_data,
-        use_two_way_auth=use_two_way_auth
+            use_two_way_auth=use_two_way_auth
     )
         try:
             success, message, response_data = await self.authenticator.authenticate_request(

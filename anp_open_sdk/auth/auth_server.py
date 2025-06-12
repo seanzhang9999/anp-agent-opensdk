@@ -26,6 +26,7 @@ from fastapi.responses import JSONResponse
 from .base_auth import BaseDIDAuthenticator
 from .schemas import AuthenticationContext
 
+
 EXEMPT_PATHS = [
     "/docs", "/anp-nlp/", "/ws/", "/publisher/agents", "/agent/group/*",
     "/redoc", "/openapi.json", "/wba/hostuser/*", "/wba/user/*", "/", "/favicon.ico",
@@ -47,8 +48,9 @@ def create_authenticator(auth_method: str = "wba") -> BaseDIDAuthenticator:
         raise ValueError(f"Unsupported authentication method: {auth_method}")
 
 class AgentAuthServer:
-    def __init__(self, authenticator: BaseDIDAuthenticator):
+    def __init__(self, authenticator: BaseDIDAuthenticator , sdk ):
         self.authenticator = authenticator
+        self.sdk = sdk
 
     async def verify_request(self, request: Request) -> (bool, str, Dict[str, Any]):
         auth_header = request.headers.get("Authorization")
@@ -65,8 +67,8 @@ class AgentAuthServer:
             use_two_way_auth=True,
             domain = request.url.hostname)
         try:
-            success, msg = await self.authenticator.verify_response(auth_header, context)
-            return success, msg, dict()
+            success, msg = await self.authenticator.verify_response(auth_header,self.sdk, context )
+            return success, msg
         except Exception as e:
                 logging.error(f"服务端认证验证失败: {e}")
                 return False, str(e), {}
@@ -74,10 +76,10 @@ class AgentAuthServer:
 async def authenticate_request(request: Request, auth_server: AgentAuthServer) -> Optional[dict]:
     if request.url.path == "/wba/auth":
         logging.info(f"安全中间件拦截/wba/auth进行认证")
-        success, msg, extra = await auth_server.verify_request(request)
+        success, msg = await auth_server.verify_request(request)
         if not success:
             raise HTTPException(status_code=401, detail=f"认证失败: {msg}")
-        return extra
+        return msg
     else:
         for exempt_path in EXEMPT_PATHS:
             if exempt_path == "/" and request.url.path == "/":
@@ -87,14 +89,14 @@ async def authenticate_request(request: Request, auth_server: AgentAuthServer) -
             elif is_exempt(request.url.path):
                 return None
     logging.info(f"安全中间件拦截检查url:\n{request.url}")
-    success, msg, extra = await auth_server.verify_request(request)
+    success, msg = await auth_server.verify_request(request)
     if not success:
         raise HTTPException(status_code=401, detail=f"认证失败: {msg}")
-    return extra
+    return msg
 
-async def auth_middleware(request: Request, call_next: Callable, auth_method: str = "wba") -> Response:
+async def auth_middleware(request: Request, call_next: Callable, sdk, auth_method: str = "wba" ) -> Response:
     try:
-        auth_server = AgentAuthServer(create_authenticator(auth_method))
+        auth_server = AgentAuthServer(create_authenticator(auth_method),sdk)
         response_auth = await authenticate_request(request, auth_server)
 
         headers = dict(request.headers)

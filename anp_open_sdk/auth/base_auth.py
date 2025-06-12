@@ -3,6 +3,8 @@ from abc import ABC, abstractmethod
 from typing import Optional, Dict, Any, Tuple
 from .schemas import DIDCredentials, AuthenticationContext, DIDDocument, DIDKeyPair
 
+
+
 class BaseDIDResolver(ABC):
     """DID解析器基类"""
     
@@ -66,8 +68,9 @@ class BaseDIDAuthenticator(ABC):
     async def authenticate_request(self, context: AuthenticationContext, credentials: DIDCredentials) -> Tuple[bool, str, Dict[str, Any]]:
         """认证请求"""
         pass
-    
+
+
     @abstractmethod
-    async def verify_response(self, auth_header: str, context: AuthenticationContext) -> Tuple[bool, str]:
+    async def verify_response(self, sdk, auth_header: str, context: AuthenticationContext) -> Tuple[bool, str]:
         """验证响应"""
         pass

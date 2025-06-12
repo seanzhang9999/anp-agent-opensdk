@@ -199,9 +199,12 @@ class DIDWbaAuthHeader:
 
         try:
             auth_data = json.loads(auth_data)
-            token_type = auth_data.get("token_type")
-            access_token = auth_data.get("access_token")
-            return access_token
+            token_type = auth_data[0].get("token_type")
+            access_token = auth_data[0].get("access_token")
+            if token_type and token_type.lower() == "bearer":
+                return access_token
+            else:
+                return None
         except json.JSONDecodeError:
             logging.debug(f"No valid token found in response headers for  {server_url}")
             return None

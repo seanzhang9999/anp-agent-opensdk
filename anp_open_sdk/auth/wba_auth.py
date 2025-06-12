@@ -9,6 +9,8 @@ from loguru import logger
 
 from agent_connect.authentication.did_wba import extract_auth_header_parts
 
+
+
 def parse_wba_did_host_port(did: str) -> Tuple[Optional[str], Optional[int]]:
     """
     从 did:wba:host%3Aport:xxxx / did:wba:host:port:xxxx / did:wba:host:xxxx
@@ -124,7 +126,8 @@ class WBADIDAuthenticator(BaseDIDAuthenticator):
         # 实现完整的WBA认证流程，包含单向/双向认证逻辑
         pass
 
-    async def verify_response(self, auth_header: str, context: AuthenticationContext) -> Tuple[bool, str]:
+
+    async def verify_response(self, auth_header: str, sdk  ,context: AuthenticationContext) -> Tuple[bool, str]:
         """验证WBA响应（借鉴 handle_did_auth 主要认证逻辑）"""
         try:
             from anp_open_sdk.agent_connect_hotpatch.authentication.did_wba import (
@@ -196,7 +199,9 @@ class WBADIDAuthenticator(BaseDIDAuthenticator):
             except Exception as e:
                 return False, f"Error verifying signature: {e}"
 
-            return True, "WBA response verified successfully"
+            from .did_auth import generate_auth_response
+            header_parts = await generate_auth_response(did, is_two_way_auth, resp_did, sdk)
+            return True, header_parts
         except Exception as e:
             return False, f"Exception in verify_response: {e}"
 
