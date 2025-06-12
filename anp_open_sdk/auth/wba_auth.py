@@ -4,6 +4,23 @@ from .schemas import DIDDocument, DIDKeyPair, DIDCredentials, AuthenticationCont
 import json
 import base64
 from typing import Optional, Dict, Any, Tuple
+import re
+
+def parse_wba_did_host_port(did: str) -> Tuple[Optional[str], Optional[int]]:
+    """
+    从 did:wba:host%3Aport:xxxx / did:wba:host:port:xxxx / did:wba:host:xxxx
+    解析 host 和 port
+    """
+    m = re.match(r"did:wba:([^%:]+)%3A(\d+):", did)
+    if m:
+        return m.group(1), int(m.group(2))
+    m = re.match(r"did:wba:([^:]+):(\d+):", did)
+    if m:
+        return m.group(1), int(m.group(2))
+    m = re.match(r"did:wba:([^:]+):", did)
+    if m:
+        return m.group(1), 80
+    return None, None
 
 class WBADIDResolver(BaseDIDResolver):
     """WBA DID解析器实现"""

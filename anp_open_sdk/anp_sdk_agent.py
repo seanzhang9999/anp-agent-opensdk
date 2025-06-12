@@ -26,14 +26,19 @@ from starlette.responses import JSONResponse
 from anp_open_sdk.config.dynamic_config import dynamic_config
 from anp_open_sdk.config.dynamic_config import get_config_value
 from anp_open_sdk.service.anp_sdk_publisher_mail_backend import EnhancedMailManager
+from anp_open_sdk.auth.wba_auth import parse_wba_did_host_port
 
 
 class RemoteAgent:
     def __init__(self, id: str, name: str = None, host: str = None, port: int = None, **kwargs):
         self.id = id
         self.name = name
+        # 从id中解析出host和port
+        import re
         self.host = host
         self.port = port
+        if self.id and (self.host is None or self.port is None):
+            self.host, self.port = parse_wba_did_host_port(self.id)
         self.extra = kwargs
 
     def to_dict(self):
@@ -427,7 +432,6 @@ class LocalAgent:
             with open(did_doc_path, 'w', encoding='utf-8') as f:
                 json.dump(did_document, f, ensure_ascii=False, indent=2)
             hosted_config = {
-                'name': f"托管智能体_{host}:{port}_{did_suffix}",
                 'did': did_document.get('id', ''),
                 'unique_id': did_suffix,
                 'hosted_config': {
