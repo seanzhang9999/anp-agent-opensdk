@@ -41,6 +41,7 @@ from anp_open_sdk.agent_connect_hotpatch.authentication.did_wba_auth_header impo
 from anp_open_sdk.agent_connect_hotpatch.authentication.did_wba import  extract_auth_header_parts_two_way, verify_auth_header_signature_two_way,resolve_did_wba_document
 
 from anp_open_sdk.auth.custom_did_resolver import resolve_local_did_document
+from anp_open_sdk.config.config import settings
 
 from anp_open_sdk.config.dynamic_config import dynamic_config
 # from anp_open_sdk.auth.token_auth import create_access_token  # 延迟导入，避免循环依赖
@@ -465,7 +466,7 @@ async def send_authenticated_request(target_url: str, auth_client: DIDWbaAuthHea
                     return status, response_data, dict(response.headers), token
             else:
                 logging.error(f"Unsupported HTTP method: {method}")
-                return 400, {"error": "Unsupported HTTP method"}, dict(response.headers) , None
+                return 400, {"error": "Unsupported HTTP method"},None, None
     except Exception as e:
         logging.error(f"Error sending authenticated request: {e}", exc_info=True)
         return 500, {"error": str(e)}, dict(response.headers) ,None

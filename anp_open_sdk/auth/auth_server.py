@@ -25,21 +25,24 @@ from fastapi.responses import JSONResponse
 
 from .base_auth import BaseDIDAuthenticator
 from .schemas import AuthenticationContext
+
 EXEMPT_PATHS = [
     "/docs", "/anp-nlp/", "/ws/", "/publisher/agents", "/agent/group/*",
     "/redoc", "/openapi.json", "/wba/hostuser/*", "/wba/user/*", "/", "/favicon.ico",
     "/agents/example/ad.json"
 ]
+
 def is_exempt(path):
     return any(fnmatch.fnmatch(path, pattern) for pattern in EXEMPT_PATHS)
 
 def create_authenticator(auth_method: str = "wba") -> BaseDIDAuthenticator:
     if auth_method == "wba":
-        from .wba_auth import WBADIDResolver, WBADIDSigner, WBAAuthHeaderBuilder, WBADIDAuthenticator
+        from .wba_auth import WBADIDResolver, WBADIDSigner, WBAAuthHeaderBuilder, WBADIDAuthenticator, WBAAuth
         resolver = WBADIDResolver()
         signer = WBADIDSigner()
         header_builder = WBAAuthHeaderBuilder()
-        return WBADIDAuthenticator(resolver, signer, header_builder)
+        wba_auth = WBAAuth()  # 新增初始化
+        return WBADIDAuthenticator(resolver, signer, header_builder, wba_auth)  # 传递 wba_auth
     else:
         raise ValueError(f"Unsupported authentication method: {auth_method}")
 
@@ -51,15 +54,16 @@ class AgentAuthServer:
         auth_header = request.headers.get("Authorization")
         if not auth_header:
             raise HTTPException(status_code=401, detail="Missing Authorization header")
+        req_did, target_did = self.authenticator.base_auth.extract_dids_from_auth_header(auth_header)
         context = AuthenticationContext(
-            caller_did=None,
-            target_did=None,
+            caller_did=req_did,
+            target_did=target_did,
             request_url=str(request.url),
             method=request.method,
             custom_headers=dict(request.headers),
             json_data=None,
-            use_two_way_auth=True
-        )
+            use_two_way_auth=True,
+            domain = request.url.hostname)
         try:
             success, msg = await self.authenticator.verify_response(auth_header, context)
             return success, msg, dict()
@@ -78,7 +82,7 @@ async def authenticate_request(request: Request, auth_server: AgentAuthServer) -
         for exempt_path in EXEMPT_PATHS:
             if exempt_path == "/" and request.url.path == "/":
                 return None
-            elif request.url.path == exempt_path or (exempt_path.endswith('/') and request.url.path.startswith(exempt_path)):
+            elif request.url.path == exempt_path or (exempt_path != '/' and exempt_path.endswith('/') and request.url.path.startswith(exempt_path)):
                 return None
             elif is_exempt(request.url.path):
                 return None

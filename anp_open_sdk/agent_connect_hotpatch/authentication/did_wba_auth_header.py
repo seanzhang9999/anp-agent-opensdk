@@ -139,9 +139,9 @@ class DIDWbaAuthHeader:
 
             auth_header = generate_auth_header_two_way(
                 did_document,
-                domain,
-                self._sign_callback,
                 resp_did,
+                domain,
+                self._sign_callback
 
             )
             

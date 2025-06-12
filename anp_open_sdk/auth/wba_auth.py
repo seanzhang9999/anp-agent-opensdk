@@ -1,10 +1,13 @@
 # anp_open_sdk/auth/wba_auth.py
-from .base_auth import BaseDIDResolver, BaseDIDSigner, BaseAuthHeaderBuilder, BaseDIDAuthenticator
+from .base_auth import BaseDIDResolver, BaseDIDSigner, BaseAuthHeaderBuilder, BaseDIDAuthenticator, BaseAuth
 from .schemas import DIDDocument, DIDKeyPair, DIDCredentials, AuthenticationContext
 import json
 import base64
 from typing import Optional, Dict, Any, Tuple
 import re
+from loguru import logger
+
+from agent_connect.authentication.did_wba import extract_auth_header_parts
 
 def parse_wba_did_host_port(did: str) -> Tuple[Optional[str], Optional[int]]:
     """
@@ -90,7 +93,6 @@ class WBAAuthHeaderBuilder(BaseAuthHeaderBuilder):
     
     def parse_auth_header(self, auth_header: str) -> Dict[str, Any]:
         """解析WBA认证头"""
-        # 实现WBA特定的认证头解析逻辑
         from anp_open_sdk.agent_connect_hotpatch.authentication.did_wba import extract_auth_header_parts_two_way
         
         try:
@@ -112,13 +114,114 @@ class WBAAuthHeaderBuilder(BaseAuthHeaderBuilder):
 
 class WBADIDAuthenticator(BaseDIDAuthenticator):
     """WBA DID认证器实现"""
-    
+
+    def __init__(self, resolver, signer, header_builder, base_auth):
+        super().__init__(resolver, signer, header_builder, base_auth)
+        # 其他初始化（如有）
+
     async def authenticate_request(self, context: AuthenticationContext, credentials: DIDCredentials) -> Tuple[bool, str, Dict[str, Any]]:
         """执行WBA认证请求"""
         # 实现完整的WBA认证流程，包含单向/双向认证逻辑
         pass
-    
+
     async def verify_response(self, auth_header: str, context: AuthenticationContext) -> Tuple[bool, str]:
-        """验证WBA响应"""
-        # 实现响应验证逻辑
-        pass
+        """验证WBA响应（借鉴 handle_did_auth 主要认证逻辑）"""
+        try:
+            from anp_open_sdk.agent_connect_hotpatch.authentication.did_wba import (
+                extract_auth_header_parts_two_way, verify_auth_header_signature_two_way, resolve_did_wba_document
+            )
+            from anp_open_sdk.auth.custom_did_resolver import resolve_local_did_document
+            from anp_open_sdk.config.dynamic_config import dynamic_config
+            import logging
+
+            # 1. 尝试解析为两路认证
+            try:
+                header_parts = extract_auth_header_parts_two_way(auth_header)
+                if not header_parts:
+                    return False, "Invalid authorization header format"
+                did, nonce, timestamp, resp_did, keyid, signature = header_parts
+                is_two_way_auth = True
+            except (ValueError, TypeError) as e:
+                # 回退到标准认证
+                try:
+                    from agent_connect.authentication.did_wba import extract_auth_header_parts
+                    header_parts = extract_auth_header_parts(auth_header)
+                    if not header_parts or len(header_parts) < 4:
+                        return False, "Invalid standard authorization header"
+                    did, nonce, timestamp, keyid, signature = header_parts
+                    resp_did = None
+                    is_two_way_auth = False
+                except Exception as fallback_error:
+                    return False, f"Authentication parsing failed: {fallback_error}"
+
+            # 2. 验证时间戳
+            nonce_expire_minutes = dynamic_config.get('anp_sdk.nonce_expire_minutes')
+            from datetime import datetime, timezone
+            try:
+                request_time = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+                current_time = datetime.now(timezone.utc)
+                time_diff = abs((current_time - request_time).total_seconds() / 60)
+                if time_diff > nonce_expire_minutes:
+                    return False, f"Timestamp expired. Current time: {current_time}, Request time: {request_time}, Difference: {time_diff} minutes"
+            except Exception as e:
+                return False, f"Invalid timestamp: {e}"
+
+            # 3. 解析DID文档
+            did_document = await resolve_local_did_document(did)
+            if not did_document:
+                try:
+                    did_document = await resolve_did_wba_document(did)
+                except Exception as e:
+                    return False, f"Failed to resolve DID document: {e}"
+            if not did_document:
+                return False, "Failed to resolve DID document"
+
+            # 4. 验证签名
+            try:
+                if is_two_way_auth:
+                    is_valid, message = verify_auth_header_signature_two_way(
+                        auth_header=auth_header,
+                        did_document=did_document,
+                        service_domain=context.domain if hasattr(context, 'domain') else None
+                    )
+                else:
+                    from agent_connect.authentication.did_wba import verify_auth_header_signature
+                    is_valid, message = verify_auth_header_signature(
+                        auth_header=auth_header,
+                        did_document=did_document,
+                        service_domain=context.domain if hasattr(context, 'domain') else None
+                    )
+                if not is_valid:
+                    return False, f"Invalid signature: {message}"
+            except Exception as e:
+                return False, f"Error verifying signature: {e}"
+
+            return True, "WBA response verified successfully"
+        except Exception as e:
+            return False, f"Exception in verify_response: {e}"
+
+class WBAAuth(BaseAuth):
+    def extract_dids_from_auth_header(self, auth_header: str) -> Tuple[Optional[str], Optional[str]]:
+        """
+        支持两路和标准认证头的 DID 提取
+        """
+        try:
+            # 优先尝试两路认证
+            from anp_open_sdk.agent_connect_hotpatch.authentication.did_wba import extract_auth_header_parts_two_way
+            parts = extract_auth_header_parts_two_way(auth_header)
+            if parts and len(parts) == 6:
+                did, nonce, timestamp, resp_did, keyid, signature = parts
+                return did, resp_did
+        except Exception:
+            pass
+
+        try:
+            # 回退到标准认证
+            parts = extract_auth_header_parts(auth_header)
+            if parts and len(parts) >= 4:
+                did, nonce, timestamp, keyid, signature = parts
+                return did, None
+        except Exception:
+            pass
+
+        return None, None

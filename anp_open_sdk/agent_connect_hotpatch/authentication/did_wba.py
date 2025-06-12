@@ -257,9 +257,9 @@ def resolve_did_wba_document_sync(did: str) -> Dict:
 
 def generate_auth_header_two_way(
     did_document: Dict,
-    service_domain: str,
+    resp_did: str,
+    service_domain,
     sign_callback: Callable[[bytes, str], bytes],
-    resp_did: str
 
 ) -> str:
     """
@@ -306,10 +306,11 @@ def generate_auth_header_two_way(
     # Normalize JSON using JCS
     canonical_json = jcs.canonicalize(data_to_sign)
     logging.debug(f"generate_auth_header Canonical JSON: {canonical_json}")
-    
-    # Calculate SHA-256 hash
+    print("[签名] canonical_json:", canonical_json)
     content_hash = hashlib.sha256(canonical_json).digest()
-    
+    print("[签名] content_hash:", content_hash.hex())
+    # Calculate SHA-256 hash
+    from agent_connect.authentication.did_wba_auth_header import DIDWbaAuthHeader
     # Create verifier and encode signature
     verifier = create_verification_method(method_dict)
     signature_bytes = sign_callback(content_hash, verification_method_fragment)
@@ -664,10 +665,11 @@ def verify_auth_header_signature_two_way(
         }
 
 
-        
         canonical_json = jcs.canonicalize(data_to_verify)
         content_hash = hashlib.sha256(canonical_json).digest()
-        
+        print("[验签] canonical_json:", canonical_json)
+        print("[验签] content_hash:", content_hash.hex())
+
         verification_method_id = f"{client_did}#{verification_method}"
         method_dict = _find_verification_method(did_document, verification_method_id)
         if not method_dict:

@@ -98,3 +98,4 @@ class AuthenticationContext(BaseModel):
     custom_headers: Dict[str, str] = Field(default_factory=dict)
     json_data: Optional[Dict[str, Any]] = None
     use_two_way_auth: bool = True
+    domain: Optional[str] = None  # 新增 domain 字段
