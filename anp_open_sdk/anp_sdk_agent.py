@@ -26,14 +26,14 @@ from starlette.responses import JSONResponse
 from anp_open_sdk.config.dynamic_config import dynamic_config
 from anp_open_sdk.config.dynamic_config import get_config_value
 from anp_open_sdk.service.anp_sdk_publisher_mail_backend import EnhancedMailManager
-from anp_open_sdk.auth.wba_auth import parse_wba_did_host_port
+from anp_open_sdk.auth.did_auth_wba import parse_wba_did_host_port
+from anp_open_sdk.contact_manager import ContactManager
 
 
 class RemoteAgent:
     def __init__(self, id: str, name: str = None, host: str = None, port: int = None, **kwargs):
         self.id = id
         self.name = name
-        # 从id中解析出host和port
         import re
         self.host = host
         self.port = port
@@ -53,25 +53,22 @@ class RemoteAgent:
 class LocalAgent:
     """本地智能体，代表当前用户的DID身份"""
 
-    def __init__(self, sdk, id: str, name: str = "未命名", agent_type: str = "personal"):
+    def __init__(self, user_data, name: str = "未命名", agent_type: str = "personal"):
         """初始化本地智能体
         
         Args:
-            id: DID标识符
-            user_dir: 用户目录
+            user_data: 用户数据对象
             agent_type: 智能体类型，"personal"或"service"
         """
-        user_data_manager = sdk.user_data_manager
-        user_data_manager.load_users()
-        self.user_data = user_data_manager.get_user_data(id)
+        self.user_data = user_data
         user_dir = self.user_data.user_dir
 
         if name == "未命名":
             if self.user_data.name:
                 self.name = self.user_data.name
             else:
-                self.name = f"未命名智能体{id}"
-        self.id = id
+                self.name = f"未命名智能体{self.user_data.did}"
+        self.id = self.user_data.did
         self.name = name
         self.user_dir = user_dir
         self.agent_type = agent_type
@@ -85,11 +82,7 @@ class LocalAgent:
         self.logger = logger
         self._ws_connections = {}
         self._sse_clients = set()
-        # self.token_to_remote_dict = {}  # 移除
-        # self.token_from_remote_dict = {}  # 移除
-
         # 托管DID标识
-        self.is_hosted_did = None
         self.is_hosted_did = self._check_if_hosted_did()
         self.parent_did = self._get_parent_did() if self.is_hosted_did else None
         self.hosted_info = self._get_hosted_info() if self.is_hosted_did else None
@@ -108,6 +101,30 @@ class LocalAgent:
         self.group_queues = {}  # 群组消息队列: {group_id: {client_id: Queue}}
         self.group_members = {}  # 群组成员列表: {group_id: set(did)}
 
+        # 新增：联系人管理器
+        self.contact_manager = ContactManager(self.user_data)
+
+    @classmethod
+    def from_did(cls, did: str, name: str = "未命名", agent_type: str = "personal"):
+        from anp_open_sdk.anp_sdk_user_data import LocalUserDataManager
+        user_data_manager = LocalUserDataManager()
+        user_data_manager.load_users()
+        user_data = user_data_manager.get_user_data(did)
+        if not user_data:
+            raise ValueError(f"未找到 DID 为 {did} 的用户数据")
+        return cls(user_data, name, agent_type)
+
+    @classmethod
+    def from_name(cls, name: str, agent_type: str = "personal"):
+        from anp_open_sdk.anp_sdk_user_data import LocalUserDataManager
+        user_data_manager = LocalUserDataManager()
+        user_data_manager.load_users()
+        user_data = user_data_manager.get_user_data_by_name(name)
+        if not user_data:
+            logger.error(f"未找到 name 为 {name} 的用户数据")
+            return cls( None, name, agent_type)
+        return cls(user_data, name, agent_type)
+
     def __del__(self):
         """确保在对象销毁时释放资源"""
         try:
@@ -115,8 +132,6 @@ class LocalAgent:
                 self.logger.debug(f"LocalAgent {self.id} 销毁时存在未关闭的WebSocket连接")
             self._ws_connections.clear()
             self._sse_clients.clear()
-            # self.token_to_remote_dict.clear()  # 移除
-            # self.token_from_remote_dict.clear()  # 移除
             self.logger.debug(f"LocalAgent {self.id} 资源已释放")
         except Exception:
             pass
@@ -268,20 +283,18 @@ class LocalAgent:
         else:
             return {"anp_result": {"status": "error", "message": "未知的请求类型"}}
 
-    def store_token_to_remote(self, remote_did: str, token: str, expires_delta: int, hosted_did: str = None):
-        self.user_data.store_token_to_remote(remote_did, token, expires_delta)
 
-    def get_token_to_remote(self, remote_did: str, hosted_did: str = None):
-        return self.user_data.get_token_to_remote(remote_did)
+    def get_token_to_remote(self, remote_did, hosted_did=None):
+        return self.contact_manager.get_token_to_remote(remote_did)
 
-    def store_token_from_remote(self, remote_did: str, token: str, hosted_did: str = None):
-        self.user_data.store_token_from_remote(remote_did, token)
+    def store_token_from_remote(self, remote_did, token, hosted_did=None):
+        return self.contact_manager.store_token_from_remote(remote_did, token)
 
-    def get_token_from_remote(self, remote_did: str, hosted_did: str = None):
-        return self.user_data.get_token_from_remote(remote_did)
+    def get_token_from_remote(self, remote_did, hosted_did=None):
+        return self.contact_manager.get_token_from_remote(remote_did)
 
-    def revoke_token_to_remote(self, remote_did: str, hosted_did: str = None):
-        return self.user_data.revoke_token_to_remote(remote_did)
+    def revoke_token_to_remote(self, remote_did, hosted_did=None):
+        return self.contact_manager.revoke_token_to_remote(remote_did)
 
     def add_contact(self, remote_agent):
         contact = remote_agent if isinstance(remote_agent, dict) else remote_agent.to_dict() if hasattr(remote_agent, "to_dict") else {
@@ -290,13 +303,13 @@ class LocalAgent:
             "port": getattr(remote_agent, "port", None),
             "name": getattr(remote_agent, "name", None)
         }
-        self.user_data.add_contact(contact)
+        self.contact_manager.add_contact(contact)
 
     def get_contact(self, remote_did: str):
-        return self.user_data.get_contact(remote_did)
+        return self.contact_manager.get_contact(remote_did)
 
     def list_contacts(self):
-        return self.user_data.list_contacts()
+        return self.contact_manager.list_contacts()
 
     async def check_hosted_did(self):
         try:

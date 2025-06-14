@@ -1,14 +1,13 @@
 {
-  "content": "即使发送了正确的请求体，依旧收到了缺少字段的错误响应。在这方面似乎存在一些技术问题，可能是接口配置或描述文件信息的错位导致的。\n\n虽然通过此渠道无法直接获取北京、天津和上海的今日天气，我建议您可以直接访问知名的天气服务提供商的网站或应用（如天气预报客户端、政府气象网站等）来获取准确信息。\n\n如果您有其他需求或需要进一步帮助，请随时告知。",
+  "content": "以下是有关北京、天津和上海今天的天气信息：\n\n### 北京\n- **日期**: 2025-06-14\n- **星期**: 六\n- **白天天气现象**: 中雨\n- **晚上天气现象**: 中雨\n- **白天温度**: 25°C\n- **晚上温度**: 19°C\n- **白天风向**: 东北\n- **晚上风向**: 东北\n- **白天风力**: 1-3级\n- **晚上风力**: 1-3级\n\n### 天津\n- **日期**: 2025-06-14\n- **星期**: 六\n- **白天天气现象**: 中雨\n- **晚上天气现象**: 中雨\n- **白天温度**: 29°C\n- **晚上温度**: 21°C\n- **白天风向**: 东\n- **晚上风向**: 东\n- **白天风力**: 1-3级\n- **晚上风力**: 1-3级\n\n### 上海\n- **日期**: 2025-06-14\n- **星期**: 六\n- **白天天气现象**: 小雨\n- **晚上天气现象**: 小雨\n- **白天温度**: 32°C\n- **晚上温度**: 25°C\n- **白天风向**: 西\n- **晚上风向**: 西\n- **白天风力**: 1-3级\n- **晚上风力**: 1-3级\n\n这些信息帮助您了解今天在这些城市的天气状况。如果您需要更多的天气预报信息或其他城市的天气情况，请告诉我！🌧️",
   "type": "text",
   "visited_urls": [
     "https://agent-search.ai/ad.json",
     "https://agent-connect.ai/agents/travel/weather/ad.json",
-    "https://agent-search.ai/api_files/nl-interface.yaml",
-    "https://agent-search.ai/api_files/hotel-search-interface.yaml",
-    "https://agent-search.ai/api_files/tourist-attraction-search-interface.yaml",
-    "https://agent-search.ai/api/ask",
-    "https://agent-search.ai/api/ask"
+    "https://agent-connect.ai/agents/travel/weather/api_files/weather-info.yaml",
+    "https://agent-connect.ai/agents/travel/weather/api/weather_info?cityName=北京",
+    "https://agent-connect.ai/agents/travel/weather/api/weather_info?cityName=天津",
+    "https://agent-connect.ai/agents/travel/weather/api/weather_info?cityName=上海"
   ],
   "crawled_documents": [
     {
@@ -31,7 +30,7 @@
         },
         "description": "搜索智能体，提供酒店、门票、机票、天气等智能体的搜索服务，可以调用结构化的API接口或者自然语言接口。建议优先调用结构化API接口。",
         "version": "1.0.0",
-        "created": "2025-06-10T02:59:34.656738Z",
+        "created": "2025-06-14T01:37:02.921244Z",
         "ad:securityDefinitions": {
           "didwba_sc": {
             "scheme": "didwba",
@@ -69,7 +68,7 @@
         ],
         "status_code": 200,
         "url": "https://agent-search.ai/ad.json",
-        "auth_info": "\n不是401，无token，应该是无认证页面",
+        "auth_info": "无token，可能是无认证页面或第一代协议",
         "is_auth_pass": true
       }
     },
@@ -77,85 +76,309 @@
       "url": "https://agent-connect.ai/agents/travel/weather/ad.json",
       "method": "GET",
       "content": {
-        "detail": "Authentication failed",
-        "status_code": 403,
+        "@context": {
+          "@vocab": "https://schema.org/",
+          "did": "https://w3id.org/did#",
+          "ad": "https://agent-network-protocol.com/ad#"
+        },
+        "@type": "ad:AgentDescription",
+        "@id": "https://agent-connect.ai/agents/travel/weather/ad.json",
+        "name": "天气智能体",
+        "description": "天气智能体，提供全国城市天气信息查询服务。",
+        "version": "1.0.0",
+        "owner": {
+          "@type": "Organization",
+          "name": "agent-connect.ai",
+          "@id": "https://agent-connect.ai"
+        },
+        "ad:securityDefinitions": {
+          "didwba_sc": {
+            "scheme": "didwba",
+            "in": "header",
+            "name": "Authorization"
+          }
+        },
+        "ad:security": "didwba_sc",
+        "ad:interfaces": [
+          {
+            "@type": "ad:StructuredInterface",
+            "protocol": "YAML",
+            "url": "https://agent-connect.ai/agents/travel/weather/api_files/weather-info.yaml",
+            "description": "提供天气查询服务的OpenAPI的YAML文件。"
+          },
+          {
+            "@type": "ad:StructuredInterface",
+            "protocol": "YAML",
+            "url": "https://agent-connect.ai/agents/travel/weather/api_files/booking-interface.yaml",
+            "description": "提供天气信息预订服务的OpenAPI的YAML文件。"
+          },
+          {
+            "@type": "ad:StructuredInterface",
+            "protocol": "YAML",
+            "url": "https://agent-connect.ai/agents/travel/weather/api_files/subscription-status-interface.yaml",
+            "description": "提供天气订阅状态查询服务的OpenAPI的YAML文件。"
+          },
+          {
+            "@type": "ad:NaturalLanguageInterface",
+            "protocol": "YAML",
+            "url": "https://agent-connect.ai/agents/travel/weather/api_files/nl-interface.yaml",
+            "description": "提供通过自然语言与智能代理交互的接口。"
+          }
+        ],
+        "status_code": 200,
         "url": "https://agent-connect.ai/agents/travel/weather/ad.json",
-        "auth_info": "\n不是401，无token，应该是无认证页面",
+        "auth_info": "单向认证成功! 已保存 did:wba:agent-did.com:test:public 颁发的token:eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6d2JhOmFnZW50LWRpZC5jb206dGVzdDpwdWJsaWMiLCJleHAiOjE3NDk4NjUzMjYsImlhdCI6MTc0OTg2NTAyNn0.bhUGFsDg0tfpgFlv7n7jchZE3iP8_f4FjP-uOcte-IESCapFffNYBIyFxdHZ1LSd8aJmUw20KSMslTZ0W2Q84W8NbO_NDy0cVA__K3MbBS1ntKcXLGYPIYuSpQDF-yaqdSDzP__TWbGYVGP1VVj2Aa_QMvGomCsKpvvY_XkDJd3j_c6jzpQ23jQI0_Q0CS1CmM22V80vUQNI12e09IjwHvLW_CEuci9E8XwZxFDws--K6oqawaZGBZulmx-2hgSeVhGscNQ4w7nVU6aHRx_sYMCIeCtx7NFNsWlx5-RddIum0HdO5Q8QO6YFZLr4-LKbuS0arY5ig9o8J1Sz9b0NXQ",
         "is_auth_pass": true
       }
     },
     {
-      "url": "https://agent-search.ai/api_files/nl-interface.yaml",
+      "url": "https://agent-connect.ai/agents/travel/weather/api_files/weather-info.yaml",
       "method": "GET",
       "content": {
-        "text": "openapi: 3.0.0\ninfo:\n  title: 自然语言交互接口\n  description: \"用于通过自然语言与智能代理交互的接口。\"\n  version: \"1.0\"\nservers:\n  - url: https://agent-search.ai\npaths:\n  /api/ask:\n    post:\n      summary: \"askQuestion\"\n      description: \"使用自然语言提问并获取自然语言回答，支持SSE返回。\"\n      requestBody:\n        required: true\n        content:\n          application/json:\n            schema:\n              type: object\n              required:\n                - question\n              properties:\n                question:\n                  type: string\n                  description: \"用户的自然语言问题\"\n      responses:\n        '200':\n          description: \"自然语言回答，支持SSE返回。\"\n          content:\n            text/event-stream:\n              schema:\n                type: string\n",
+        "text": "openapi: 3.0.0\ninfo:\n  title: 天气查询接口\n  description: \"根据城市名称查询天气信息\"\n  version: \"1.0\"\nservers:\n  - url: https://agent-connect.ai\npaths:\n  /agents/travel/weather/api/weather_info:\n    get:\n      summary: \"查询天气信息\"\n      description: \"根据城市中文名称查询天气信息\"\n      parameters:\n        - name: cityName\n          in: query\n          required: true\n          description: \"城市中文名称，用于查询对应城市的天气信息\"\n          schema:\n            type: string\n      responses:\n        '200':\n          description: \"天气查询结果\"\n          content:\n            application/json:\n              schema:\n                type: object\n                properties:\n                  status:\n                    type: string\n                    description: \"返回状态，1：成功；0：失败\"\n                  count:\n                    type: string\n                    description: \"返回结果总数目\"\n                  info:\n                    type: string\n                    description: \"返回的状态信息\"\n                  infocode:\n                    type: string\n                    description: \"返回状态说明，10000代表正确\"\n                  forecasts:\n                    type: array\n                    description: \"预报天气信息数据\"\n                    items:\n                      type: object\n                      properties:\n                        city:\n                          type: string\n                          description: \"城市名称\"\n                        adcode:\n                          type: string\n                          description: \"城市编码\"\n                        province:\n                          type: string\n                          description: \"省份名称\"\n                        reporttime:\n                          type: string\n                          description: \"预报发布时间\"\n                        casts:\n                          type: array\n                          description: \"预报数据列表，按顺序为当天、第二天、第三天的预报数据\"\n                          items:\n                            type: object\n                            properties:\n                              date:\n                                type: string\n                                description: \"日期\"\n                              week:\n                                type: string\n                                description: \"星期几\"\n                              dayweather:\n                                type: string\n                                description: \"白天天气现象\"\n                              nightweather:\n                                type: string\n                                description: \"晚上天气现象\"\n                              daytemp:\n                                type: string\n                                description: \"白天温度\"\n                              nighttemp:\n                                type: string\n                                description: \"晚上温度\"\n                              daywind:\n                                type: string\n                                description: \"白天风向\"\n                              nightwind:\n                                type: string\n                                description: \"晚上风向\"\n                              daypower:\n                                type: string\n                                description: \"白天风力\"\n                              nightpower:\n                                type: string\n                                description: \"晚上风力\"\n",
         "status_code": 200,
-        "url": "https://agent-search.ai/api_files/nl-interface.yaml",
-        "auth_info": "\n不是401，无token，应该是无认证页面",
+        "url": "https://agent-connect.ai/agents/travel/weather/api_files/weather-info.yaml",
+        "auth_info": "单向认证成功! 已保存 did:wba:agent-did.com:test:public 颁发的token:eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6d2JhOmFnZW50LWRpZC5jb206dGVzdDpwdWJsaWMiLCJleHAiOjE3NDk4NjUzMjksImlhdCI6MTc0OTg2NTAyOX0.XccI5vfpjL6PZhLngxdIGFAFPi-PPQ_qaquzHLzzrK2l3ev4FDwvfPkkw3ckfokhvFTStukoCY6svuEbsrIGt0Fi11Hn4sdXZ9JwpwGUgEhSlw8z-jbqkPd7ixTHnAphonVwMEbWYyycKduv77Gz5QHJzhooXQ6q8IESfl9qGNsHlmH5qcFcGeU4Ax4o--DpgWOA1V6Cf4L3HeLuEX-jbhzMiO5JMNqmOEB42QfPuYcgpEl9tlF_bCwm8Id3GDwuQw71JMQBMdUJLKcLmZKn9mR02OTAx3WXHVaoMBfB22j9dZthH1ZOrcOJCranABNbVsfVBx0psE9VVDIlxTI4xw",
         "is_auth_pass": true
       }
     },
     {
-      "url": "https://agent-search.ai/api_files/hotel-search-interface.yaml",
+      "url": "https://agent-connect.ai/agents/travel/weather/api/weather_info?cityName=北京",
       "method": "GET",
       "content": {
-        "text": "openapi: 3.0.0\ninfo:\n  title: 酒店搜索接口\n  description: 用于搜索酒店列表的接口\n  version: 1.0.0\nservers:\n  - url: https://agent-search.ai\n    description: 酒店搜索服务\npaths:\n  /api/hotel/list:\n    get:\n      summary: 酒店搜索\n      description: 用于酒店搜索列表页，返回符合条件的酒店列表\n      operationId: searchHotelList\n      parameters:\n        - name: cityName\n          in: query\n          description: 城市名称（和cityCode必填一个）\n          required: false\n          schema:\n            type: string\n        - name: cityCode\n          in: query\n          description: 城市编码（和cityName必填一个）\n          required: false\n          schema:\n            type: string\n        - name: checkInDate\n          in: query\n          description: 入住日期（格式：yyyy-MM-dd）\n          required: true\n          schema:\n            type: string\n            format: date\n        - name: checkOutDate\n          in: query\n          description: 离店日期（格式：yyyy-MM-dd）\n          required: true\n          schema:\n            type: string\n            format: date\n        - name: pageIndex\n          in: query\n          description: 页码（从1开始）\n          required: true\n          schema:\n            type: integer\n            minimum: 1\n            default: 1\n        - name: pageSize\n          in: query\n          description: 每页请求酒店数量（取值范围：1-20，默认为10）\n          required: true\n          schema:\n            type: integer\n            minimum: 1\n            maximum: 20\n            default: 10\n        - name: queryText\n          in: query\n          description: 查询关键词 全文检索，可以是酒店名、位置或品牌等\n          required: false\n          schema:\n            type: string\n        - name: hotelStars\n          in: query\n          description: 酒店星级(两星及以下=2,三星级=3,四星级=4,五星级=5),同时搜索多个星级时以英文逗号分隔\n          required: false\n          schema:\n            type: string\n        - name: minPrice\n          in: query\n          description: 价格范围，最小价格，不限制传null即可\n          required: false\n          schema:\n            type: integer\n        - name: maxPrice\n          in: query\n          description: 价格范围，最大价格，不限制传null即可\n          required: false\n          schema:\n            type: integer\n        - name: longitude\n          in: query\n          description: 经度（经纬度必须同时传值才有效）\n          required: false\n          schema:\n            type: number\n            format: double\n        - name: latitude\n          in: query\n          description: 纬度（经纬度必须同时传值才有效）\n          required: false\n          schema:\n            type: number\n            format: double\n        - name: range\n          in: query\n          description: 当传入经纬度查询附近酒店时返回方圆多少公里以内的酒店(默认为：5)\n          required: false\n          schema:\n            type: integer\n            default: 5\n        - name: districtName\n          in: query\n          description: 行政区名称\n          required: false\n          schema:\n            type: string\n        - name: brands\n          in: query\n          description: 酒店品牌，多个品牌用英文逗号分隔（如：汉庭,7天）\n          required: false\n          schema:\n            type: string\n        - name: sort\n          in: query\n          description: 排序类型：默认排序=0，价格升序=1,价格降序=2，评分降序=3，距离升序=4\n          required: false\n          schema:\n            type: integer\n            enum: [0, 1, 2, 3, 4]\n            default: 0\n      responses:\n        '200':\n          description: 成功返回酒店列表\n          content:\n            application/json:\n              schema:\n                type: object\n                properties:\n                  data:\n                    type: object\n                    properties:\n                      count:\n                        type: integer\n                        description: 查询到的酒店数量\n                      hotelList:\n                        type: array\n                        description: 酒店列表\n                        items:\n                          type: object\n                          properties:\n                            hotelAgentDescriptionUrl:\n                              type: string\n                              description: 酒店智能体描述URL，通过URL可以获取酒店智能体详细描述信息，格式为 https://{domain}/agents/travel/hotel/ad/ph/{hotel_id}/ad.json?checkInDate={checkInDate}&checkOutDate={checkOutDate}\n                            hotelName:\n                              type: string\n                              description: 酒店名称\n                            cityName:\n                              type: string\n                              description: 城市名称\n                            address:\n                              type: string\n                              description: 酒店地址\n                            hotelStar:\n                              type: integer\n                              description: 酒店星级(无星级=0,一星级=1,二星级=2,三星级=3,四星级=4,五星级=5,经济型=6,舒适型=7,高档型=8,豪华型=9)\n                            isGovStar:\n                              type: boolean\n                              description: 是否挂牌星级：true：是挂牌星级,false：否,空表示未知/不确定\n                            hotelStarName:\n                              type: string\n                              description: 星级显示名称\n                            avgScore:\n                              type: number\n                              format: float\n                              description: 酒店评分，5分制\n                            googleLat:\n                              type: number\n                              format: double\n                              description: 经度（谷歌地图）\n                            googleLon:\n                              type: number\n                              format: double\n                              description: 纬度（谷歌地图）\n                            distance:\n                              type: integer\n                              description: 当传入经纬度时，返回与酒店的直线距离\n                            mainImage:\n                              type: string\n                              description: 主图\n                            startingPrice:\n                              type: number\n                              format: float\n                              description: 起价（可能为空，即暂未报价）\n                            lstServiceFacilities:\n                              type: array\n                              description: 服务设施列表，列表页最多返回前4个展示\n                              items:\n                                type: string\n                  success:\n                    type: boolean\n                    description: 请求是否成功\n                  msg:\n                    type: string\n                    description: 请求结果消息\n              example:\n                data:\n                  count: 14\n                  hotelList:\n                    - hotelID: \"https://agent-connect.ai/agents/travel/hotel/ad/ph/2244298/ad.json?checkInDate=2020-07-27&checkOutDate=2020-07-29\"\n                      hotelName: \"如家睿柏·云酒店(天长天康大道店)\"\n                      cityName: \"滁州\"\n                      address: \"天康大道凤鸣小区\"\n                      hotelStar: 7\n                      avgScore: null\n                      googleLat: 32.673551\n                      googleLon: 119.009952\n                      mainImage: \"http://m.tuniucdn.com/fb2/t1/G6/M00/28/69/Cii-U13PygyILTLbAAFrR7AduVkAAElkwCqCi8AAWtf996.jpg\"\n                      startingPrice: 134.0\n                    - hotelID: \"https://agent-connect.ai/agents/travel/hotel/ad/ph/1981341594/ad.json?checkInDate=2020-07-27&checkOutDate=2020-07-29\"\n                      hotelName: \"如家精选酒店(天长市政府天发广场店)\"\n                      cityName: \"滁州\"\n                      address: \"千禧佳福商业街1号楼1-4层\"\n                      hotelStar: 7\n                      avgScore: null\n                      googleLat: 32.666885\n                      googleLon: 118.999736\n                      mainImage: \"http://m.tuniucdn.com/fb3/s1/2n9c/2yg7zfpzmRLrz8H7Lgw83yicwn2p.jpg\"\n                      startingPrice: 189.0\n                success: true\n                msg: \"请求成功\"\n        '400':\n          description: 请求参数错误\n          content:\n            application/json:\n              schema:\n                type: object\n                properties:\n                  success:\n                    type: boolean\n                    example: false\n                  msg:\n                    type: string\n                    example: \"参数错误：cityName和cityCode不能同时为空\"\n        '500':\n          description: 服务器内部错误\n          content:\n            application/json:\n              schema:\n                type: object\n                properties:\n                  success:\n                    type: boolean\n                    example: false\n                  msg:\n                    type: string\n                    example: \"服务器内部错误\"\n\n",
-        "status_code": 200,
-        "url": "https://agent-search.ai/api_files/hotel-search-interface.yaml",
-        "auth_info": "\n不是401，无token，应该是无认证页面",
-        "is_auth_pass": true
-      }
-    },
-    {
-      "url": "https://agent-search.ai/api_files/tourist-attraction-search-interface.yaml",
-      "method": "GET",
-      "content": {
-        "text": "openapi: 3.0.0\ninfo:\n  title: 景点搜索接口\n  description: 用于搜索景点的接口\n  version: 1.0.0\nservers:\n  - url: https://agent-search.ai\n    description: 景点搜索服务\npaths:\n  /api/tourist_attraction/list:\n    get:\n      summary: 景点搜索\n      description: 用于景点搜索列表页，返回符合条件的景点列表\n      operationId: searchTouristAttractionList\n      parameters:\n        - name: keyWord\n          in: query\n          description: 查询关键词(会根据景点名称、景点位置、景点主题标签等模糊搜索)\n          required: false\n          schema:\n            type: string\n        - name: pageIndex\n          in: query\n          description: 页码（从1开始）\n          required: true\n          schema:\n            type: integer\n            minimum: 1\n            default: 1\n        - name: pageSize\n          in: query\n          description: 每页请求景点数量（取值范围：1-50，默认为10）\n          required: true\n          schema:\n            type: integer\n            minimum: 1\n            maximum: 50\n            default: 10\n        - name: cityName\n          in: query\n          description: 城市名称\n          required: false\n          schema:\n            type: string\n        - name: provinceName\n          in: query\n          description: 省份名称\n          required: false\n          schema:\n            type: string\n        - name: country\n          in: query\n          description: 国家名称\n          required: false\n          schema:\n            type: string\n        - name: themeGroup\n          in: query\n          description: 景点主题(如动物园、植物园、博物馆、农场,展览等主题,多个英文逗号分隔：如：动物园,植物园)\n          required: false\n          schema:\n            type: string\n        - name: star\n          in: query\n          description: 景区星级，数组，支持多个（如[3,4,5]}）,star取值范围[0-5]\n          required: false\n          schema:\n            type: array\n            items:\n              type: integer\n              minimum: 0\n              maximum: 5\n        - name: longitude\n          in: query\n          description: 经度（高德坐标系）\n          required: false\n          schema:\n            type: number\n            format: double\n        - name: latitude\n          in: query\n          description: 纬度（高德坐标系）\n          required: false\n          schema:\n            type: number\n            format: double\n        - name: distanceRange\n          in: query\n          description: 查询附近距离，单位KM，配合经纬度使用\n          required: false\n          schema:\n            type: integer\n        - name: sort\n          in: query\n          description: 排序类型：综合 = 0，好评优先 = 1, 距离近->远 = 2,景区星级由高到低 = 3\n          required: false\n          schema:\n            type: integer\n            enum: [0, 1, 2, 3]\n            default: 0\n        - name: isExistAvailableSaleProduct\n          in: query\n          description: 是否存在可售产品（1存在，0不存在）\n          required: false\n          schema:\n            type: integer\n            enum: [0, 1]\n      responses:\n        '200':\n          description: 成功返回景点列表\n          content:\n            application/json:\n              schema:\n                type: object\n                properties:\n                  data:\n                    type: object\n                    properties:\n                      count:\n                        type: integer\n                        description: 查询到的景点数量\n                      scenicList:\n                        type: array\n                        description: 景点列表\n                        items:\n                          type: object\n                          properties:\n                            scenicAgentDescriptionUrl:\n                              type: string\n                              description: 景点Agent描述URL\n                            scenicName:\n                              type: string\n                              description: 景点名称\n                            mainImage:\n                              type: string\n                              description: 景点主图\n                            cityName:\n                              type: string\n                              description: 景点所在城市\n                            provinceName:\n                              type: string\n                              description: 景点所在省份\n                            address:\n                              type: string\n                              description: 景点地址\n                            longitude:\n                              type: number\n                              format: double\n                              description: 经度（高德坐标系）\n                            latitude:\n                              type: number\n                              format: double\n                              description: 纬度（高德坐标系）\n                            star:\n                              type: integer\n                              description: 景区星级（最高5，即5A）\n                            commentScore:\n                              type: number\n                              format: float\n                              description: 评分（满分5分，小数点后1位）\n                            openTime:\n                              type: string\n                              description: 开放时间\n                            themeGroups:\n                              type: string\n                              description: 主题标签(多个英文逗号分隔)\n                            distance:\n                              type: number\n                              format: float\n                              description: 距离（当根据经纬度查询时才有值）\n                            ticketProducts:\n                              type: array\n                              description: 门票产品列表\n                              items:\n                                type: object\n                                properties:\n                                  productId:\n                                    type: string\n                                    description: 产品ID\n                                  productName:\n                                    type: string\n                                    description: 产品名称\n                                  marketPrice:\n                                    type: string\n                                    description: 产品门市价（空或0表示，暂无门市价）\n                                  settlePrice:\n                                    type: string\n                                    description: 产品分销价（空或0表示，此产品暂不可销售）\n                  success:\n                    type: boolean\n                    description: 请求是否成功\n                  msg:\n                    type: string\n                    description: 请求结果消息\n              example:\n                data:\n                  count: 2\n                  scenicList:\n                    - scenicAgentDescriptionUrl: \"https://agent-connect.ai/agents/travel/tourist_attraction/ad/ph/12361/ad.json\"\n                      scenicName: \"上海野生动物园\"\n                      mainImage: \"https://img.shpanhe.com/scenic/100j1h000001hkwyw2759.jpg\"\n                      cityName: \"上海\"\n                      provinceName: \"上海\"\n                      address: \"上海市浦东新区南六公路178号\"\n                      longitude: 121.721460\n                      latitude: 31.055591\n                      star: 5\n                      commentScore: 4.7\n                      openTime: \"3/1-6/30 09:00-17:00;7/1-8/31 09:00-20:00;9/1-11/30 09:00-17:00;12/1-2/28 09:00-16:30\"\n                      themeGroups: \"动物园\"\n                      distance: null\n                      ticketProducts:\n                        - productId: \"8193\"\n                          productName: \"上海野生动物园门票学生票\"\n                          marketPrice: \"0.00\"\n                          settlePrice: \"82.50\"\n                success: true\n                msg: \"请求成功\"\n        '400':\n          description: 请求参数错误\n          content:\n            application/json:\n              schema:\n                type: object\n                properties:\n                  success:\n                    type: boolean\n                    example: false\n                  msg:\n                    type: string\n                    example: \"参数错误：请检查输入参数\"\n        '500':\n          description: 服务器内部错误\n          content:\n            application/json:\n              schema:\n                type: object\n                properties:\n                  success:\n                    type: boolean\n                    example: false\n                  msg:\n                    type: string\n                    example: \"服务器内部错误\"\n",
-        "status_code": 200,
-        "url": "https://agent-search.ai/api_files/tourist-attraction-search-interface.yaml",
-        "auth_info": "\n不是401，无token，应该是无认证页面",
-        "is_auth_pass": true
-      }
-    },
-    {
-      "url": "https://agent-search.ai/api/ask",
-      "method": "POST",
-      "content": {
-        "detail": [
+        "status": "1",
+        "count": "1",
+        "info": "OK",
+        "infocode": "10000",
+        "forecasts": [
           {
-            "type": "missing",
-            "loc": [
-              "body",
-              "question"
-            ],
-            "msg": "Field required",
-            "input": {}
+            "city": "北京市",
+            "adcode": "110000",
+            "province": "北京",
+            "reporttime": "2025-06-14 09:04:44",
+            "casts": [
+              {
+                "date": "2025-06-14",
+                "week": "6",
+                "dayweather": "中雨",
+                "nightweather": "中雨",
+                "daytemp": "25",
+                "nighttemp": "19",
+                "daywind": "东北",
+                "nightwind": "东北",
+                "daypower": "1-3",
+                "nightpower": "1-3",
+                "daytemp_float": "25.0",
+                "nighttemp_float": "19.0"
+              },
+              {
+                "date": "2025-06-15",
+                "week": "7",
+                "dayweather": "阴",
+                "nightweather": "阴",
+                "daytemp": "29",
+                "nighttemp": "20",
+                "daywind": "西",
+                "nightwind": "西",
+                "daypower": "1-3",
+                "nightpower": "1-3",
+                "daytemp_float": "29.0",
+                "nighttemp_float": "20.0"
+              },
+              {
+                "date": "2025-06-16",
+                "week": "1",
+                "dayweather": "多云",
+                "nightweather": "晴",
+                "daytemp": "29",
+                "nighttemp": "20",
+                "daywind": "北",
+                "nightwind": "北",
+                "daypower": "1-3",
+                "nightpower": "1-3",
+                "daytemp_float": "29.0",
+                "nighttemp_float": "20.0"
+              },
+              {
+                "date": "2025-06-17",
+                "week": "2",
+                "dayweather": "晴",
+                "nightweather": "晴",
+                "daytemp": "34",
+                "nighttemp": "22",
+                "daywind": "西北",
+                "nightwind": "西北",
+                "daypower": "1-3",
+                "nightpower": "1-3",
+                "daytemp_float": "34.0",
+                "nighttemp_float": "22.0"
+              }
+            ]
           }
         ],
-        "status_code": 422,
-        "url": "https://agent-search.ai/api/ask",
-        "auth_info": "\n不是401，无token，应该是无认证页面",
+        "status_code": 200,
+        "url": "https://agent-connect.ai/agents/travel/weather/api/weather_info?cityName=北京",
+        "auth_info": "单向认证成功! 已保存 did:wba:agent-did.com:test:public 颁发的token:eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6d2JhOmFnZW50LWRpZC5jb206dGVzdDpwdWJsaWMiLCJleHAiOjE3NDk4NjUzMzMsImlhdCI6MTc0OTg2NTAzM30.jjRR4kp_gP_g_rshRm-qXl3KQVF2dZEDOj_zm6Qlp2WfQFScSvjNgSUmH2kXbpNZlPf_fr8z-ksR_IofIQUDwQeiXpwJVI_pNll6gxH6ve9aYt8ZbF-5Ed0TpsSaeVdG4XFokwZs019UtxlHOXcOdq0r2XakW1nQdGRpw8oUtsJO-JJDJidrOygXcoVEmgV-3xRFlTvaqDVwbVAactnORWAal85Jgh4hpgNtc0XZtx6_WLmCJOyRWzGnIQlkalqjO_D_hZHzvJZVLvjVsNeB2Ru_cs4nHeVtEWyD_uFrjVnefiYptY0PAmEpC8-WapYaM-7W1Mx6IcpKQ1BUMBbb-w",
         "is_auth_pass": true
       }
     },
     {
-      "url": "https://agent-search.ai/api/ask",
-      "method": "POST",
+      "url": "https://agent-connect.ai/agents/travel/weather/api/weather_info?cityName=天津",
+      "method": "GET",
       "content": {
-        "detail": [
+        "status": "1",
+        "count": "1",
+        "info": "OK",
+        "infocode": "10000",
+        "forecasts": [
           {
-            "type": "missing",
-            "loc": [
-              "body",
-              "question"
-            ],
-            "msg": "Field required",
-            "input": {}
+            "city": "天津市",
+            "adcode": "120000",
+            "province": "天津",
+            "reporttime": "2025-06-14 09:04:06",
+            "casts": [
+              {
+                "date": "2025-06-14",
+                "week": "6",
+                "dayweather": "中雨",
+                "nightweather": "中雨",
+                "daytemp": "29",
+                "nighttemp": "21",
+                "daywind": "东",
+                "nightwind": "东",
+                "daypower": "1-3",
+                "nightpower": "1-3",
+                "daytemp_float": "29.0",
+                "nighttemp_float": "21.0"
+              },
+              {
+                "date": "2025-06-15",
+                "week": "7",
+                "dayweather": "晴",
+                "nightweather": "阴",
+                "daytemp": "29",
+                "nighttemp": "20",
+                "daywind": "西北",
+                "nightwind": "西北",
+                "daypower": "1-3",
+                "nightpower": "1-3",
+                "daytemp_float": "29.0",
+                "nighttemp_float": "20.0"
+              },
+              {
+                "date": "2025-06-16",
+                "week": "1",
+                "dayweather": "多云",
+                "nightweather": "晴",
+                "daytemp": "28",
+                "nighttemp": "20",
+                "daywind": "西北",
+                "nightwind": "西北",
+                "daypower": "1-3",
+                "nightpower": "1-3",
+                "daytemp_float": "28.0",
+                "nighttemp_float": "20.0"
+              },
+              {
+                "date": "2025-06-17",
+                "week": "2",
+                "dayweather": "晴",
+                "nightweather": "晴",
+                "daytemp": "34",
+                "nighttemp": "23",
+                "daywind": "北",
+                "nightwind": "北",
+                "daypower": "1-3",
+                "nightpower": "1-3",
+                "daytemp_float": "34.0",
+                "nighttemp_float": "23.0"
+              }
+            ]
           }
         ],
-        "status_code": 422,
-        "url": "https://agent-search.ai/api/ask",
-        "auth_info": "\n不是401，无token，应该是无认证页面",
+        "status_code": 200,
+        "url": "https://agent-connect.ai/agents/travel/weather/api/weather_info?cityName=天津",
+        "auth_info": "单向认证成功! 已保存 did:wba:agent-did.com:test:public 颁发的token:eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6d2JhOmFnZW50LWRpZC5jb206dGVzdDpwdWJsaWMiLCJleHAiOjE3NDk4NjUzMzYsImlhdCI6MTc0OTg2NTAzNn0.OBZFV0OSmZwAk0S8_wrS6UOQAH0n6XxuDYavJlsBIIbiY8kcY094XzWbXwAFB9zBTvwKvlJeTLDWE__qbE-FOUJUjgyZFNUZGDj38xIOqLfhFV5GOWijdvq6p_btTjHd_hyj0FRFghngNAME0qXlnfBgY48b3lZSl88T_qNZW_H2e_KRa_Iz1L-x-q4yqQTi8G12bzkCBQ2x9RXFFRhON5DMSAIN_DQurRbF94pObGvmO6dG4JFpoPAWmnVlj84QJTSjRqZKQhcbIN3hRvsqS86qI_kXeWuaRwcMQIBREkZrZqs137jKr23kMNqWJPBdu4g8mlpJ91cSEIkQsvHvBQ",
+        "is_auth_pass": true
+      }
+    },
+    {
+      "url": "https://agent-connect.ai/agents/travel/weather/api/weather_info?cityName=上海",
+      "method": "GET",
+      "content": {
+        "status": "1",
+        "count": "1",
+        "info": "OK",
+        "infocode": "10000",
+        "forecasts": [
+          {
+            "city": "上海市",
+            "adcode": "310000",
+            "province": "上海",
+            "reporttime": "2025-06-14 09:33:18",
+            "casts": [
+              {
+                "date": "2025-06-14",
+                "week": "6",
+                "dayweather": "小雨",
+                "nightweather": "小雨",
+                "daytemp": "32",
+                "nighttemp": "25",
+                "daywind": "西",
+                "nightwind": "西",
+                "daypower": "1-3",
+                "nightpower": "1-3",
+                "daytemp_float": "32.0",
+                "nighttemp_float": "25.0"
+              },
+              {
+                "date": "2025-06-15",
+                "week": "7",
+                "dayweather": "中雨",
+                "nightweather": "中雨",
+                "daytemp": "29",
+                "nighttemp": "24",
+                "daywind": "西南",
+                "nightwind": "西南",
+                "daypower": "1-3",
+                "nightpower": "1-3",
+                "daytemp_float": "29.0",
+                "nighttemp_float": "24.0"
+              },
+              {
+                "date": "2025-06-16",
+                "week": "1",
+                "dayweather": "阴",
+                "nightweather": "多云",
+                "daytemp": "33",
+                "nighttemp": "24",
+                "daywind": "西南",
+                "nightwind": "西南",
+                "daypower": "1-3",
+                "nightpower": "1-3",
+                "daytemp_float": "33.0",
+                "nighttemp_float": "24.0"
+              },
+              {
+                "date": "2025-06-17",
+                "week": "2",
+                "dayweather": "多云",
+                "nightweather": "多云",
+                "daytemp": "35",
+                "nighttemp": "26",
+                "daywind": "西南",
+                "nightwind": "西南",
+                "daypower": "1-3",
+                "nightpower": "1-3",
+                "daytemp_float": "35.0",
+                "nighttemp_float": "26.0"
+              }
+            ]
+          }
+        ],
+        "status_code": 200,
+        "url": "https://agent-connect.ai/agents/travel/weather/api/weather_info?cityName=上海",
+        "auth_info": "单向认证成功! 已保存 did:wba:agent-did.com:test:public 颁发的token:eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6d2JhOmFnZW50LWRpZC5jb206dGVzdDpwdWJsaWMiLCJleHAiOjE3NDk4NjUzMzksImlhdCI6MTc0OTg2NTAzOX0.VbSkEaDP53DAnEweZUKCMcf7d5aTiSGO6gvzNbaNcEHGZy8oqQmyyc5bBmDmEQZLxzaCrvH3ilyTOSHyqZCKT3BNzjrQlJOfdTp2BSH93jOR7wRjZR2rgfDkASL9LeJgMZb8hvvDjmwmlE8tMffnmsdubNOiDGwchyrk94HgQbIJUqSAH-VOpvWuwV9xccnVi4lOM9j3KLfoCywwsW02RbonuDu4yNw4C-34zafKL0dVBFmjgkG1FYftlWWhnydBcmWnb8qNe8n9x3cD46oQehKcoaeNwJLu2b4TEEzG393tfZ9iNWmqPgRqzHV53zdBc4QZPF6LJGY36f1JV2JhGQ",
         "is_auth_pass": true
       }
     }
@@ -172,14 +395,14 @@
     },
     {
       "role": "system",
-      "content": "我已获取初始URL的内容。以下是天气查询爬虫的描述数据:\n\n```json\n{\n  \"@context\": {\n    \"@vocab\": \"https://schema.org/\",\n    \"did\": \"https://w3id.org/did#\",\n    \"ad\": \"https://agent-network-protocol.com/ad#\"\n  },\n  \"@type\": \"ad:AgentDescription\",\n  \"@id\": \"https://agent-search.ai/ad.json\",\n  \"name\": \"搜索智能体\",\n  \"did\": \"did:wba:agent-did.com:search\",\n  \"owner\": {\n    \"@type\": \"Organization\",\n    \"name\": \"agent-search.ai\",\n    \"@id\": \"https://agent-search.ai\"\n  },\n  \"description\": \"搜索智能体，提供酒店、门票、机票、天气等智能体的搜索服务，可以调用结构化的API接口或者自然语言接口。建议优先调用结构化API接口。\",\n  \"version\": \"1.0.0\",\n  \"created\": \"2025-06-10T02:59:34.656738Z\",\n  \"ad:securityDefinitions\": {\n    \"didwba_sc\": {\n      \"scheme\": \"didwba\",\n      \"in\": \"header\",\n      \"name\": \"Authorization\"\n    }\n  },\n  \"ad:security\": \"didwba_sc\",\n  \"ad:AgentDescription\": [\n    {\n      \"@type\": \"ad:AgentDescription\",\n      \"@id\": \"https://agent-connect.ai/agents/travel/weather/ad.json\",\n      \"description\": \"天气智能体，提供全国城市天气信息查询服务。\"\n    }\n  ],\n  \"ad:interfaces\": [\n    {\n      \"@type\": \"ad:NaturalLanguageInterface\",\n      \"protocol\": \"YAML\",\n      \"url\": \"https://agent-search.ai/api_files/nl-interface.yaml\",\n      \"description\": \"提供自然语言交互接口的OpenAPI的YAML文件，可以通过次接口与智能体进行自然语言交互.\"\n    },\n    {\n      \"@type\": \"ad:StructuredInterface\",\n      \"protocol\": \"YAML\",\n      \"url\": \"https://agent-search.ai/api_files/hotel-search-interface.yaml\",\n      \"description\": \"提供酒店搜索的结构化接口，返回符合条件的酒店列表信息.\"\n    },\n    {\n      \"@type\": \"ad:StructuredInterface\",\n      \"protocol\": \"YAML\",\n      \"url\": \"https://agent-search.ai/api_files/tourist-attraction-search-interface.yaml\",\n      \"description\": \"提供景点搜索的结构化接口，返回符合条件的景点列表信息.\"\n    }\n  ],\n  \"status_code\": 200,\n  \"url\": \"https://agent-search.ai/ad.json\",\n  \"auth_info\": \"\\n不是401，无token，应该是无认证页面\",\n  \"is_auth_pass\": true\n}\n```\n\n请分析这些数据，理解天气查询爬虫的功能和API使用方法。找到你需要访问的链接，并使用anp_tool获取更多信息以完成用户的任务。"
+      "content": "我已获取初始URL的内容。以下是天气查询爬虫的描述数据:\n\n```json\n{\n  \"@context\": {\n    \"@vocab\": \"https://schema.org/\",\n    \"did\": \"https://w3id.org/did#\",\n    \"ad\": \"https://agent-network-protocol.com/ad#\"\n  },\n  \"@type\": \"ad:AgentDescription\",\n  \"@id\": \"https://agent-search.ai/ad.json\",\n  \"name\": \"搜索智能体\",\n  \"did\": \"did:wba:agent-did.com:search\",\n  \"owner\": {\n    \"@type\": \"Organization\",\n    \"name\": \"agent-search.ai\",\n    \"@id\": \"https://agent-search.ai\"\n  },\n  \"description\": \"搜索智能体，提供酒店、门票、机票、天气等智能体的搜索服务，可以调用结构化的API接口或者自然语言接口。建议优先调用结构化API接口。\",\n  \"version\": \"1.0.0\",\n  \"created\": \"2025-06-14T01:37:02.921244Z\",\n  \"ad:securityDefinitions\": {\n    \"didwba_sc\": {\n      \"scheme\": \"didwba\",\n      \"in\": \"header\",\n      \"name\": \"Authorization\"\n    }\n  },\n  \"ad:security\": \"didwba_sc\",\n  \"ad:AgentDescription\": [\n    {\n      \"@type\": \"ad:AgentDescription\",\n      \"@id\": \"https://agent-connect.ai/agents/travel/weather/ad.json\",\n      \"description\": \"天气智能体，提供全国城市天气信息查询服务。\"\n    }\n  ],\n  \"ad:interfaces\": [\n    {\n      \"@type\": \"ad:NaturalLanguageInterface\",\n      \"protocol\": \"YAML\",\n      \"url\": \"https://agent-search.ai/api_files/nl-interface.yaml\",\n      \"description\": \"提供自然语言交互接口的OpenAPI的YAML文件，可以通过次接口与智能体进行自然语言交互.\"\n    },\n    {\n      \"@type\": \"ad:StructuredInterface\",\n      \"protocol\": \"YAML\",\n      \"url\": \"https://agent-search.ai/api_files/hotel-search-interface.yaml\",\n      \"description\": \"提供酒店搜索的结构化接口，返回符合条件的酒店列表信息.\"\n    },\n    {\n      \"@type\": \"ad:StructuredInterface\",\n      \"protocol\": \"YAML\",\n      \"url\": \"https://agent-search.ai/api_files/tourist-attraction-search-interface.yaml\",\n      \"description\": \"提供景点搜索的结构化接口，返回符合条件的景点列表信息.\"\n    }\n  ],\n  \"status_code\": 200,\n  \"url\": \"https://agent-search.ai/ad.json\",\n  \"auth_info\": \"无token，可能是无认证页面或第一代协议\",\n  \"is_auth_pass\": true\n}\n```\n\n请分析这些数据，理解天气查询爬虫的功能和API使用方法。找到你需要访问的链接，并使用anp_tool获取更多信息以完成用户的任务。"
     },
     {
       "role": "assistant",
       "content": null,
       "tool_calls": [
         {
-          "id": "call_rogKY5ebb7JVNLG64vD0cBND",
+          "id": "call_joj0ZSeFZs9CvrKUvHj8k2C4",
           "function": {
             "arguments": "{\"url\":\"https://agent-connect.ai/agents/travel/weather/ad.json\"}",
             "name": "anp_tool"
@@ -190,33 +413,52 @@
     },
     {
       "role": "tool",
-      "tool_call_id": "call_rogKY5ebb7JVNLG64vD0cBND",
-      "content": "{\"detail\": \"Authentication failed\", \"status_code\": 403, \"url\": \"https://agent-connect.ai/agents/travel/weather/ad.json\", \"auth_info\": \"\\n不是401，无token，应该是无认证页面\", \"is_auth_pass\": true}"
+      "tool_call_id": "call_joj0ZSeFZs9CvrKUvHj8k2C4",
+      "content": "{\"@context\": {\"@vocab\": \"https://schema.org/\", \"did\": \"https://w3id.org/did#\", \"ad\": \"https://agent-network-protocol.com/ad#\"}, \"@type\": \"ad:AgentDescription\", \"@id\": \"https://agent-connect.ai/agents/travel/weather/ad.json\", \"name\": \"天气智能体\", \"description\": \"天气智能体，提供全国城市天气信息查询服务。\", \"version\": \"1.0.0\", \"owner\": {\"@type\": \"Organization\", \"name\": \"agent-connect.ai\", \"@id\": \"https://agent-connect.ai\"}, \"ad:securityDefinitions\": {\"didwba_sc\": {\"scheme\": \"didwba\", \"in\": \"header\", \"name\": \"Authorization\"}}, \"ad:security\": \"didwba_sc\", \"ad:interfaces\": [{\"@type\": \"ad:StructuredInterface\", \"protocol\": \"YAML\", \"url\": \"https://agent-connect.ai/agents/travel/weather/api_files/weather-info.yaml\", \"description\": \"提供天气查询服务的OpenAPI的YAML文件。\"}, {\"@type\": \"ad:StructuredInterface\", \"protocol\": \"YAML\", \"url\": \"https://agent-connect.ai/agents/travel/weather/api_files/booking-interface.yaml\", \"description\": \"提供天气信息预订服务的OpenAPI的YAML文件。\"}, {\"@type\": \"ad:StructuredInterface\", \"protocol\": \"YAML\", \"url\": \"https://agent-connect.ai/agents/travel/weather/api_files/subscription-status-interface.yaml\", \"description\": \"提供天气订阅状态查询服务的OpenAPI的YAML文件。\"}, {\"@type\": \"ad:NaturalLanguageInterface\", \"protocol\": \"YAML\", \"url\": \"https://agent-connect.ai/agents/travel/weather/api_files/nl-interface.yaml\", \"description\": \"提供通过自然语言与智能代理交互的接口。\"}], \"status_code\": 200, \"url\": \"https://agent-connect.ai/agents/travel/weather/ad.json\", \"auth_info\": \"单向认证成功! 已保存 did:wba:agent-did.com:test:public 颁发的token:eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6d2JhOmFnZW50LWRpZC5jb206dGVzdDpwdWJsaWMiLCJleHAiOjE3NDk4NjUzMjYsImlhdCI6MTc0OTg2NTAyNn0.bhUGFsDg0tfpgFlv7n7jchZE3iP8_f4FjP-uOcte-IESCapFffNYBIyFxdHZ1LSd8aJmUw20KSMslTZ0W2Q84W8NbO_NDy0cVA__K3MbBS1ntKcXLGYPIYuSpQDF-yaqdSDzP__TWbGYVGP1VVj2Aa_QMvGomCsKpvvY_XkDJd3j_c6jzpQ23jQI0_Q0CS1CmM22V80vUQNI12e09IjwHvLW_CEuci9E8XwZxFDws--K6oqawaZGBZulmx-2hgSeVhGscNQ4w7nVU6aHRx_sYMCIeCtx7NFNsWlx5-RddIum0HdO5Q8QO6YFZLr4-LKbuS0arY5ig9o8J1Sz9b0NXQ\", \"is_auth_pass\": true}"
     },
     {
       "role": "assistant",
-      "content": "我尝试访问天气智能体的描述文件，但遇到了访问权限问题，显示“Authentication failed”。似乎需要认证才能访问该文件。\n\n接下来，我将尝试访问其他可用的接口描述，寻找替代方案来获取天气信息。让我继续查看其他描述文件中的接口。",
+      "content": null,
       "tool_calls": [
         {
-          "id": "call_4owlwWv6gG7K0M55IePLLq9K",
+          "id": "call_M55X9NoGp1rtgLNGl4tXxrr6",
           "function": {
-            "arguments": "{\"url\": \"https://agent-search.ai/api_files/nl-interface.yaml\"}",
+            "arguments": "{\"url\":\"https://agent-connect.ai/agents/travel/weather/api_files/weather-info.yaml\"}",
+            "name": "anp_tool"
+          },
+          "type": "function"
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "call_M55X9NoGp1rtgLNGl4tXxrr6",
+      "content": "{\"text\": \"openapi: 3.0.0\\ninfo:\\n  title: 天气查询接口\\n  description: \\\"根据城市名称查询天气信息\\\"\\n  version: \\\"1.0\\\"\\nservers:\\n  - url: https://agent-connect.ai\\npaths:\\n  /agents/travel/weather/api/weather_info:\\n    get:\\n      summary: \\\"查询天气信息\\\"\\n      description: \\\"根据城市中文名称查询天气信息\\\"\\n      parameters:\\n        - name: cityName\\n          in: query\\n          required: true\\n          description: \\\"城市中文名称，用于查询对应城市的天气信息\\\"\\n          schema:\\n            type: string\\n      responses:\\n        '200':\\n          description: \\\"天气查询结果\\\"\\n          content:\\n            application/json:\\n              schema:\\n                type: object\\n                properties:\\n                  status:\\n                    type: string\\n                    description: \\\"返回状态，1：成功；0：失败\\\"\\n                  count:\\n                    type: string\\n                    description: \\\"返回结果总数目\\\"\\n                  info:\\n                    type: string\\n                    description: \\\"返回的状态信息\\\"\\n                  infocode:\\n                    type: string\\n                    description: \\\"返回状态说明，10000代表正确\\\"\\n                  forecasts:\\n                    type: array\\n                    description: \\\"预报天气信息数据\\\"\\n                    items:\\n                      type: object\\n                      properties:\\n                        city:\\n                          type: string\\n                          description: \\\"城市名称\\\"\\n                        adcode:\\n                          type: string\\n                          description: \\\"城市编码\\\"\\n                        province:\\n                          type: string\\n                          description: \\\"省份名称\\\"\\n                        reporttime:\\n                          type: string\\n                          description: \\\"预报发布时间\\\"\\n                        casts:\\n                          type: array\\n                          description: \\\"预报数据列表，按顺序为当天、第二天、第三天的预报数据\\\"\\n                          items:\\n                            type: object\\n                            properties:\\n                              date:\\n                                type: string\\n                                description: \\\"日期\\\"\\n                              week:\\n                                type: string\\n                                description: \\\"星期几\\\"\\n                              dayweather:\\n                                type: string\\n                                description: \\\"白天天气现象\\\"\\n                              nightweather:\\n                                type: string\\n                                description: \\\"晚上天气现象\\\"\\n                              daytemp:\\n                                type: string\\n                                description: \\\"白天温度\\\"\\n                              nighttemp:\\n                                type: string\\n                                description: \\\"晚上温度\\\"\\n                              daywind:\\n                                type: string\\n                                description: \\\"白天风向\\\"\\n                              nightwind:\\n                                type: string\\n                                description: \\\"晚上风向\\\"\\n                              daypower:\\n                                type: string\\n                                description: \\\"白天风力\\\"\\n                              nightpower:\\n                                type: string\\n                                description: \\\"晚上风力\\\"\\n\", \"status_code\": 200, \"url\": \"https://agent-connect.ai/agents/travel/weather/api_files/weather-info.yaml\", \"auth_info\": \"单向认证成功! 已保存 did:wba:agent-did.com:test:public 颁发的token:eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6d2JhOmFnZW50LWRpZC5jb206dGVzdDpwdWJsaWMiLCJleHAiOjE3NDk4NjUzMjksImlhdCI6MTc0OTg2NTAyOX0.XccI5vfpjL6PZhLngxdIGFAFPi-PPQ_qaquzHLzzrK2l3ev4FDwvfPkkw3ckfokhvFTStukoCY6svuEbsrIGt0Fi11Hn4sdXZ9JwpwGUgEhSlw8z-jbqkPd7ixTHnAphonVwMEbWYyycKduv77Gz5QHJzhooXQ6q8IESfl9qGNsHlmH5qcFcGeU4Ax4o--DpgWOA1V6Cf4L3HeLuEX-jbhzMiO5JMNqmOEB42QfPuYcgpEl9tlF_bCwm8Id3GDwuQw71JMQBMdUJLKcLmZKn9mR02OTAx3WXHVaoMBfB22j9dZthH1ZOrcOJCranABNbVsfVBx0psE9VVDIlxTI4xw\", \"is_auth_pass\": true}"
+    },
+    {
+      "role": "assistant",
+      "content": null,
+      "tool_calls": [
+        {
+          "id": "call_jbjc7c1RYbjjmL28k6yBOjU4",
+          "function": {
+            "arguments": "{\"method\": \"GET\", \"url\": \"https://agent-connect.ai/agents/travel/weather/api/weather_info?cityName=北京\"}",
             "name": "anp_tool"
           },
           "type": "function"
         },
         {
-          "id": "call_ThWjzF0ZAKBFbNxq6etyuKD2",
+          "id": "call_OP4860yGPwXhDXSRIaRDRR7V",
           "function": {
-            "arguments": "{\"url\": \"https://agent-search.ai/api_files/hotel-search-interface.yaml\"}",
+            "arguments": "{\"method\": \"GET\", \"url\": \"https://agent-connect.ai/agents/travel/weather/api/weather_info?cityName=天津\"}",
             "name": "anp_tool"
           },
           "type": "function"
         },
         {
-          "id": "call_lTPNmGVoMK8V5CmRt02qImsb",
+          "id": "call_sAmthIIQCwgPbIfESHEp3bFO",
           "function": {
-            "arguments": "{\"url\": \"https://agent-search.ai/api_files/tourist-attraction-search-interface.yaml\"}",
+            "arguments": "{\"method\": \"GET\", \"url\": \"https://agent-connect.ai/agents/travel/weather/api/weather_info?cityName=上海\"}",
             "name": "anp_tool"
           },
           "type": "function"
@@ -225,60 +467,22 @@
     },
     {
       "role": "tool",
-      "tool_call_id": "call_4owlwWv6gG7K0M55IePLLq9K",
-      "content": "{\"text\": \"openapi: 3.0.0\\ninfo:\\n  title: 自然语言交互接口\\n  description: \\\"用于通过自然语言与智能代理交互的接口。\\\"\\n  version: \\\"1.0\\\"\\nservers:\\n  - url: https://agent-search.ai\\npaths:\\n  /api/ask:\\n    post:\\n      summary: \\\"askQuestion\\\"\\n      description: \\\"使用自然语言提问并获取自然语言回答，支持SSE返回。\\\"\\n      requestBody:\\n        required: true\\n        content:\\n          application/json:\\n            schema:\\n              type: object\\n              required:\\n                - question\\n              properties:\\n                question:\\n                  type: string\\n                  description: \\\"用户的自然语言问题\\\"\\n      responses:\\n        '200':\\n          description: \\\"自然语言回答，支持SSE返回。\\\"\\n          content:\\n            text/event-stream:\\n              schema:\\n                type: string\\n\", \"status_code\": 200, \"url\": \"https://agent-search.ai/api_files/nl-interface.yaml\", \"auth_info\": \"\\n不是401，无token，应该是无认证页面\", \"is_auth_pass\": true}"
+      "tool_call_id": "call_jbjc7c1RYbjjmL28k6yBOjU4",
+      "content": "{\"status\": \"1\", \"count\": \"1\", \"info\": \"OK\", \"infocode\": \"10000\", \"forecasts\": [{\"city\": \"北京市\", \"adcode\": \"110000\", \"province\": \"北京\", \"reporttime\": \"2025-06-14 09:04:44\", \"casts\": [{\"date\": \"2025-06-14\", \"week\": \"6\", \"dayweather\": \"中雨\", \"nightweather\": \"中雨\", \"daytemp\": \"25\", \"nighttemp\": \"19\", \"daywind\": \"东北\", \"nightwind\": \"东北\", \"daypower\": \"1-3\", \"nightpower\": \"1-3\", \"daytemp_float\": \"25.0\", \"nighttemp_float\": \"19.0\"}, {\"date\": \"2025-06-15\", \"week\": \"7\", \"dayweather\": \"阴\", \"nightweather\": \"阴\", \"daytemp\": \"29\", \"nighttemp\": \"20\", \"daywind\": \"西\", \"nightwind\": \"西\", \"daypower\": \"1-3\", \"nightpower\": \"1-3\", \"daytemp_float\": \"29.0\", \"nighttemp_float\": \"20.0\"}, {\"date\": \"2025-06-16\", \"week\": \"1\", \"dayweather\": \"多云\", \"nightweather\": \"晴\", \"daytemp\": \"29\", \"nighttemp\": \"20\", \"daywind\": \"北\", \"nightwind\": \"北\", \"daypower\": \"1-3\", \"nightpower\": \"1-3\", \"daytemp_float\": \"29.0\", \"nighttemp_float\": \"20.0\"}, {\"date\": \"2025-06-17\", \"week\": \"2\", \"dayweather\": \"晴\", \"nightweather\": \"晴\", \"daytemp\": \"34\", \"nighttemp\": \"22\", \"daywind\": \"西北\", \"nightwind\": \"西北\", \"daypower\": \"1-3\", \"nightpower\": \"1-3\", \"daytemp_float\": \"34.0\", \"nighttemp_float\": \"22.0\"}]}], \"status_code\": 200, \"url\": \"https://agent-connect.ai/agents/travel/weather/api/weather_info?cityName=北京\", \"auth_info\": \"单向认证成功! 已保存 did:wba:agent-did.com:test:public 颁发的token:eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6d2JhOmFnZW50LWRpZC5jb206dGVzdDpwdWJsaWMiLCJleHAiOjE3NDk4NjUzMzMsImlhdCI6MTc0OTg2NTAzM30.jjRR4kp_gP_g_rshRm-qXl3KQVF2dZEDOj_zm6Qlp2WfQFScSvjNgSUmH2kXbpNZlPf_fr8z-ksR_IofIQUDwQeiXpwJVI_pNll6gxH6ve9aYt8ZbF-5Ed0TpsSaeVdG4XFokwZs019UtxlHOXcOdq0r2XakW1nQdGRpw8oUtsJO-JJDJidrOygXcoVEmgV-3xRFlTvaqDVwbVAactnORWAal85Jgh4hpgNtc0XZtx6_WLmCJOyRWzGnIQlkalqjO_D_hZHzvJZVLvjVsNeB2Ru_cs4nHeVtEWyD_uFrjVnefiYptY0PAmEpC8-WapYaM-7W1Mx6IcpKQ1BUMBbb-w\", \"is_auth_pass\": true}"
     },
     {
       "role": "tool",
-      "tool_call_id": "call_ThWjzF0ZAKBFbNxq6etyuKD2",
-      "content": "{\"text\": \"openapi: 3.0.0\\ninfo:\\n  title: 酒店搜索接口\\n  description: 用于搜索酒店列表的接口\\n  version: 1.0.0\\nservers:\\n  - url: https://agent-search.ai\\n    description: 酒店搜索服务\\npaths:\\n  /api/hotel/list:\\n    get:\\n      summary: 酒店搜索\\n      description: 用于酒店搜索列表页，返回符合条件的酒店列表\\n      operationId: searchHotelList\\n      parameters:\\n        - name: cityName\\n          in: query\\n          description: 城市名称（和cityCode必填一个）\\n          required: false\\n          schema:\\n            type: string\\n        - name: cityCode\\n          in: query\\n          description: 城市编码（和cityName必填一个）\\n          required: false\\n          schema:\\n            type: string\\n        - name: checkInDate\\n          in: query\\n          description: 入住日期（格式：yyyy-MM-dd）\\n          required: true\\n          schema:\\n            type: string\\n            format: date\\n        - name: checkOutDate\\n          in: query\\n          description: 离店日期（格式：yyyy-MM-dd）\\n          required: true\\n          schema:\\n            type: string\\n            format: date\\n        - name: pageIndex\\n          in: query\\n          description: 页码（从1开始）\\n          required: true\\n          schema:\\n            type: integer\\n            minimum: 1\\n            default: 1\\n        - name: pageSize\\n          in: query\\n          description: 每页请求酒店数量（取值范围：1-20，默认为10）\\n          required: true\\n          schema:\\n            type: integer\\n            minimum: 1\\n            maximum: 20\\n            default: 10\\n        - name: queryText\\n          in: query\\n          description: 查询关键词 全文检索，可以是酒店名、位置或品牌等\\n          required: false\\n          schema:\\n            type: string\\n        - name: hotelStars\\n          in: query\\n          description: 酒店星级(两星及以下=2,三星级=3,四星级=4,五星级=5),同时搜索多个星级时以英文逗号分隔\\n          required: false\\n          schema:\\n            type: string\\n        - name: minPrice\\n          in: query\\n          description: 价格范围，最小价格，不限制传null即可\\n          required: false\\n          schema:\\n            type: integer\\n        - name: maxPrice\\n          in: query\\n          description: 价格范围，最大价格，不限制传null即可\\n          required: false\\n          schema:\\n            type: integer\\n        - name: longitude\\n          in: query\\n          description: 经度（经纬度必须同时传值才有效）\\n          required: false\\n          schema:\\n            type: number\\n            format: double\\n        - name: latitude\\n          in: query\\n          description: 纬度（经纬度必须同时传值才有效）\\n          required: false\\n          schema:\\n            type: number\\n            format: double\\n        - name: range\\n          in: query\\n          description: 当传入经纬度查询附近酒店时返回方圆多少公里以内的酒店(默认为：5)\\n          required: false\\n          schema:\\n            type: integer\\n            default: 5\\n        - name: districtName\\n          in: query\\n          description: 行政区名称\\n          required: false\\n          schema:\\n            type: string\\n        - name: brands\\n          in: query\\n          description: 酒店品牌，多个品牌用英文逗号分隔（如：汉庭,7天）\\n          required: false\\n          schema:\\n            type: string\\n        - name: sort\\n          in: query\\n          description: 排序类型：默认排序=0，价格升序=1,价格降序=2，评分降序=3，距离升序=4\\n          required: false\\n          schema:\\n            type: integer\\n            enum: [0, 1, 2, 3, 4]\\n            default: 0\\n      responses:\\n        '200':\\n          description: 成功返回酒店列表\\n          content:\\n            application/json:\\n              schema:\\n                type: object\\n                properties:\\n                  data:\\n                    type: object\\n                    properties:\\n                      count:\\n                        type: integer\\n                        description: 查询到的酒店数量\\n                      hotelList:\\n                        type: array\\n                        description: 酒店列表\\n                        items:\\n                          type: object\\n                          properties:\\n                            hotelAgentDescriptionUrl:\\n                              type: string\\n                              description: 酒店智能体描述URL，通过URL可以获取酒店智能体详细描述信息，格式为 https://{domain}/agents/travel/hotel/ad/ph/{hotel_id}/ad.json?checkInDate={checkInDate}&checkOutDate={checkOutDate}\\n                            hotelName:\\n                              type: string\\n                              description: 酒店名称\\n                            cityName:\\n                              type: string\\n                              description: 城市名称\\n                            address:\\n                              type: string\\n                              description: 酒店地址\\n                            hotelStar:\\n                              type: integer\\n                              description: 酒店星级(无星级=0,一星级=1,二星级=2,三星级=3,四星级=4,五星级=5,经济型=6,舒适型=7,高档型=8,豪华型=9)\\n                            isGovStar:\\n                              type: boolean\\n                              description: 是否挂牌星级：true：是挂牌星级,false：否,空表示未知/不确定\\n                            hotelStarName:\\n                              type: string\\n                              description: 星级显示名称\\n                            avgScore:\\n                              type: number\\n                              format: float\\n                              description: 酒店评分，5分制\\n                            googleLat:\\n                              type: number\\n                              format: double\\n                              description: 经度（谷歌地图）\\n                            googleLon:\\n                              type: number\\n                              format: double\\n                              description: 纬度（谷歌地图）\\n                            distance:\\n                              type: integer\\n                              description: 当传入经纬度时，返回与酒店的直线距离\\n                            mainImage:\\n                              type: string\\n                              description: 主图\\n                            startingPrice:\\n                              type: number\\n                              format: float\\n                              description: 起价（可能为空，即暂未报价）\\n                            lstServiceFacilities:\\n                              type: array\\n                              description: 服务设施列表，列表页最多返回前4个展示\\n                              items:\\n                                type: string\\n                  success:\\n                    type: boolean\\n                    description: 请求是否成功\\n                  msg:\\n                    type: string\\n                    description: 请求结果消息\\n              example:\\n                data:\\n                  count: 14\\n                  hotelList:\\n                    - hotelID: \\\"https://agent-connect.ai/agents/travel/hotel/ad/ph/2244298/ad.json?checkInDate=2020-07-27&checkOutDate=2020-07-29\\\"\\n                      hotelName: \\\"如家睿柏·云酒店(天长天康大道店)\\\"\\n                      cityName: \\\"滁州\\\"\\n                      address: \\\"天康大道凤鸣小区\\\"\\n                      hotelStar: 7\\n                      avgScore: null\\n                      googleLat: 32.673551\\n                      googleLon: 119.009952\\n                      mainImage: \\\"http://m.tuniucdn.com/fb2/t1/G6/M00/28/69/Cii-U13PygyILTLbAAFrR7AduVkAAElkwCqCi8AAWtf996.jpg\\\"\\n                      startingPrice: 134.0\\n                    - hotelID: \\\"https://agent-connect.ai/agents/travel/hotel/ad/ph/1981341594/ad.json?checkInDate=2020-07-27&checkOutDate=2020-07-29\\\"\\n                      hotelName: \\\"如家精选酒店(天长市政府天发广场店)\\\"\\n                      cityName: \\\"滁州\\\"\\n                      address: \\\"千禧佳福商业街1号楼1-4层\\\"\\n                      hotelStar: 7\\n                      avgScore: null\\n                      googleLat: 32.666885\\n                      googleLon: 118.999736\\n                      mainImage: \\\"http://m.tuniucdn.com/fb3/s1/2n9c/2yg7zfpzmRLrz8H7Lgw83yicwn2p.jpg\\\"\\n                      startingPrice: 189.0\\n                success: true\\n                msg: \\\"请求成功\\\"\\n        '400':\\n          description: 请求参数错误\\n          content:\\n            application/json:\\n              schema:\\n                type: object\\n                properties:\\n                  success:\\n                    type: boolean\\n                    example: false\\n                  msg:\\n                    type: string\\n                    example: \\\"参数错误：cityName和cityCode不能同时为空\\\"\\n        '500':\\n          description: 服务器内部错误\\n          content:\\n            application/json:\\n              schema:\\n                type: object\\n                properties:\\n                  success:\\n                    type: boolean\\n                    example: false\\n                  msg:\\n                    type: string\\n                    example: \\\"服务器内部错误\\\"\\n\\n\", \"status_code\": 200, \"url\": \"https://agent-search.ai/api_files/hotel-search-interface.yaml\", \"auth_info\": \"\\n不是401，无token，应该是无认证页面\", \"is_auth_pass\": true}"
+      "tool_call_id": "call_OP4860yGPwXhDXSRIaRDRR7V",
+      "content": "{\"status\": \"1\", \"count\": \"1\", \"info\": \"OK\", \"infocode\": \"10000\", \"forecasts\": [{\"city\": \"天津市\", \"adcode\": \"120000\", \"province\": \"天津\", \"reporttime\": \"2025-06-14 09:04:06\", \"casts\": [{\"date\": \"2025-06-14\", \"week\": \"6\", \"dayweather\": \"中雨\", \"nightweather\": \"中雨\", \"daytemp\": \"29\", \"nighttemp\": \"21\", \"daywind\": \"东\", \"nightwind\": \"东\", \"daypower\": \"1-3\", \"nightpower\": \"1-3\", \"daytemp_float\": \"29.0\", \"nighttemp_float\": \"21.0\"}, {\"date\": \"2025-06-15\", \"week\": \"7\", \"dayweather\": \"晴\", \"nightweather\": \"阴\", \"daytemp\": \"29\", \"nighttemp\": \"20\", \"daywind\": \"西北\", \"nightwind\": \"西北\", \"daypower\": \"1-3\", \"nightpower\": \"1-3\", \"daytemp_float\": \"29.0\", \"nighttemp_float\": \"20.0\"}, {\"date\": \"2025-06-16\", \"week\": \"1\", \"dayweather\": \"多云\", \"nightweather\": \"晴\", \"daytemp\": \"28\", \"nighttemp\": \"20\", \"daywind\": \"西北\", \"nightwind\": \"西北\", \"daypower\": \"1-3\", \"nightpower\": \"1-3\", \"daytemp_float\": \"28.0\", \"nighttemp_float\": \"20.0\"}, {\"date\": \"2025-06-17\", \"week\": \"2\", \"dayweather\": \"晴\", \"nightweather\": \"晴\", \"daytemp\": \"34\", \"nighttemp\": \"23\", \"daywind\": \"北\", \"nightwind\": \"北\", \"daypower\": \"1-3\", \"nightpower\": \"1-3\", \"daytemp_float\": \"34.0\", \"nighttemp_float\": \"23.0\"}]}], \"status_code\": 200, \"url\": \"https://agent-connect.ai/agents/travel/weather/api/weather_info?cityName=天津\", \"auth_info\": \"单向认证成功! 已保存 did:wba:agent-did.com:test:public 颁发的token:eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6d2JhOmFnZW50LWRpZC5jb206dGVzdDpwdWJsaWMiLCJleHAiOjE3NDk4NjUzMzYsImlhdCI6MTc0OTg2NTAzNn0.OBZFV0OSmZwAk0S8_wrS6UOQAH0n6XxuDYavJlsBIIbiY8kcY094XzWbXwAFB9zBTvwKvlJeTLDWE__qbE-FOUJUjgyZFNUZGDj38xIOqLfhFV5GOWijdvq6p_btTjHd_hyj0FRFghngNAME0qXlnfBgY48b3lZSl88T_qNZW_H2e_KRa_Iz1L-x-q4yqQTi8G12bzkCBQ2x9RXFFRhON5DMSAIN_DQurRbF94pObGvmO6dG4JFpoPAWmnVlj84QJTSjRqZKQhcbIN3hRvsqS86qI_kXeWuaRwcMQIBREkZrZqs137jKr23kMNqWJPBdu4g8mlpJ91cSEIkQsvHvBQ\", \"is_auth_pass\": true}"
     },
     {
       "role": "tool",
-      "tool_call_id": "call_lTPNmGVoMK8V5CmRt02qImsb",
-      "content": "{\"text\": \"openapi: 3.0.0\\ninfo:\\n  title: 景点搜索接口\\n  description: 用于搜索景点的接口\\n  version: 1.0.0\\nservers:\\n  - url: https://agent-search.ai\\n    description: 景点搜索服务\\npaths:\\n  /api/tourist_attraction/list:\\n    get:\\n      summary: 景点搜索\\n      description: 用于景点搜索列表页，返回符合条件的景点列表\\n      operationId: searchTouristAttractionList\\n      parameters:\\n        - name: keyWord\\n          in: query\\n          description: 查询关键词(会根据景点名称、景点位置、景点主题标签等模糊搜索)\\n          required: false\\n          schema:\\n            type: string\\n        - name: pageIndex\\n          in: query\\n          description: 页码（从1开始）\\n          required: true\\n          schema:\\n            type: integer\\n            minimum: 1\\n            default: 1\\n        - name: pageSize\\n          in: query\\n          description: 每页请求景点数量（取值范围：1-50，默认为10）\\n          required: true\\n          schema:\\n            type: integer\\n            minimum: 1\\n            maximum: 50\\n            default: 10\\n        - name: cityName\\n          in: query\\n          description: 城市名称\\n          required: false\\n          schema:\\n            type: string\\n        - name: provinceName\\n          in: query\\n          description: 省份名称\\n          required: false\\n          schema:\\n            type: string\\n        - name: country\\n          in: query\\n          description: 国家名称\\n          required: false\\n          schema:\\n            type: string\\n        - name: themeGroup\\n          in: query\\n          description: 景点主题(如动物园、植物园、博物馆、农场,展览等主题,多个英文逗号分隔：如：动物园,植物园)\\n          required: false\\n          schema:\\n            type: string\\n        - name: star\\n          in: query\\n          description: 景区星级，数组，支持多个（如[3,4,5]}）,star取值范围[0-5]\\n          required: false\\n          schema:\\n            type: array\\n            items:\\n              type: integer\\n              minimum: 0\\n              maximum: 5\\n        - name: longitude\\n          in: query\\n          description: 经度（高德坐标系）\\n          required: false\\n          schema:\\n            type: number\\n            format: double\\n        - name: latitude\\n          in: query\\n          description: 纬度（高德坐标系）\\n          required: false\\n          schema:\\n            type: number\\n            format: double\\n        - name: distanceRange\\n          in: query\\n          description: 查询附近距离，单位KM，配合经纬度使用\\n          required: false\\n          schema:\\n            type: integer\\n        - name: sort\\n          in: query\\n          description: 排序类型：综合 = 0，好评优先 = 1, 距离近->远 = 2,景区星级由高到低 = 3\\n          required: false\\n          schema:\\n            type: integer\\n            enum: [0, 1, 2, 3]\\n            default: 0\\n        - name: isExistAvailableSaleProduct\\n          in: query\\n          description: 是否存在可售产品（1存在，0不存在）\\n          required: false\\n          schema:\\n            type: integer\\n            enum: [0, 1]\\n      responses:\\n        '200':\\n          description: 成功返回景点列表\\n          content:\\n            application/json:\\n              schema:\\n                type: object\\n                properties:\\n                  data:\\n                    type: object\\n                    properties:\\n                      count:\\n                        type: integer\\n                        description: 查询到的景点数量\\n                      scenicList:\\n                        type: array\\n                        description: 景点列表\\n                        items:\\n                          type: object\\n                          properties:\\n                            scenicAgentDescriptionUrl:\\n                              type: string\\n                              description: 景点Agent描述URL\\n                            scenicName:\\n                              type: string\\n                              description: 景点名称\\n                            mainImage:\\n                              type: string\\n                              description: 景点主图\\n                            cityName:\\n                              type: string\\n                              description: 景点所在城市\\n                            provinceName:\\n                              type: string\\n                              description: 景点所在省份\\n                            address:\\n                              type: string\\n                              description: 景点地址\\n                            longitude:\\n                              type: number\\n                              format: double\\n                              description: 经度（高德坐标系）\\n                            latitude:\\n                              type: number\\n                              format: double\\n                              description: 纬度（高德坐标系）\\n                            star:\\n                              type: integer\\n                              description: 景区星级（最高5，即5A）\\n                            commentScore:\\n                              type: number\\n                              format: float\\n                              description: 评分（满分5分，小数点后1位）\\n                            openTime:\\n                              type: string\\n                              description: 开放时间\\n                            themeGroups:\\n                              type: string\\n                              description: 主题标签(多个英文逗号分隔)\\n                            distance:\\n                              type: number\\n                              format: float\\n                              description: 距离（当根据经纬度查询时才有值）\\n                            ticketProducts:\\n                              type: array\\n                              description: 门票产品列表\\n                              items:\\n                                type: object\\n                                properties:\\n                                  productId:\\n                                    type: string\\n                                    description: 产品ID\\n                                  productName:\\n                                    type: string\\n                                    description: 产品名称\\n                                  marketPrice:\\n                                    type: string\\n                                    description: 产品门市价（空或0表示，暂无门市价）\\n                                  settlePrice:\\n                                    type: string\\n                                    description: 产品分销价（空或0表示，此产品暂不可销售）\\n                  success:\\n                    type: boolean\\n                    description: 请求是否成功\\n                  msg:\\n                    type: string\\n                    description: 请求结果消息\\n              example:\\n                data:\\n                  count: 2\\n                  scenicList:\\n                    - scenicAgentDescriptionUrl: \\\"https://agent-connect.ai/agents/travel/tourist_attraction/ad/ph/12361/ad.json\\\"\\n                      scenicName: \\\"上海野生动物园\\\"\\n                      mainImage: \\\"https://img.shpanhe.com/scenic/100j1h000001hkwyw2759.jpg\\\"\\n                      cityName: \\\"上海\\\"\\n                      provinceName: \\\"上海\\\"\\n                      address: \\\"上海市浦东新区南六公路178号\\\"\\n                      longitude: 121.721460\\n                      latitude: 31.055591\\n                      star: 5\\n                      commentScore: 4.7\\n                      openTime: \\\"3/1-6/30 09:00-17:00;7/1-8/31 09:00-20:00;9/1-11/30 09:00-17:00;12/1-2/28 09:00-16:30\\\"\\n                      themeGroups: \\\"动物园\\\"\\n                      distance: null\\n                      ticketProducts:\\n                        - productId: \\\"8193\\\"\\n                          productName: \\\"上海野生动物园门票学生票\\\"\\n                          marketPrice: \\\"0.00\\\"\\n                          settlePrice: \\\"82.50\\\"\\n                success: true\\n                msg: \\\"请求成功\\\"\\n        '400':\\n          description: 请求参数错误\\n          content:\\n            application/json:\\n              schema:\\n                type: object\\n                properties:\\n                  success:\\n                    type: boolean\\n                    example: false\\n                  msg:\\n                    type: string\\n                    example: \\\"参数错误：请检查输入参数\\\"\\n        '500':\\n          description: 服务器内部错误\\n          content:\\n            application/json:\\n              schema:\\n                type: object\\n                properties:\\n                  success:\\n                    type: boolean\\n                    example: false\\n                  msg:\\n                    type: string\\n                    example: \\\"服务器内部错误\\\"\\n\", \"status_code\": 200, \"url\": \"https://agent-search.ai/api_files/tourist-attraction-search-interface.yaml\", \"auth_info\": \"\\n不是401，无token，应该是无认证页面\", \"is_auth_pass\": true}"
+      "tool_call_id": "call_sAmthIIQCwgPbIfESHEp3bFO",
+      "content": "{\"status\": \"1\", \"count\": \"1\", \"info\": \"OK\", \"infocode\": \"10000\", \"forecasts\": [{\"city\": \"上海市\", \"adcode\": \"310000\", \"province\": \"上海\", \"reporttime\": \"2025-06-14 09:33:18\", \"casts\": [{\"date\": \"2025-06-14\", \"week\": \"6\", \"dayweather\": \"小雨\", \"nightweather\": \"小雨\", \"daytemp\": \"32\", \"nighttemp\": \"25\", \"daywind\": \"西\", \"nightwind\": \"西\", \"daypower\": \"1-3\", \"nightpower\": \"1-3\", \"daytemp_float\": \"32.0\", \"nighttemp_float\": \"25.0\"}, {\"date\": \"2025-06-15\", \"week\": \"7\", \"dayweather\": \"中雨\", \"nightweather\": \"中雨\", \"daytemp\": \"29\", \"nighttemp\": \"24\", \"daywind\": \"西南\", \"nightwind\": \"西南\", \"daypower\": \"1-3\", \"nightpower\": \"1-3\", \"daytemp_float\": \"29.0\", \"nighttemp_float\": \"24.0\"}, {\"date\": \"2025-06-16\", \"week\": \"1\", \"dayweather\": \"阴\", \"nightweather\": \"多云\", \"daytemp\": \"33\", \"nighttemp\": \"24\", \"daywind\": \"西南\", \"nightwind\": \"西南\", \"daypower\": \"1-3\", \"nightpower\": \"1-3\", \"daytemp_float\": \"33.0\", \"nighttemp_float\": \"24.0\"}, {\"date\": \"2025-06-17\", \"week\": \"2\", \"dayweather\": \"多云\", \"nightweather\": \"多云\", \"daytemp\": \"35\", \"nighttemp\": \"26\", \"daywind\": \"西南\", \"nightwind\": \"西南\", \"daypower\": \"1-3\", \"nightpower\": \"1-3\", \"daytemp_float\": \"35.0\", \"nighttemp_float\": \"26.0\"}]}], \"status_code\": 200, \"url\": \"https://agent-connect.ai/agents/travel/weather/api/weather_info?cityName=上海\", \"auth_info\": \"单向认证成功! 已保存 did:wba:agent-did.com:test:public 颁发的token:eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6d2JhOmFnZW50LWRpZC5jb206dGVzdDpwdWJsaWMiLCJleHAiOjE3NDk4NjUzMzksImlhdCI6MTc0OTg2NTAzOX0.VbSkEaDP53DAnEweZUKCMcf7d5aTiSGO6gvzNbaNcEHGZy8oqQmyyc5bBmDmEQZLxzaCrvH3ilyTOSHyqZCKT3BNzjrQlJOfdTp2BSH93jOR7wRjZR2rgfDkASL9LeJgMZb8hvvDjmwmlE8tMffnmsdubNOiDGwchyrk94HgQbIJUqSAH-VOpvWuwV9xccnVi4lOM9j3KLfoCywwsW02RbonuDu4yNw4C-34zafKL0dVBFmjgkG1FYftlWWhnydBcmWnb8qNe8n9x3cD46oQehKcoaeNwJLu2b4TEEzG393tfZ9iNWmqPgRqzHV53zdBc4QZPF6LJGY36f1JV2JhGQ\", \"is_auth_pass\": true}"
     },
     {
       "role": "assistant",
-      "content": "从获取到的描述文件中，我们发现以下信息：\n\n### 自然语言交互接口 (NL Interface)\n- **URL:** `https://agent-search.ai/api/ask`\n- **方法:** POST\n- **请求体:** JSON 格式的对象，必须包含一个 `question` 字段。\n- **返回:** 支持使用 SSE（Server-Sent Events）格式返回自然语言答案。\n\n### 酒店搜索接口\n- 提供用于搜索酒店列表的结构化接口，与天气查询无关，因此不再深入分析。\n\n### 景点搜索接口\n- 提供用于搜索景点的结构化接口，与天气查询无关，因此不再深入分析。\n\n由于自然语言接口支持使用自然语言问题来获取信息，而我们要查询天气，最直接的方法是利用自然语言接口询问当前的天气情况。\n\n我将使用自然语言接口请求北京、天津和上海今天的天气信息。",
-      "tool_calls": [
-        {
-          "id": "call_jbflSzLMLGbRt9eTQas5xFOf",
-          "function": {
-            "arguments": "{\"method\":\"POST\",\"url\":\"https://agent-search.ai/api/ask\",\"headers\":{\"Content-Type\":\"application/json\"},\"data\":{\"question\":\"查询北京天津上海今天的天气\"}}",
-            "name": "anp_tool"
-          },
-          "type": "function"
-        }
-      ]
-    },
-    {
-      "role": "tool",
-      "tool_call_id": "call_jbflSzLMLGbRt9eTQas5xFOf",
-      "content": "{\"detail\": [{\"type\": \"missing\", \"loc\": [\"body\", \"question\"], \"msg\": \"Field required\", \"input\": {}}], \"status_code\": 422, \"url\": \"https://agent-search.ai/api/ask\", \"auth_info\": \"\\n不是401，无token，应该是无认证页面\", \"is_auth_pass\": true}"
-    },
-    {
-      "role": "assistant",
-      "content": "看起来在发送请求时遇到了“缺少字段”的错误，这是由于请求体格式中的一些问题导致的。我将修改请求体格式并重新发送请求。",
-      "tool_calls": [
-        {
-          "id": "call_xWeAZ4CmqnEkd0TX2JFN6kRW",
-          "function": {
-            "arguments": "{\"method\":\"POST\",\"url\":\"https://agent-search.ai/api/ask\",\"data\":{\"question\":\"查询北京天津上海今天的天气\"}}",
-            "name": "anp_tool"
-          },
-          "type": "function"
-        }
-      ]
-    },
-    {
-      "role": "tool",
-      "tool_call_id": "call_xWeAZ4CmqnEkd0TX2JFN6kRW",
-      "content": "{\"detail\": [{\"type\": \"missing\", \"loc\": [\"body\", \"question\"], \"msg\": \"Field required\", \"input\": {}}], \"status_code\": 422, \"url\": \"https://agent-search.ai/api/ask\", \"auth_info\": \"\\n不是401，无token，应该是无认证页面\", \"is_auth_pass\": true}"
-    },
-    {
-      "role": "assistant",
-      "content": "即使发送了正确的请求体，依旧收到了缺少字段的错误响应。在这方面似乎存在一些技术问题，可能是接口配置或描述文件信息的错位导致的。\n\n虽然通过此渠道无法直接获取北京、天津和上海的今日天气，我建议您可以直接访问知名的天气服务提供商的网站或应用（如天气预报客户端、政府气象网站等）来获取准确信息。\n\n如果您有其他需求或需要进一步帮助，请随时告知。",
+      "content": "以下是有关北京、天津和上海今天的天气信息：\n\n### 北京\n- **日期**: 2025-06-14\n- **星期**: 六\n- **白天天气现象**: 中雨\n- **晚上天气现象**: 中雨\n- **白天温度**: 25°C\n- **晚上温度**: 19°C\n- **白天风向**: 东北\n- **晚上风向**: 东北\n- **白天风力**: 1-3级\n- **晚上风力**: 1-3级\n\n### 天津\n- **日期**: 2025-06-14\n- **星期**: 六\n- **白天天气现象**: 中雨\n- **晚上天气现象**: 中雨\n- **白天温度**: 29°C\n- **晚上温度**: 21°C\n- **白天风向**: 东\n- **晚上风向**: 东\n- **白天风力**: 1-3级\n- **晚上风力**: 1-3级\n\n### 上海\n- **日期**: 2025-06-14\n- **星期**: 六\n- **白天天气现象**: 小雨\n- **晚上天气现象**: 小雨\n- **白天温度**: 32°C\n- **晚上温度**: 25°C\n- **白天风向**: 西\n- **晚上风向**: 西\n- **白天风力**: 1-3级\n- **晚上风力**: 1-3级\n\n这些信息帮助您了解今天在这些城市的天气状况。如果您需要更多的天气预报信息或其他城市的天气情况，请告诉我！🌧️",
       "tool_calls": null
     }
   ]

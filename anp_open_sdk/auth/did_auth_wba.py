@@ -1,13 +1,11 @@
 # anp_open_sdk/auth/wba_auth.py
-import logging
-import os
-from pathlib import Path
 
 from agent_connect.authentication import resolve_did_wba_document
 
-from .base_auth import BaseDIDResolver, BaseDIDSigner, BaseAuthHeaderBuilder, BaseDIDAuthenticator, BaseAuth
-from .custom_did_resolver import resolve_local_did_document
-from .token_auth import verify_timestamp
+
+from .did_auth_base import BaseDIDResolver, BaseDIDSigner, BaseAuthHeaderBuilder, BaseDIDAuthenticator, BaseAuth
+from .did_auth_wba_custom_did_resolver import resolve_local_did_document
+from .token_nonce_auth import verify_timestamp
 from .schemas import DIDDocument, DIDKeyPair, DIDCredentials, AuthenticationContext
 import json
 import base64
@@ -19,8 +17,6 @@ from agent_connect.authentication.did_wba import extract_auth_header_parts
 
 from ..agent_connect_hotpatch.authentication.did_wba import extract_auth_header_parts_two_way, \
     verify_auth_header_signature_two_way
-from ..agent_connect_hotpatch.authentication.did_wba_auth_header import DIDWbaAuthHeader
-from ..anp_sdk_agent import LocalAgent
 from ..anp_sdk_user_data import LocalUserDataManager
 
 
@@ -32,7 +28,7 @@ class WBADIDResolver(BaseDIDResolver):
         """解析WBA DID文档"""
         try:
             # 先尝试本地解析
-            from anp_open_sdk.auth.custom_did_resolver import resolve_local_did_document
+            from anp_open_sdk.auth.did_auth_wba_custom_did_resolver import resolve_local_did_document
             did_doc_dict = await resolve_local_did_document(did)
             
             if not did_doc_dict:
@@ -147,13 +143,12 @@ class WBADIDAuthenticator(BaseDIDAuthenticator):
         """执行WBA认证请求"""
         import aiohttp
         import logging
-        from typing import Optional, Dict
         """执行WBA认证请求"""
         try:
             # 构建认证头
             auth_headers = self.header_builder.build_auth_header(context, credentials)
             request_url = context.request_url
-            method = getattr(context, 'http_method', 'GET')
+            method = getattr(context, 'method', 'GET')
             json_data = getattr(context, 'json_data', None)
             custom_headers = getattr(context, 'custom_headers', None)
             resp_did = getattr(context, 'target_did', None)
@@ -203,7 +198,7 @@ class WBADIDAuthenticator(BaseDIDAuthenticator):
             from anp_open_sdk.agent_connect_hotpatch.authentication.did_wba import (
                 extract_auth_header_parts_two_way, verify_auth_header_signature_two_way, resolve_did_wba_document
             )
-            from anp_open_sdk.auth.custom_did_resolver import resolve_local_did_document
+            from anp_open_sdk.auth.did_auth_wba_custom_did_resolver import resolve_local_did_document
             from anp_open_sdk.config.dynamic_config import dynamic_config
             import logging
 
@@ -239,6 +234,14 @@ class WBADIDAuthenticator(BaseDIDAuthenticator):
             except Exception as e:
                 return False, f"Invalid timestamp: {e}"
 
+            # Verify nonce validity
+            from .auth_server import is_valid_server_nonce
+            if not is_valid_server_nonce(nonce):
+                logging.error(f"Invalid or expired nonce: {nonce}")
+                return False, f"Invalid nonce: {e}"
+            else:
+                logger.info(f"nonce通过防重放验证{nonce}")
+
             # 3. 解析DID文档
             did_document = await resolve_local_did_document(did)
             if not did_document:
@@ -268,6 +271,7 @@ class WBADIDAuthenticator(BaseDIDAuthenticator):
                     return False, f"Invalid signature: {message}"
             except Exception as e:
                 return False, f"Error verifying signature: {e}"
+            from .auth_server import generate_auth_response
 
             header_parts = await generate_auth_response(did, is_two_way_auth, resp_did)
             return True, header_parts
@@ -415,68 +419,3 @@ async def check_response_DIDAtuhHeader(auth_value: str) -> bool:
         return False
 
 
-async def generate_auth_response(did, is_two_way_auth, resp_did):
-
-    resp_did_agent = LocalAgent.from_did(resp_did)
-
-    # 生成访问令牌
-    from anp_open_sdk.config.dynamic_config import dynamic_config
-    from anp_open_sdk.auth.token_auth import create_access_token
-    expiration_time = dynamic_config.get('anp_sdk.token_expire_time')
-    access_token = create_access_token(
-        resp_did_agent.jwt_private_key_path,
-        data={"req_did": did, "resp_did": resp_did, "comments": "open for req_did"},
-        expires_delta=expiration_time
-    )
-    resp_did_agent.contact_manager.store_token_to_remote(did, access_token, expiration_time)
-    # logging.info(f"认证成功，已生成访问令牌")
-    # 如果resp_did存在，加载resp_did的DID文档并组装DID认证头
-    resp_did_auth_header = None
-    if resp_did and resp_did != "没收到":
-        try:
-            from anp_open_sdk.config.dynamic_config import dynamic_config
-            # 获取resp_did用户目录
-            key_id = "key-1"
-
-            userdid_filepath = dynamic_config.get('anp_sdk.user_did_path')
-            userdid_filepath = os.path.join(userdid_filepath, f"user_{resp_did[-16:]}")
-            did_document_path = f"{userdid_filepath}/did_document.json"
-            private_key_path = f"{userdid_filepath}/{key_id}_private.pem"
-
-            if resp_did_agent.is_hosted_did:
-                did_document_path = resp_did_agent.did_document_path
-                private_key_path = resp_did_agent.private_key_path
-
-            # 检查文件是否存在
-            if Path(did_document_path).exists() and Path(private_key_path).exists():
-                # 创建DID认证客户端
-                resp_auth_client = DIDWbaAuthHeader(
-                    did_document_path=str(did_document_path),
-                    private_key_path=str(private_key_path)
-                )
-
-                # 获取认证头（用于返回给req_did进行验证,此时 req是现在的did）
-                target_url = "http://virtual.WBAback:9999"  # 使用当前请求的域名
-                resp_did_auth_header = resp_auth_client.get_auth_header_two_way(target_url, did)
-
-                # 打印认证头
-            # logging.info(f"Generated resp_did_auth_header: {resp_did_auth_header}")
-
-            # logging.info(f"成功加载resp_did的DID文档并生成认证头")
-            else:
-                logging.warning(f"resp_did的DID文档或私钥不存在: {did_document_path} or {private_key_path}")
-        except Exception as e:
-            logging.error(f"加载resp_did的DID文档时出错: {e}")
-            resp_did_auth_header = None
-    if is_two_way_auth:
-        return [
-            {
-                "access_token": access_token,
-                "token_type": "bearer",
-                "req_did": did,
-                "resp_did": resp_did,
-                "resp_did_auth_header": resp_did_auth_header
-            }
-        ]
-    else:
-        return f"bearer {access_token}"

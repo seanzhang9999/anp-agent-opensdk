@@ -51,7 +51,7 @@ class ANPToolCrawler:
             user_data = user_data_manager.get_user_data_by_name("托管智能体_did:wba:agent-did.com:test:public")
 
             if user_data:
-                agent_anptool = LocalAgent(self.sdk, user_data.did)
+                agent_anptool = LocalAgent.from_did(user_data.did)
                 self.sdk.register_agent(agent_anptool)
                 logger.info(f"使用托管智能体: {agent_anptool.name}")
             else:

@@ -30,6 +30,8 @@ from loguru import logger
 from openai.types.chat import ChatCompletionMessage
 from starlette.responses import JSONResponse
 
+from anp_open_sdk.anp_sdk_user_data import LocalUserDataManager
+
 # 加载环境变量
 load_dotenv()
 
@@ -104,11 +106,11 @@ class ANPToolCrawler:
     async def _get_caller_agent(self, req_did: str = None):
         """获取调用者智能体"""
         if req_did is None:
-            user_data_manager = self.sdk.user_data_manager
+            user_data_manager = LocalUserDataManager()
             user_data_manager.load_users()
             user_data = user_data_manager.get_user_data_by_name("托管智能体_did:wba:agent-did.com:test:public")
             if user_data:
-                agent = LocalAgent(self.sdk, user_data.did, user_data.name)
+                agent = LocalAgent.from_did(user_data.did)
                 self.sdk.register_agent(agent)
                 logger.info(f"使用托管身份智能体进行爬取: {agent.name}")
                 return agent
@@ -116,7 +118,7 @@ class ANPToolCrawler:
                 logger.error("未找到托管智能体")
                 return None
         else:
-            return LocalAgent(self.sdk, req_did)
+            return LocalAgent.from_did(req_did)
 
     def _create_code_search_prompt_template(self):
         """创建代码搜索智能体的提示模板"""
@@ -467,7 +469,7 @@ async def create_python_agent(sdk: ANPSDK):
     """创建Python代码生成智能体"""
     logger.info("步骤1: 创建Python代码生成智能体")
 
-    from anp_open_sdk.anp_sdk_userdata_tool import did_create_user
+    from anp_open_sdk.anp_sdk_user_data import did_create_user
 
     # 创建临时用户参数
     temp_user_params = {
@@ -487,9 +489,7 @@ async def create_python_agent(sdk: ANPSDK):
     logger.info(f"智能体创建成功，DID: {did_document['id']}")
 
     # 创建LocalAgent实例并注册
-    python_agent = LocalAgent(sdk,
-                            id=did_document['id'],
-                            name=temp_user_params['name'])
+    python_agent = LocalAgent.from_did(did_document['id'])
     sdk.register_agent(python_agent)
     logger.info(f"智能体 {python_agent.name} 注册成功")
     
@@ -555,7 +555,7 @@ async def configure_agent_interfaces(python_agent: LocalAgent):
     """配置智能体API和接口描述"""
     logger.info("步骤3: 配置智能体接口")
 
-    from anp_open_sdk.anp_sdk_userdata_tool import get_user_dir_did_doc_by_did
+    from anp_open_sdk.anp_sdk_user_data import get_user_dir_did_doc_by_did
 
     # 获取用户目录
     success, did_doc, user_dir = get_user_dir_did_doc_by_did(python_agent.id)
@@ -766,7 +766,7 @@ async def run_crawler_demo_with_different_agent(crawler: ANPToolCrawler,
         logger.warning("未找到'本田'智能体，跳过此演示")
         return None
         
-    agent1 = LocalAgent(sdk, user_data.did)
+    agent1 = LocalAgent.from_did(user_data.did)
 
     result = await crawler.run_crawler_demo(
         task_input=task_input,
@@ -815,7 +815,7 @@ async def cleanup_resources(sdk: ANPSDK, python_agent: LocalAgent):
     logger.info("步骤6: 清理临时资源")
     
     try:
-        from anp_open_sdk.anp_sdk_userdata_tool import get_user_dir_did_doc_by_did
+        from anp_open_sdk.anp_sdk_user_data import get_user_dir_did_doc_by_did
 
         # 获取用户目录
         success, _, user_dir = get_user_dir_did_doc_by_did(python_agent.id)

@@ -177,7 +177,8 @@ class ANPAgentWrapper:
                 return False
             
             # 2. 创建ANP通信接口
-            self.anp_agent = LocalAgent(self.sdk, self.agent_identity, self.existing_agent.name)
+            self.anp_agent = LocalAgent.from_did(self.agent_identity)
+            self.anp_agent.name = self.existing_agent.name
             
             # 3. 设置默认通信协议（统一处理）
             await self._setup_default_capabilities()
@@ -369,27 +370,30 @@ class ANPAgentWrapper:
             return None
         
         # 1. 尝试发现现有身份
-        user_data = self.sdk.user_data_manager.get_user_data_by_name(self.existing_agent.name)
-        if user_data:
-            logger.info(f"发现现有ANP身份: {user_data.did}")
-            return user_data.did
-        
-        # 2. 创建新身份
-        from anp_open_sdk.anp_sdk_userdata_tool import did_create_user
+        current_agent = None
+        try:
 
-        temp_user_params = {
-            'name': self.existing_agent.name,
-            'host': self.agent_config.get('host', 'localhost'),
-            'port': self.agent_config.get('port', 9527),
-            'dir': self.agent_config.get('dir', 'wba'),
-            'type': self.agent_config.get('type', 'user')
-        }
-        
-        did_document = did_create_user(temp_user_params)
-        if did_document:
-            logger.info(f"创建新ANP身份: {did_document['id']}")
-            return did_document['id']
-        
+            current_agent = LocalAgent.from_name(self.existing_agent.name)
+        finally:
+            if current_agent is not None:
+                logger.info(f"发现现有ANP身份: {current_agent.id}")
+                return current_agent.id
+            else:
+                # 2. 创建新身份
+                from anp_open_sdk.anp_sdk_user_data import did_create_user
+
+                temp_user_params = {
+                    'name': self.existing_agent.name,
+                    'host': self.agent_config.get('host', 'localhost'),
+                    'port': self.agent_config.get('port', 9527),
+                    'dir': self.agent_config.get('dir', 'wba'),
+                    'type': self.agent_config.get('type', 'user')
+                }
+
+                did_document = did_create_user(temp_user_params)
+                if did_document:
+                    logger.info(f"创建新ANP身份: {did_document['id']}")
+                    return did_document['id']
         return None
 
     async def _handle_wrapped_capability(self, capability_info, request_data, request):
@@ -621,7 +625,7 @@ class ANPToolCrawler:
             user_data_manager.load_users()
             user_data = user_data_manager.get_user_data_by_name("托管智能体_did:wba:agent-did.com:test:public")
             if user_data:
-                agent = LocalAgent(self.sdk, user_data.did, user_data.name)
+                agent = LocalAgent.from_did(user_data.did)
                 self.sdk.register_agent(agent)
                 logger.info(f"使用托管身份智能体进行爬取: {agent.name}")
                 return agent
@@ -629,7 +633,7 @@ class ANPToolCrawler:
                 logger.error("未找到托管智能体")
                 return None
         else:
-            return LocalAgent(self.sdk, req_did)
+            return LocalAgent.from_did(req_did)
 
     def _create_code_search_prompt_template(self):
         """创建代码搜索智能体的提示模板"""
@@ -1028,7 +1032,7 @@ async def configure_agent_interfaces(anp_agent: LocalAgent):
     """步骤3: 配置智能体ANP通讯接口"""
     logger.info("步骤3: 配置智能体ANP通讯接口")
 
-    from anp_open_sdk.anp_sdk_userdata_tool import get_user_dir_did_doc_by_did
+    from anp_open_sdk.anp_sdk_user_data import get_user_dir_did_doc_by_did
 
     # 获取用户目录
     success, did_doc, user_dir = get_user_dir_did_doc_by_did(anp_agent.id)
@@ -1325,7 +1329,7 @@ async def run_multi_agent_collaboration_demo(sdk: ANPSDK, wrapper: ANPAgentWrapp
     # 获取另一个智能体进行协作
     user_data = sdk.user_data_manager.get_user_data_by_name("本田")
     if user_data:
-        collaborator = LocalAgent(sdk, user_data.did, user_data.name)
+        collaborator = LocalAgent.from_did(user_data.did)
         logger.info(f"找到协作智能体: {collaborator.name}")
 
         # 模拟智能体间协作 - 通过智能爬虫完成任务
@@ -1360,7 +1364,7 @@ async def cleanup_assembled_resources(sdk: ANPSDK, wrapper: ANPAgentWrapper):
     logger.info("步骤4: 清理组装后的智能体资源")
     
     try:
-        from anp_open_sdk.anp_sdk_userdata_tool import get_user_dir_did_doc_by_did
+        from anp_open_sdk.anp_sdk_user_data import get_user_dir_did_doc_by_did
 
         # 获取用户目录
         success, _, user_dir = get_user_dir_did_doc_by_did(wrapper.anp_agent.id)

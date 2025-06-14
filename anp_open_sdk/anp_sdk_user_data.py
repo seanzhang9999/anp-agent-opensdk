@@ -193,9 +193,9 @@ class LocalUserData(BaseUserData):
         self.name = agent_cfg.get("name")
         self.unique_id = agent_cfg.get("unique_id")
         self.user_dir = user_folder_path
-        self.did_doc_path = did_doc_path
+        self._did_doc_path = did_doc_path
 
-        self.did_private_key_file_path = password_paths.get("did_private_key_file_path")
+        self._did_private_key_file_path = password_paths.get("did_private_key_file_path")
         self.did_public_key_file_path = password_paths.get("did_public_key_file_path")
         self.jwt_private_key_file_path = password_paths.get("jwt_private_key_file_path")
         self.jwt_public_key_file_path = password_paths.get("jwt_public_key_file_path")
@@ -204,6 +204,14 @@ class LocalUserData(BaseUserData):
         self.token_to_remote_dict = {}
         self.token_from_remote_dict = {}
         self.contacts = {}
+
+
+    @property
+    def did_private_key_file_path(self) -> str:
+        return self._did_private_key_file_path
+    @property
+    def did_doc_path(self) -> str:
+        return self._did_doc_path
 
     def get_did(self) -> str:
         return self.did
@@ -252,10 +260,19 @@ class LocalUserData(BaseUserData):
         return list(self.contacts.values())
 
 class LocalUserDataManager(BaseUserDataManager):
+    _instance = None
+    def __new__(cls, user_dir: Optional[str] = None):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
     def __init__(self, user_dir: Optional[str] = None):
+        if hasattr(self, '_initialized') and self._initialized:
+            return
         self._user_dir = user_dir or dynamic_config.get('anp_sdk.user_did_path')
         self.users: Dict[str, LocalUserData] = {}
         self.load_users()
+        self._initialized = True
 
     @property
     def user_dir(self):
@@ -400,9 +417,10 @@ def did_create_user(user_iput: dict, *, did_hex: bool = True, did_check_unique: 
     userdid_port = int(user_iput['port'])
     unique_id = secrets.token_hex(8) if did_hex else None
 
-    did_parts = ['did', 'wba', userdid_hostname]
+
     if userdid_port not in (80, 443):
-        did_parts.append(f"3A{userdid_port}")
+        userdid_host_port = f"{userdid_hostname}%3A{userdid_port}"
+    did_parts = ['did', 'wba', userdid_host_port]
     if user_iput['dir']:
         did_parts.append(urllib.parse.quote(user_iput['dir'], safe=''))
     if user_iput['type']:

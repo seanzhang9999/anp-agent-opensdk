@@ -6,7 +6,6 @@ import os
 from pathlib import Path
 from typing import Dict, Any, Optional
 import logging
-
 from agent_connect.authentication import DIDWbaAuthHeader
 
 
@@ -308,9 +307,8 @@ class ANPTool:
 
             # 3. 调用 agent_auth_two_way（需要传入必要的参数）
             # 注意：这里暂时使用占位符，后续需要根据实际情况调整
-            from .agent_auth import agent_auth_two_way
-            status, response, info, is_auth_pass = await agent_auth_two_way(
-                sdk=anpsdk,  # 需要传入 SDK 实例
+            from ..auth.auth_client import agent_auth_request
+            status, response, info, is_auth_pass = await agent_auth_request(
                 caller_agent=caller_agent,  # 需要传入调用方智能体ID
                 target_agent=target_agent,  # 需要传入目标方智能体ID，如果对方没有ID，可以随便写，因为对方不会响应这个信息
                 request_url=final_url,

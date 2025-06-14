@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from pydantic.v1.networks import host_regex
+
 from anp_open_sdk.anp_sdk_user_data import LocalUserDataManager
 from anp_open_sdk.config.dynamic_config import get_config_value
 import urllib.parse
@@ -73,32 +75,30 @@ class ANPSDK:
         if not hasattr(self, 'initialized'):
             self.server_running = False
             self.port = port or dynamic_config.get('anp_sdk.user_did_port_1')
-            self.agent = None
             self.api_routes = {}
             self.api_registry = {}
             self.message_handlers = {}
             self.ws_connections = {}
             self.sse_clients = set()
             self.initialized = True
-        
         debugmode = dynamic_config.get("anp_sdk.debugmode")
 
         self.app = None
         if debugmode:
-            self.app= FastAPI(
-                title="ANP SDK Server in DebugMode", 
+            self.app = FastAPI(
+                title="ANP SDK Server in DebugMode",
                 description="ANP SDK Server in DebugMode",
                 version="0.1.0",
-                reload= True,
-                docs_url="/docs" ,
+                reload=True,
+                docs_url="/docs",
                 redoc_url="/redoc"
             )
         else:
-            self.app= FastAPI(
+            self.app = FastAPI(
                 title="ANP SDK Server",
                 description="ANP SDK Server",
                 version="0.1.0",
-                reload= False,
+                reload=False,
                 docs_url=None,
                 redoc_url=None
             )
@@ -106,6 +106,8 @@ class ANPSDK:
         self.app.state.sdk = self
 
         self.user_data_manager = LocalUserDataManager()
+        self.agent = None  # 不再自动 new LocalAgent
+
         self.app.add_middleware(
             CORSMiddleware,
             allow_origins=["*"],
@@ -116,7 +118,7 @@ class ANPSDK:
 
         @self.app.middleware("http")
         async def auth_middleware_wrapper(request, call_next):
-            return await auth_middleware( request, call_next, self.instance)
+            return await auth_middleware(request, call_next, self.instance)
 
         # 创建路由器实例
         from anp_open_sdk.service.router_agent import AgentRouter
@@ -365,13 +367,10 @@ class ANPSDK:
                 yaml_path = os.path.join(user_path, f"openapi_{safe_agent_id}.yaml")
                 with open(yaml_path, 'w', encoding='utf-8') as f:
                     yaml.dump(openapi_spec, f, allow_unicode=True, sort_keys=False)
-                # self.logger.info(f"Generated OpenAPI documentation for agent {agent_id} at {yaml_path} ")
             else:
                 yaml_path = os.path.join(docs_dir, f"openapi_{safe_agent_id}.yaml")
                 with open(yaml_path, 'w', encoding='utf-8') as f:
                     yaml.dump(openapi_spec, f, allow_unicode=True, sort_keys=False)
-                #self.logger.info(f"Generated OpenAPI documentation for agent {agent_id} at {yaml_path} (user directory not found)")
-
     def get_agents(self):
         """获取所有已注册的智能体"""
         return self.router.local_agents.values()
@@ -396,20 +395,19 @@ class ANPSDK:
             }
 
         @self.app.get("/agent/api/{did}/{subpath:path}")
-        async def api_entry_get(did: str, subpath:str, request: Request):
-            data =dict(request.query_params)
+        async def api_entry_get(did: str, subpath: str, request: Request):
+            data = dict(request.query_params)
             req_did = request.query_params.get("req_did", "demo_caller")
             resp_did = did
             data["type"] = "api_call"
             data["path"] = f"/{subpath}"
             result = self.router.route_request(req_did, resp_did, data, request)
-            # 检查结果是否是协程对象，如果是则等待它完成
             if asyncio.iscoroutine(result):
                 result = await result
             return result
 
         @self.app.post("/agent/api/{did}/{subpath:path}")
-        async def api_entry_post(did: str, subpath:str, request: Request):
+        async def api_entry_post(did: str, subpath: str, request: Request):
             try:
                 data = await request.json()
                 if not data:
@@ -420,8 +418,7 @@ class ANPSDK:
             resp_did = did
             data["type"] = "api_call"
             data["path"] = f"/{subpath}"
-            result = await self.router.route_request(req_did, resp_did, data,request)
-            # 检查结果是否是协程对象，如果是则等待它完成
+            result = await self.router.route_request(req_did, resp_did, data, request)
             if asyncio.iscoroutine(result):
                 result = await result
             return result
@@ -432,8 +429,7 @@ class ANPSDK:
             req_did = request.query_params.get("req_did", "demo_caller")
             resp_did = did
             data["type"] = "message"
-            result = await self.router.route_request(req_did, resp_did, data,request)
-            # 检查结果是否是协程对象，如果是则等待它完成
+            result = await self.router.route_request(req_did, resp_did, data, request)
             if asyncio.iscoroutine(result):
                 result = await result
             return result
@@ -441,7 +437,6 @@ class ANPSDK:
         self.group_queues = {}
         self.group_members = {}
         
-        # ------- GROUP ROUTES WITH GroupSDK -------
         @self.app.post("/agent/group/{did}/{group_id}/join")
         async def join_group(did: str, group_id: str, request: Request):
             data = await request.json()
@@ -464,8 +459,7 @@ class ANPSDK:
             data["type"] = "group_join"
             data["group_id"] = group_id
             data["req_did"] = req_did
-            result = await self.router.route_request(req_did, resp_did, data,request)
-            # 检查结果是否是协程对象，如果是则等待它完成
+            result = await self.router.route_request(req_did, resp_did, data, request)
             if asyncio.iscoroutine(result):
                 result = await result
             return result
@@ -484,8 +478,7 @@ class ANPSDK:
             data["type"] = "group_leave"
             data["group_id"] = group_id
             data["req_did"] = req_did
-            result = await self.router.route_request(req_did, resp_did, data,request)
-            # 检查结果是否是协程对象，如果是则等待它完成
+            result = await self.router.route_request(req_did, resp_did, data, request)
             if asyncio.iscoroutine(result):
                 result = await result
             return result
@@ -514,8 +507,7 @@ class ANPSDK:
             data["type"] = "group_message"
             data["group_id"] = group_id
             data["req_did"] = req_did
-            result = await self.router.route_request(req_did, resp_did, data,request)
-            # 检查结果是否是协程对象，如果是则等待它完成
+            result = await self.router.route_request(req_did, resp_did, data, request)
             if asyncio.iscoroutine(result):
                 result = await result
             return result
@@ -580,8 +572,7 @@ class ANPSDK:
             data["type"] = "group_members"
             data["group_id"] = group_id
             data["req_did"] = req_did
-            result = await self.router.route_request(req_did, resp_did, data,request)
-            # 检查结果是否是协程对象，如果是则等待它完成
+            result = await self.router.route_request(req_did, resp_did, data, request)
             if asyncio.iscoroutine(result):
                 result = await result
             return result
@@ -595,8 +586,7 @@ class ANPSDK:
                 return {"status": "success", "members": members}
             resp_did = did
             data = {"type": "group_members", "action": "list", "group_id": group_id, "req_did": req_did}
-            result = await self.router.route_request(req_did, resp_did, data,request)
-            # 检查结果是否是协程对象，如果是则等待它完成
+            result = await self.router.route_request(req_did, resp_did, data, request)
             if asyncio.iscoroutine(result):
                 result = await result
             return result
@@ -662,10 +652,10 @@ class ANPSDK:
         import uvicorn
         import threading
 
-        agent1 = list(self.get_agents())[0]
-        host, port = self.get_did_host_port_from_did(agent1.id)
+        port = dynamic_config.get("anp_sdk.sdk_port")
+        host = dynamic_config.get("anp_sdk.sdk_host")
         app_instance = self.app
-        uvicorn.run(app_instance, host="0.0.0.0", port=port)
+        uvicorn.run(app_instance, host=host, port=port)
 
         def run_server():
             config = uvicorn.Config(self.app, host=host, port=int(port))
@@ -779,8 +769,6 @@ class ANPSDK:
             except Exception as e:
                 self.logger.error(f"WebSocket广播失败: {e}")
         self.logger.info(f"向{len(self.sse_clients)}个SSE客户端广播消息")
-
-
 
     def __enter__(self):
         self.start_server()

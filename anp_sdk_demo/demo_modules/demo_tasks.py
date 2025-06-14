@@ -90,20 +90,20 @@ class DemoTaskRunner:
         # GET请求演示
         self.step_helper.pause("演示GET请求到/hello接口")
         resp = await agent_api_call_get(
-            self.sdk, agent2.id, agent1.id, "/hello", {"from": agent2.name}
+             agent2.id, agent1.id, "/hello", {"from": agent2.name}
         )
         logger.info(f"{agent2.name}GET调用{agent1.name}的/hello接口响应: {resp}")
         # POST请求演示
         self.step_helper.pause("演示POST请求到/info接口")
         resp = await agent_api_call_post(
-            self.sdk, agent1.id, agent2.id, "/info", {"from": agent1.name}
+            agent1.id, agent2.id, "/info", {"from": agent1.name}
         )
         logger.info(f"{agent1.name}POST调用{agent2.name}的/info接口响应: {resp}")
 
         # GET请求演示
         self.step_helper.pause("演示GET请求到/info接口")
         resp = await agent_api_call_get(
-            self.sdk, agent1.id, agent2.id, "/info", {"from": agent1.name}
+            agent1.id, agent2.id, "/info", {"from": agent1.name}
         )
         logger.info(f"{agent1.name}GET调用{agent2.name}的/info接口响应: {resp}")
 

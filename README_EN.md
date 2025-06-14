@@ -126,7 +126,7 @@ Parameters:
 
 ```python
 
-from anp_open_sdk.anp_sdk_userdata_tool import did_create_user
+from anp_open_sdk.anp_sdk_user_data import did_create_user
 
 params = {
     'name': 'MyAgent',

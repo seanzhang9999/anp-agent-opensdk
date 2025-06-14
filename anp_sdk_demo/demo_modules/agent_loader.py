@@ -26,8 +26,7 @@ class DemoAgentLoader:
 
             user_data = user_data_manager.get_user_data_by_name(agent_name)
             if user_data:
-                agent = LocalAgent(sdk, id=user_data.did, name=user_data.name)
-                agent.name = user_data.agent_cfg.get('name', user_data.user_dir)
+                agent = LocalAgent.from_name(agent_name)
                 agents.append(agent)
             else:
                 logger.warning(f'未找到预设名字={agent_name} 的用户数据')

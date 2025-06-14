@@ -47,6 +47,16 @@ from anp_open_sdk.config.dynamic_config import dynamic_config
 from abc import ABC, abstractmethod
 
 class BaseUserData(ABC):
+
+    @property
+    @abstractmethod
+    def did_doc_path(self) -> str:
+        pass
+    @property
+    @abstractmethod
+    def did_private_key_file_path(self) -> str:
+        pass
+
     @abstractmethod
     def get_did(self) -> str: ...
     @abstractmethod
