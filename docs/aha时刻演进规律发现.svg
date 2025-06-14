@@ -1,0 +1,287 @@
+<svg width="1400" height="1500" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- 渐变定义 -->
+    <linearGradient id="backgroundGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea"/>
+      <stop offset="100%" style="stop-color:#764ba2"/>
+    </linearGradient>
+    
+    <linearGradient id="titleGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFD700"/>
+      <stop offset="100%" style="stop-color:#FFA500"/>
+    </linearGradient>
+    
+    <linearGradient id="coreGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ff6b6b"/>
+      <stop offset="100%" style="stop-color:#ffa500"/>
+    </linearGradient>
+    
+    <linearGradient id="arrowGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#4CAF50"/>
+      <stop offset="33%" style="stop-color:#2196F3"/>
+      <stop offset="66%" style="stop-color:#9C27B0"/>
+      <stop offset="100%" style="stop-color:#FF5722"/>
+    </linearGradient>
+    
+    <!-- 各阶段渐变 -->
+    <linearGradient id="deepresearchGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4CAF50"/>
+      <stop offset="100%" style="stop-color:#66BB6A"/>
+    </linearGradient>
+    
+    <linearGradient id="mcpGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2196F3"/>
+      <stop offset="100%" style="stop-color:#42A5F5"/>
+    </linearGradient>
+    
+    <linearGradient id="a2aGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#9C27B0"/>
+      <stop offset="100%" style="stop-color:#BA68C8"/>
+    </linearGradient>
+    
+    <linearGradient id="anpGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF5722"/>
+      <stop offset="100%" style="stop-color:#FF7043"/>
+    </linearGradient>
+    
+    <linearGradient id="finalGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFD700"/>
+      <stop offset="100%" style="stop-color:#FFA500"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- 背景 -->
+  <rect width="100%" height="100%" fill="url(#backgroundGradient)"/>
+  
+  <!-- 标题部分 -->
+  <text x="700" y="60" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="48" font-weight="bold" fill="url(#titleGradient)">💡 AHA时刻演进主线</text>
+  <text x="700" y="100" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="22" fill="white" opacity="0.95">从DeepResearch到智能体生态的无人干预自动化价值交付</text>
+  
+  <!-- 核心洞察框 -->
+  <rect x="150" y="130" width="1100" height="80" rx="20" fill="url(#coreGradient)" opacity="0.9"/>
+  <text x="700" y="160" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="24" font-weight="bold" fill="white">🎯 核心洞察：AHA时刻 = 无人干预的自动化价值交付</text>
+  <text x="700" y="190" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="16" fill="white" opacity="0.9">用户只需提出需求，系统自动规划→执行→交付→优化</text>
+  
+  <!-- 演进箭头 -->
+  <rect x="80" y="340" width="1240" height="6" rx="3" fill="url(#arrowGradient)"/>
+  
+  <!-- 四个演进阶段 -->
+  <!-- DeepResearch -->
+  <rect x="80" y="260" width="280" height="420" rx="20" fill="rgba(255,255,255,0.95)" stroke="#4CAF50" stroke-width="4"/>
+  <circle cx="220" cy="310" r="40" fill="url(#deepresearchGradient)"/>
+  <text x="220" y="320" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="32" fill="white">🔍</text>
+  
+  <text x="220" y="380" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="24" font-weight="bold" fill="#333">DeepResearch</text>
+  <text x="220" y="405" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="14" fill="#666" font-style="italic">现实存在的AHA时刻</text>
+  
+  <!-- 功能列表 -->
+  <rect x="100" y="420" width="240" height="25" rx="8" fill="rgba(255,255,255,0.7)"/>
+  <rect x="100" y="420" width="4" height="25" fill="#4CAF50"/>
+  <text x="110" y="435" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#333">📋 自动研究规划</text>
+  
+  <rect x="100" y="450" width="240" height="25" rx="8" fill="rgba(255,255,255,0.7)"/>
+  <rect x="100" y="450" width="4" height="25" fill="#4CAF50"/>
+  <text x="110" y="465" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#333">🔍 多轮智能搜索</text>
+  
+  <rect x="100" y="480" width="240" height="25" rx="8" fill="rgba(255,255,255,0.7)"/>
+  <rect x="100" y="480" width="4" height="25" fill="#4CAF50"/>
+  <text x="110" y="495" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#333">📚 深度内容分析</text>
+  
+  <rect x="100" y="510" width="240" height="25" rx="8" fill="rgba(255,255,255,0.7)"/>
+  <rect x="100" y="510" width="4" height="25" fill="#4CAF50"/>
+  <text x="110" y="525" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#333">🧠 综合推理整合</text>
+  
+  <rect x="100" y="540" width="240" height="25" rx="8" fill="rgba(255,255,255,0.7)"/>
+  <rect x="100" y="540" width="4" height="25" fill="#4CAF50"/>
+  <text x="110" y="555" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#333">📊 专业报告生成</text>
+  
+  <!-- AHA价值 -->
+  <rect x="100" y="580" width="240" height="60" rx="12" fill="rgba(255, 215, 0, 0.9)" stroke="#FFD700" stroke-width="2"/>
+  <text x="220" y="600" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" font-weight="bold" fill="#333">✨ 天级研究→分钟级交付</text>
+  <text x="220" y="620" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" font-weight="bold" fill="#333">用户从执行者→需求提出者</text>
+  
+  <!-- MCP -->
+  <rect x="390" y="260" width="280" height="420" rx="20" fill="rgba(255,255,255,0.95)" stroke="#2196F3" stroke-width="4"/>
+  <circle cx="530" cy="310" r="40" fill="url(#mcpGradient)"/>
+  <text x="530" y="320" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="32" fill="white">🔧</text>
+  
+  <text x="530" y="380" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="24" font-weight="bold" fill="#333">MCP</text>
+  <text x="530" y="405" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="14" fill="#666" font-style="italic">工具调用自动化</text>
+  
+  <!-- MCP功能列表 -->
+  <rect x="410" y="420" width="240" height="25" rx="8" fill="rgba(255,255,255,0.7)"/>
+  <rect x="410" y="420" width="4" height="25" fill="#2196F3"/>
+  <text x="420" y="435" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#333">🔍 自动工具发现</text>
+  
+  <rect x="410" y="450" width="240" height="25" rx="8" fill="rgba(255,255,255,0.7)"/>
+  <rect x="410" y="450" width="4" height="25" fill="#2196F3"/>
+  <text x="420" y="465" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#333">🎯 智能参数映射</text>
+  
+  <rect x="410" y="480" width="240" height="25" rx="8" fill="rgba(255,255,255,0.7)"/>
+  <rect x="410" y="480" width="4" height="25" fill="#2196F3"/>
+  <text x="420" y="495" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#333">⚡ 实时结果评估</text>
+  
+  <rect x="410" y="510" width="240" height="25" rx="8" fill="rgba(255,255,255,0.7)"/>
+  <rect x="410" y="510" width="4" height="25" fill="#2196F3"/>
+  <text x="420" y="525" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#333">🔄 动态调用优化</text>
+  
+  <rect x="410" y="540" width="240" height="25" rx="8" fill="rgba(255,255,255,0.7)"/>
+  <rect x="410" y="540" width="4" height="25" fill="#2196F3"/>
+  <text x="420" y="555" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#333">🛡️ 安全认证管理</text>
+  
+  <rect x="410" y="580" width="240" height="60" rx="12" fill="rgba(255, 215, 0, 0.9)" stroke="#FFD700" stroke-width="2"/>
+  <text x="530" y="600" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" font-weight="bold" fill="#333">🎯 无需人工配置工具</text>
+  <text x="530" y="620" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" font-weight="bold" fill="#333">智能理解→自动调用</text>
+  
+  <!-- A2A -->
+  <rect x="700" y="260" width="280" height="420" rx="20" fill="rgba(255,255,255,0.95)" stroke="#9C27B0" stroke-width="4"/>
+  <circle cx="840" cy="310" r="40" fill="url(#a2aGradient)"/>
+  <text x="840" y="320" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="32" fill="white">🤖</text>
+  
+  <text x="840" y="380" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="24" font-weight="bold" fill="#333">A2A</text>
+  <text x="840" y="405" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="14" fill="#666" font-style="italic">智能体协作自动化</text>
+  
+  <!-- A2A功能列表 -->
+  <rect x="720" y="420" width="240" height="25" rx="8" fill="rgba(255,255,255,0.7)"/>
+  <rect x="720" y="420" width="4" height="25" fill="#9C27B0"/>
+  <text x="730" y="435" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#333">📋 自动任务分解</text>
+  
+  <rect x="720" y="450" width="240" height="25" rx="8" fill="rgba(255,255,255,0.7)"/>
+  <rect x="720" y="450" width="4" height="25" fill="#9C27B0"/>
+  <text x="730" y="465" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#333">🎭 智能体调度</text>
+  
+  <rect x="720" y="480" width="240" height="25" rx="8" fill="rgba(255,255,255,0.7)"/>
+  <rect x="720" y="480" width="4" height="25" fill="#9C27B0"/>
+  <text x="730" y="495" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#333">🔄 协作流程管理</text>
+  
+  <rect x="720" y="510" width="240" height="25" rx="8" fill="rgba(255,255,255,0.7)"/>
+  <rect x="720" y="510" width="4" height="25" fill="#9C27B0"/>
+  <text x="730" y="525" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#333">📊 进度跟踪监控</text>
+  
+  <rect x="720" y="540" width="240" height="25" rx="8" fill="rgba(255,255,255,0.7)"/>
+  <rect x="720" y="540" width="4" height="25" fill="#9C27B0"/>
+  <text x="730" y="555" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#333">🎯 结果质量评估</text>
+  
+  <rect x="720" y="580" width="240" height="60" rx="12" fill="rgba(255, 215, 0, 0.9)" stroke="#FFD700" stroke-width="2"/>
+  <text x="840" y="600" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" font-weight="bold" fill="#333">🤝 复杂任务自动分工</text>
+  <text x="840" y="620" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" font-weight="bold" fill="#333">多智能体无缝协作</text>
+  
+  <!-- ANP -->
+  <rect x="1010" y="260" width="280" height="420" rx="20" fill="rgba(255,255,255,0.95)" stroke="#FF5722" stroke-width="4"/>
+  <circle cx="1150" cy="310" r="40" fill="url(#anpGradient)"/>
+  <text x="1150" y="320" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="32" fill="white">🌐</text>
+  
+  <text x="1150" y="380" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="24" font-weight="bold" fill="#333">ANP</text>
+  <text x="1150" y="405" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="14" fill="#666" font-style="italic">智能体生态自治</text>
+  
+  <!-- ANP功能列表 -->
+  <rect x="1030" y="420" width="240" height="25" rx="8" fill="rgba(255,255,255,0.7)"/>
+  <rect x="1030" y="420" width="4" height="25" fill="#FF5722"/>
+  <text x="1040" y="435" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#333">🌟 智能体探索发现</text>
+  
+  <rect x="1030" y="450" width="240" height="25" rx="8" fill="rgba(255,255,255,0.7)"/>
+  <rect x="1030" y="450" width="4" height="25" fill="#FF5722"/>
+  <text x="1040" y="465" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#333">🎯 能力智能匹配</text>
+  
+  <rect x="1030" y="480" width="240" height="25" rx="8" fill="rgba(255,255,255,0.7)"/>
+  <rect x="1030" y="480" width="4" height="25" fill="#FF5722"/>
+  <text x="1040" y="495" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#333">🔗 动态关系管理</text>
+  
+  <rect x="1030" y="510" width="240" height="25" rx="8" fill="rgba(255,255,255,0.7)"/>
+  <rect x="1030" y="510" width="4" height="25" fill="#FF5722"/>
+  <text x="1040" y="525" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#333">📈 生态演进优化</text>
+  
+  <rect x="1030" y="540" width="240" height="25" rx="8" fill="rgba(255,255,255,0.7)"/>
+  <rect x="1030" y="540" width="4" height="25" fill="#FF5722"/>
+  <text x="1040" y="555" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#333">🧠 集体智能涌现</text>
+  
+  <rect x="1030" y="580" width="240" height="60" rx="12" fill="rgba(255, 215, 0, 0.9)" stroke="#FFD700" stroke-width="2"/>
+  <text x="1150" y="600" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" font-weight="bold" fill="#333">🌍 生态级智能自治</text>
+  <text x="1150" y="620" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" font-weight="bold" fill="#333">无边界能力扩展</text>
+  
+  <!-- ====== 新增：演进主线连接洞察 ====== -->
+  <rect x="100" y="720" width="1200" height="70" rx="20" fill="rgba(255,255,255,0.95)"/>
+  <text x="700" y="765" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="32" font-weight="bold" fill="url(#titleGradient)">
+    🔗 演进主线连接洞察
+  </text>
+  
+  <!-- 四宫格布局 -->
+  <!-- DeepResearch → MCP -->
+  <rect x="120" y="820" width="270" height="180" rx="16" fill="white" stroke="#4CAF50" stroke-width="2"/>
+  <text x="255" y="850" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="18" font-weight="bold" fill="#4CAF50">🎯 DeepResearch → MCP</text>
+  <text x="140" y="880" font-family="Microsoft YaHei, sans-serif" font-size="13" fill="#333">DeepResearch已经在做无人干预的工具调用</text>
+  <text x="140" y="900" font-family="Microsoft YaHei, sans-serif" font-size="13" fill="#333">（搜索、解析、写作工具），MCP是将这种</text>
+  <text x="140" y="920" font-family="Microsoft YaHei, sans-serif" font-size="13" fill="#333">能力标准化、通用化</text>
+  <text x="140" y="950" font-family="Microsoft YaHei, sans-serif" font-size="13" font-weight="bold" fill="#4CAF50">关键联系：</text>
+  <text x="140" y="970" font-family="Microsoft YaHei, sans-serif" font-size="13" fill="#333">从单一场景的工具自动化 → 通用工具调用协议</text>
+  
+  <!-- MCP → A2A -->
+  <rect x="410" y="820" width="270" height="180" rx="16" fill="white" stroke="#2196F3" stroke-width="2"/>
+  <text x="545" y="850" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="18" font-weight="bold" fill="#2196F3">🤖 MCP → A2A</text>
+  <text x="430" y="880" font-family="Microsoft YaHei, sans-serif" font-size="13" fill="#333">单个工具调用虽然智能，但复杂任务需要</text>
+  <text x="430" y="900" font-family="Microsoft YaHei, sans-serif" font-size="13" fill="#333">多个专业智能体协作，A2A解决智能体间</text>
+  <text x="430" y="920" font-family="Microsoft YaHei, sans-serif" font-size="13" fill="#333">的自动协调问题</text>
+  <text x="430" y="950" font-family="Microsoft YaHei, sans-serif" font-size="13" font-weight="bold" fill="#2196F3">关键联系：</text>
+  <text x="430" y="970" font-family="Microsoft YaHei, sans-serif" font-size="13" fill="#333">从工具调用 → 智能体编排协作</text>
+  
+  <!-- A2A → ANP -->
+  <rect x="700" y="820" width="270" height="180" rx="16" fill="white" stroke="#9C27B0" stroke-width="2"/>
+  <text x="835" y="850" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="18" font-weight="bold" fill="#9C27B0">🌐 A2A → ANP</text>
+  <text x="720" y="880" font-family="Microsoft YaHei, sans-serif" font-size="13" fill="#333">固定的智能体协作仍有局限，ANP实现</text>
+  <text x="720" y="900" font-family="Microsoft YaHei, sans-serif" font-size="13" fill="#333">动态智能体生态，根据需求自动发现</text>
+  <text x="720" y="920" font-family="Microsoft YaHei, sans-serif" font-size="13" fill="#333">和组合最优智能体</text>
+  <text x="720" y="950" font-family="Microsoft YaHei, sans-serif" font-size="13" font-weight="bold" fill="#9C27B0">关键联系：</text>
+  <text x="720" y="970" font-family="Microsoft YaHei, sans-serif" font-size="13" fill="#333">从固定协作 → 动态生态管理</text>
+  
+  <!-- DeepResearch → ANP -->
+  <rect x="990" y="820" width="270" height="180" rx="16" fill="white" stroke="#FF5722" stroke-width="2"/>
+  <text x="1125" y="850" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="18" font-weight="bold" fill="#FF5722">🔄 DeepResearch → ANP</text>
+  <text x="1010" y="880" font-family="Microsoft YaHei, sans-serif" font-size="13" fill="#333">DeepResearch是单领域的"无人干预价值</text>
+  <text x="1010" y="900" font-family="Microsoft YaHei, sans-serif" font-size="13" fill="#333">交付"，ANP要实现跨领域、跨场景的</text>
+  <text x="1010" y="920" font-family="Microsoft YaHei, sans-serif" font-size="13" fill="#333">全面自动化智能服务</text>
+  <text x="1010" y="950" font-family="Microsoft YaHei, sans-serif" font-size="13" font-weight="bold" fill="#FF5722">关键联系：</text>
+  <text x="1010" y="970" font-family="Microsoft YaHei, sans-serif" font-size="13" fill="#333">从垂直深度 → 水平广度的AHA时刻</text>
+  
+  <!-- 阶段流程图 -->
+  <rect x="100" y="1040" width="1200" height="250" rx="25" fill="rgba(255,255,255,0.95)"/>
+  <text x="700" y="1080" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="32" font-weight="bold" fill="#333">🚀 无人干预自动化的四个演进阶段</text>
+  
+  <!-- 阶段框 -->
+  <rect x="150" y="1120" width="200" height="80" rx="15" fill="url(#deepresearchGradient)"/>
+  <text x="250" y="1145" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="24" fill="white">🔍</text>
+  <text x="250" y="1165" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="14" font-weight="bold" fill="white">阶段1：垂直场景</text>
+  <text x="250" y="1185" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="11" fill="white">DeepResearch式的单一领域深度自动化</text>
+  
+  <text x="380" y="1165" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="32" fill="#666">➜</text>
+  
+  <rect x="410" y="1120" width="200" height="80" rx="15" fill="url(#mcpGradient)"/>
+  <text x="510" y="1145" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="24" fill="white">🔧</text>
+  <text x="510" y="1165" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="14" font-weight="bold" fill="white">阶段2：工具通用化</text>
+  <text x="510" y="1185" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="11" fill="white">MCP协议标准化工具调用</text>
+  
+  <text x="640" y="1165" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="32" fill="#666">➜</text>
+  
+  <rect x="670" y="1120" width="200" height="80" rx="15" fill="url(#a2aGradient)"/>
+  <text x="770" y="1145" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="24" fill="white">🤖</text>
+  <text x="770" y="1165" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="14" font-weight="bold" fill="white">阶段3：智能体协作</text>
+  <text x="770" y="1185" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="11" fill="white">A2A实现多智能体自动协调</text>
+  
+  <text x="900" y="1165" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="32" fill="#666">➜</text>
+  
+  <rect x="930" y="1120" width="200" height="80" rx="15" fill="url(#anpGradient)"/>
+  <text x="1030" y="1145" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="24" fill="white">🌐</text>
+  <text x="1030" y="1165" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="14" font-weight="bold" fill="white">阶段4：生态自治</text>
+  <text x="1030" y="1185" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="11" fill="white">ANP管理动态智能体生态</text>
+  
+  <!-- 洞察框 -->
+  <rect x="150" y="1220" width="1000" height="50" rx="15" fill="#f8f9fa" stroke="#667eea" stroke-width="5"/>
+  <text x="170" y="1240" font-family="Microsoft YaHei, sans-serif" font-size="16" font-weight="bold" fill="#667eea">💡 演进规律发现</text>
+  <text x="170" y="1260" font-family="Microsoft YaHei, sans-serif" font-size="13" fill="#555">每个阶段都在扩展"无人干预"的边界：从垂直深度→水平广度，最终实现通用AHA时刻</text>
+  
+  <!-- 终极愿景 -->
+  <rect x="100" y="1320" width="1200" height="120" rx="25" fill="url(#finalGradient)"/>
+  <text x="700" y="1360" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="32" font-weight="bold" fill="#333">🌟 终极愿景：通用AHA时刻</text>
+  <text x="700" y="1390" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="16" fill="#333">当ANP成熟时，任何用户需求都能触发一个"AHA时刻"：</text>
+  <text x="700" y="1410" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="16" fill="#333">系统自动发现最佳智能体组合，无缝协作完成任务，让每个人都能享受到自动化价值交付体验</text>
+  <text x="700" y="1430" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="18" font-weight="bold" fill="#333">🎯 从"我需要学会使用工具" → "我只需要表达需求"</text>
+</svg>

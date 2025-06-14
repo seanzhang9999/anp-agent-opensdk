@@ -70,11 +70,11 @@ class DemoTaskRunner:
             
             
             await self.run_api_demo(agent1, agent2)
-            #await self.run_message_demo(agent2, agent3, agent1)
-            #await self.run_agent_lifecycle_demo(agent1,agent2,agent3)
+            await self.run_message_demo(agent2, agent3, agent1)
+            await self.run_agent_lifecycle_demo(agent1,agent2,agent3)
 
-            #await self.run_hosted_did_demo(agent1)  # 添加托管 DID 演示
-            #await self.run_group_chat_demo(agent1, agent2,agent3)
+            await self.run_hosted_did_demo(agent1)  # 添加托管 DID 演示
+            await self.run_group_chat_demo(agent1, agent2,agent3)
             self.step_helper.pause("所有演示完成")
             
         except Exception as e:
@@ -142,10 +142,7 @@ class DemoTaskRunner:
             logger.info(f"临时用户创建成功，DID: {did_document['id']}")
 
             # 创建LocalAgent实例
-            temp_agent = LocalAgent(self.sdk,
-                id = did_document['id'],
-                name = temp_user_params['name']
-            )
+            temp_agent = LocalAgent.from_did(did_document['id'])
 
             # 注册到SDK
             self.sdk.register_agent(temp_agent)
@@ -286,7 +283,7 @@ class DemoTaskRunner:
             # 查找公共托管智能体
             public_hosted_data = user_data_manager.get_user_data_by_name("托管智能体_did:wba:agent-did.com:test:public")
             if public_hosted_data:
-                public_hosted_agent = LocalAgent(self.sdk, public_hosted_data.did)
+                public_hosted_agent = LocalAgent.from_did(public_hosted_data.did)
                 self.sdk.register_agent(public_hosted_agent)
                 logger.info(f"注册公共托管智能体: {public_hosted_agent.name}")
                 
@@ -1056,7 +1053,7 @@ class DemoTaskRunner:
 def find_and_register_hosted_agent(sdk, user_datas):
         hosted_agents = []
         for user_data in user_datas:
-            agent = LocalAgent(sdk, user_data.did)
+            agent = LocalAgent.from_did(user_data.did)
             if agent.is_hosted_did:
                 logger.info(f"hosted_did: {agent.id}")
                 logger.info(f"parent_did: {agent.parent_did}")

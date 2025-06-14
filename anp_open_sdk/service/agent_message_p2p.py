@@ -17,63 +17,30 @@
 import sys
 import os
 
-from anp_open_sdk.anp_sdk_agent import LocalAgent
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..","..")))
-from typing import Optional, Dict, Any
+from anp_open_sdk.anp_sdk_agent import LocalAgent, RemoteAgent
 from urllib.parse import urlencode, quote
 from anp_open_sdk.config.dynamic_config import dynamic_config
-from loguru import logger
-from anp_open_sdk.anp_sdk_agent import RemoteAgent
-from anp_open_sdk.auth.auth_client import agent_auth_request, handle_response, agent_token_request
+from anp_open_sdk.auth.auth_client import agent_auth_request, handle_response
 
-
-async def agent_msg_post(sdk, caller_agent:str , target_agent :str, content: str, message_type: str = "text"):
-    """发送消息给目标智能体
-    
-    Args:
-        sdk: ANPSDK 实例
-        caller_agent: 调用方智能体ID
-        target_agent: 目标智能体ID
-        message: 消息内容
-        
-    Returns:
-        Dict: 响应结果
-    """
-    caller_agent_obj = LocalAgent(sdk,id=caller_agent)
+async def agent_msg_post(sdk, caller_agent: str, target_agent: str, content: str, message_type: str = "text"):
+    """发送消息给目标智能体"""
+    caller_agent_obj = LocalAgent.from_did(caller_agent)
     target_agent_obj = RemoteAgent(target_agent)
-
-
-
-
     url_params = {
         "req_did": caller_agent_obj.id,
         "resp_did": target_agent_obj.id
     }
     url_params = urlencode(url_params)
     target_agent_path = quote(target_agent)
-
     msg = {
         "req_did": caller_agent_obj.id,
         "message_type": message_type,
         "content": content
     }
-    
     msg_dir = dynamic_config.get("anp_sdk.msg_virtual_dir")
-
     url = f"http://{target_agent_obj.host}:{target_agent_obj.port}{msg_dir}/{target_agent_path}/post?{url_params}"
 
-    if caller_agent_obj.get_token_from_remote(target_agent_obj.id) is None:
-        status, response, info, is_auth_pass = await agent_auth_request( caller_agent, target_agent, url, method="POST", json_data=msg)
-        response = await handle_response(response)
-        return response
-
-    token = caller_agent_obj.contact_manager.get_token_from_remote(target_agent_obj.id)["token"]
-
-    status, response = await agent_token_request(url, token, caller_agent_obj.id, target_agent_obj.id, method="POST", json_data=msg)
-    if status == 401:
-        if caller_agent_obj.get_token_from_remote(target_agent_obj.id) is None:
-            status, response, info, is_auth_pass = await agent_auth_request( caller_agent, target_agent, url, method="POST", json_data=msg)
-
-    response = await handle_response(response)
-    return response
+    status, response, info, is_auth_pass = await agent_auth_request(
+        caller_agent, target_agent, url, method="POST", json_data=msg
+    )
+    return await handle_response(response)

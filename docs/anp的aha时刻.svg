@@ -1,0 +1,505 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xl="http://www.w3.org/1999/xlink" xmlns:dc="http://purl.org/dc/elements/1.1/" version="1.1" viewBox="-343 -71 1304 806" width="1304" height="806">
+  <defs>
+    <font-face font-family="Apple Color Emoji" font-size="40" units-per-em="1000" underline-position="-125.00031" underline-thickness="62.500156" slope="0" x-height="625.00156" cap-height="1000.0025" ascent="1000.0025" descent="-312.50078" font-weight="400">
+      <font-face-src>
+        <font-face-name name="AppleColorEmoji"/>
+      </font-face-src>
+    </font-face>
+    <font-face font-family="Arial" font-size="40" panose-1="2 11 6 4 2 2 2 2 2 4" units-per-em="1000" underline-position="-105.95703" underline-thickness="73.24219" slope="0" x-height="518.5547" cap-height="716.3086" ascent="905.2734" descent="-211.91406" font-weight="400">
+      <font-face-src>
+        <font-face-name name="ArialMT"/>
+      </font-face-src>
+    </font-face>
+    <font-face font-family="PingFang SC" font-size="40" panose-1="2 11 4 0 0 0 0 0 0 0" units-per-em="1000" underline-position="-150" underline-thickness="58" slope="0" x-height="600" cap-height="860" ascent="1060.0021" descent="-340.0007" font-weight="400">
+      <font-face-src>
+        <font-face-name name="PingFangSC-Regular"/>
+      </font-face-src>
+    </font-face>
+    <font-face font-family="PingFang SC" font-size="24" panose-1="2 11 4 0 0 0 0 0 0 0" units-per-em="1000" underline-position="-150" underline-thickness="58" slope="0" x-height="600" cap-height="860" ascent="1060.0021" descent="-340.0007" font-weight="400">
+      <font-face-src>
+        <font-face-name name="PingFangSC-Regular"/>
+      </font-face-src>
+    </font-face>
+    <font-face font-family="Arial" font-size="24" panose-1="2 11 6 4 2 2 2 2 2 4" units-per-em="1000" underline-position="-105.95703" underline-thickness="73.24219" slope="0" x-height="518.5547" cap-height="716.3086" ascent="905.2734" descent="-211.91406" font-weight="400">
+      <font-face-src>
+        <font-face-name name="ArialMT"/>
+      </font-face-src>
+    </font-face>
+    <linearGradient x1="0" x2="1" id="Gradient" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffd700"/>
+      <stop offset="0" stop-color="#ffbf00"/>
+      <stop offset="1" stop-color="#ffa500"/>
+    </linearGradient>
+    <linearGradient id="Obj_Gradient" xl:href="#Gradient" gradientTransform="translate(79.49536 -107.51392) rotate(45) scale(564.2843)"/>
+    <font-face font-family="Apple Color Emoji" font-size="28" units-per-em="1000" underline-position="-125.00045" underline-thickness="62.50022" slope="0" x-height="625.0022" cap-height="1000.0036" ascent="1000.0036" descent="-312.5011" font-weight="400">
+      <font-face-src>
+        <font-face-name name="AppleColorEmoji"/>
+      </font-face-src>
+    </font-face>
+    <font-face font-family="Arial" font-size="28" panose-1="2 11 6 4 2 2 2 2 2 4" units-per-em="1000" underline-position="-105.95703" underline-thickness="73.24219" slope="0" x-height="518.5547" cap-height="716.3086" ascent="905.2734" descent="-211.91406" font-weight="400">
+      <font-face-src>
+        <font-face-name name="ArialMT"/>
+      </font-face-src>
+    </font-face>
+    <font-face font-family="PingFang SC" font-size="28" panose-1="2 11 4 0 0 0 0 0 0 0" units-per-em="1000" underline-position="-150" underline-thickness="58" slope="0" x-height="600" cap-height="860" ascent="1060.0021" descent="-340.0007" font-weight="400">
+      <font-face-src>
+        <font-face-name name="PingFangSC-Regular"/>
+      </font-face-src>
+    </font-face>
+    <font-face font-family="PingFang SC" font-size="18" panose-1="2 11 4 0 0 0 0 0 0 0" units-per-em="1000" underline-position="-150" underline-thickness="58" slope="0" x-height="600" cap-height="860" ascent="1060.0021" descent="-340.0007" font-weight="400">
+      <font-face-src>
+        <font-face-name name="PingFangSC-Regular"/>
+      </font-face-src>
+    </font-face>
+    <font-face font-family="Arial" font-size="18" panose-1="2 11 6 4 2 2 2 2 2 4" units-per-em="1000" underline-position="-105.95703" underline-thickness="73.24219" slope="0" x-height="518.5547" cap-height="716.3086" ascent="905.2734" descent="-211.91406" font-weight="400">
+      <font-face-src>
+        <font-face-name name="ArialMT"/>
+      </font-face-src>
+    </font-face>
+    <linearGradient x1="0" x2="1" id="Gradient_2" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4caf50"/>
+      <stop offset="0" stop-color="#59b55d"/>
+      <stop offset="1" stop-color="#66bb6a"/>
+    </linearGradient>
+    <linearGradient id="Obj_Gradient_2" xl:href="#Gradient_2" gradientTransform="translate(-321 142.98145) rotate(45) scale(367.69553)"/>
+    <font-face font-family="Apple Color Emoji" font-size="38" units-per-em="1000" underline-position="-125.00033" underline-thickness="62.500164" slope="0" x-height="625.00164" cap-height="1000.0026" ascent="1000.0026" descent="-312.50082" font-weight="400">
+      <font-face-src>
+        <font-face-name name="AppleColorEmoji"/>
+      </font-face-src>
+    </font-face>
+    <font-face font-family="PingFang SC" font-size="15" panose-1="2 11 4 0 0 0 0 0 0 0" units-per-em="1000" underline-position="-150" underline-thickness="58" slope="0" x-height="600" cap-height="860" ascent="1060.0021" descent="-340.0007" font-weight="400">
+      <font-face-src>
+        <font-face-name name="PingFangSC-Regular"/>
+      </font-face-src>
+    </font-face>
+    <font-face font-family="PingFang SC" font-size="13" panose-1="2 11 4 0 0 0 0 0 0 0" units-per-em="1000" underline-position="-150" underline-thickness="58" slope="0" x-height="600" cap-height="860" ascent="1060.0021" descent="-340.0007" font-weight="400">
+      <font-face-src>
+        <font-face-name name="PingFangSC-Regular"/>
+      </font-face-src>
+    </font-face>
+    <font-face font-family="Arial" font-size="13" panose-1="2 11 6 4 2 2 2 2 2 4" units-per-em="1000" underline-position="-105.95703" underline-thickness="73.24219" slope="0" x-height="518.5547" cap-height="716.3086" ascent="905.2734" descent="-211.91406" font-weight="400">
+      <font-face-src>
+        <font-face-name name="ArialMT"/>
+      </font-face-src>
+    </font-face>
+    <font-face font-family="Arial" font-size="15" panose-1="2 11 6 4 2 2 2 2 2 4" units-per-em="1000" underline-position="-105.95703" underline-thickness="73.24219" slope="0" x-height="518.5547" cap-height="716.3086" ascent="905.2734" descent="-211.91406" font-weight="400">
+      <font-face-src>
+        <font-face-name name="ArialMT"/>
+      </font-face-src>
+    </font-face>
+    <linearGradient x1="0" x2="1" id="Gradient_3" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2196f3"/>
+      <stop offset="0" stop-color="#329ef4"/>
+      <stop offset="1" stop-color="#42a5f5"/>
+    </linearGradient>
+    <linearGradient id="Obj_Gradient_3" xl:href="#Gradient_3" gradientTransform="translate(-21 142.98145) rotate(45) scale(367.69553)"/>
+    <linearGradient x1="0" x2="1" id="Gradient_4" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#9c27b0"/>
+      <stop offset="0" stop-color="#ab43bc"/>
+      <stop offset="1" stop-color="#ba68c8"/>
+    </linearGradient>
+    <linearGradient id="Obj_Gradient_4" xl:href="#Gradient_4" gradientTransform="translate(279 142.98145) rotate(45) scale(367.69553)"/>
+    <linearGradient x1="0" x2="1" id="Gradient_5" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ff5722"/>
+      <stop offset="0" stop-color="#ff6333"/>
+      <stop offset="1" stop-color="#ff7043"/>
+    </linearGradient>
+    <linearGradient id="Obj_Gradient_5" xl:href="#Gradient_5" gradientTransform="translate(619.9863 156.64355) rotate(45) scale(470.4746)"/>
+    <linearGradient id="Obj_Gradient_6" xl:href="#Gradient" gradientTransform="translate(8.995361 372.9861) rotate(45) scale(763.6884)"/>
+    <font-face font-family="Apple Color Emoji" font-size="18" units-per-em="1000" underline-position="-145.83333" underline-thickness="72.91667" slope="0" x-height="729.1667" cap-height="1166.6667" ascent="1166.6667" descent="-364.58333" font-weight="400">
+      <font-face-src>
+        <font-face-name name="AppleColorEmoji"/>
+      </font-face-src>
+    </font-face>
+  </defs>
+  <metadata> Produced by OmniGraffle 7.15 
+    <dc:date>2025-06-14 06:00:01 +0000</dc:date>
+  </metadata>
+  <g id="Canvas_1" stroke="none" fill="none" fill-opacity="1" stroke-opacity="1" stroke-dasharray="none">
+    <title>Canvas 1</title>
+    <rect fill="white" x="-343" y="-71" width="1304" height="806"/>
+    <g id="Canvas_1: Layer 1">
+      <title>Layer 1</title>
+      <g id="Graphic_58">
+        <title>Text</title>
+        <text transform="translate(93.42383 -71)" fill="black">
+          <tspan font-family="Apple Color Emoji" font-size="40" font-weight="400" fill="black" x="0" y="42">💡</tspan>
+          <tspan font-family="Arial" font-size="40" font-weight="400" fill="black" y="42"> AHA</tspan>
+          <tspan font-family="PingFang SC" font-size="40" font-weight="400" fill="black" y="42">时刻演进主线</tspan>
+        </text>
+      </g>
+      <g id="Graphic_57">
+        <title>Text</title>
+        <text transform="translate(-77.71875 -7.857422)" fill="black">
+          <tspan font-family="PingFang SC" font-size="24" font-weight="400" fill="black" x="0" y="25">从</tspan>
+          <tspan font-family="Arial" font-size="24" font-weight="400" fill="black" y="25">DeepResearch</tspan>
+          <tspan font-family="PingFang SC" font-size="24" font-weight="400" fill="black" y="25">到</tspan>
+          <tspan font-family="Arial" font-size="24" font-weight="400" fill="black" y="25">ANP</tspan>
+          <tspan font-family="PingFang SC" font-size="24" font-weight="400" fill="black" y="25">：无人干预自动化价值交付的几种场景考察</tspan>
+        </text>
+      </g>
+      <g id="Graphic_56">
+        <path d="M -41 42.981445 L 599 42.981445 C 615.56854 42.981445 629 56.4129 629 72.981445 L 629 111 C 629 127.56854 615.56854 141 599 141 L -41 141 C -57.56854 141 -71 127.56854 -71 111 L -71 72.981445 C -71 56.4129 -57.56854 42.981445 -41 42.981445 Z" fill="url(#Obj_Gradient)"/>
+        <path d="M -41 42.981445 L 599 42.981445 C 615.56854 42.981445 629 56.4129 629 72.981445 L 629 111 C 629 127.56854 615.56854 141 599 141 L -41 141 C -57.56854 141 -71 127.56854 -71 111 L -71 72.981445 C -71 56.4129 -57.56854 42.981445 -41 42.981445 Z" stroke="#ffa500" stroke-linecap="butt" stroke-linejoin="round" stroke-width="3"/>
+      </g>
+      <g id="Graphic_55">
+        <title>Text</title>
+        <text transform="translate(-49.63086 64.04443)" fill="black">
+          <tspan font-family="Apple Color Emoji" font-size="28" font-weight="400" fill="black" x="0" y="30">🎯</tspan>
+          <tspan font-family="Arial" font-size="28" font-weight="400" fill="black" y="30"> </tspan>
+          <tspan font-family="PingFang SC" font-size="28" font-weight="400" fill="black" y="30">核心洞察：</tspan>
+          <tspan font-family="Arial" font-size="28" font-weight="400" fill="black" y="30">AHA</tspan>
+          <tspan font-family="PingFang SC" font-size="28" font-weight="400" fill="black" y="30">时刻</tspan>
+          <tspan font-family="Arial" font-size="28" font-weight="400" fill="black" y="30"> = </tspan>
+          <tspan font-family="PingFang SC" font-size="28" font-weight="400" fill="black" y="30">无人干预的自动化价值交付</tspan>
+        </text>
+      </g>
+      <g id="Graphic_54">
+        <title>Text</title>
+        <text transform="translate(63 102.5398)" fill="black">
+          <tspan font-family="PingFang SC" font-size="18" font-weight="400" fill="black" x="0" y="19">用户只需提出需求，系统自动规划</tspan>
+          <tspan font-family="Arial" font-size="18" font-weight="400" fill="black" y="19">→</tspan>
+          <tspan font-family="PingFang SC" font-size="18" font-weight="400" fill="black" y="19">执行</tspan>
+          <tspan font-family="Arial" font-size="18" font-weight="400" fill="black" y="19">→</tspan>
+          <tspan font-family="PingFang SC" font-size="18" font-weight="400" fill="black" y="19">交付</tspan>
+          <tspan font-family="Arial" font-size="18" font-weight="400" fill="black" y="19">→</tspan>
+          <tspan font-family="PingFang SC" font-size="18" font-weight="400" fill="black" y="19">优化</tspan>
+        </text>
+      </g>
+      <g id="Line_53">
+        <line x1="-191" y1="272.98145" x2="9" y2="272.98145" stroke="#4caf50" stroke-linecap="butt" stroke-linejoin="round" stroke-width="6"/>
+      </g>
+      <g id="Line_52">
+        <line x1="109" y1="272.98145" x2="309" y2="272.98145" stroke="#2196f3" stroke-linecap="butt" stroke-linejoin="round" stroke-width="6"/>
+      </g>
+      <g id="Line_51">
+        <line x1="409" y1="272.98145" x2="609" y2="272.98145" stroke="#9c27b0" stroke-linecap="butt" stroke-linejoin="round" stroke-width="6"/>
+      </g>
+      <g id="Graphic_50">
+        <path d="M -311 162.98145 L -71 162.98145 C -54.43146 162.98145 -41 176.4129 -41 192.98145 L -41 352.98145 C -41 369.55 -54.43146 382.98145 -71 382.98145 L -311 382.98145 C -327.56854 382.98145 -341 369.55 -341 352.98145 L -341 192.98145 C -341 176.4129 -327.56854 162.98145 -311 162.98145 Z" fill="url(#Obj_Gradient_2)"/>
+        <path d="M -311 162.98145 L -71 162.98145 C -54.43146 162.98145 -41 176.4129 -41 192.98145 L -41 352.98145 C -41 369.55 -54.43146 382.98145 -71 382.98145 L -311 382.98145 C -327.56854 382.98145 -341 369.55 -341 352.98145 L -341 192.98145 C -341 176.4129 -327.56854 162.98145 -311 162.98145 Z" stroke="#4caf50" stroke-linecap="butt" stroke-linejoin="round" stroke-width="4"/>
+      </g>
+      <g id="Graphic_49">
+        <circle cx="-191" cy="202.98145" r="40.0000639160758" fill="white"/>
+        <circle cx="-191" cy="202.98145" r="40.0000639160758" stroke="#4caf50" stroke-linecap="butt" stroke-linejoin="round" stroke-width="4"/>
+      </g>
+      <g id="Graphic_48">
+        <title>Text</title>
+        <text transform="translate(-210 185.54907)" fill="black">
+          <tspan font-family="Apple Color Emoji" font-size="38" font-weight="400" fill="black" x="0" y="38">🔍</tspan>
+        </text>
+      </g>
+      <g id="Graphic_47">
+        <title>Text</title>
+        <text transform="translate(-271.04492 241.8648)" fill="black">
+          <tspan font-family="Arial" font-size="24" font-weight="400" fill="black" x="0" y="22">DeepResearch</tspan>
+        </text>
+      </g>
+      <g id="Graphic_46">
+        <title>Text</title>
+        <text transform="translate(-236 269.8634)" fill="black">
+          <tspan font-family="PingFang SC" font-size="15" font-weight="400" fill="black" x="0" y="16">模型能力驱动</tspan>
+        </text>
+      </g>
+      <g id="Graphic_45">
+        <title>Text</title>
+        <text transform="translate(-262.5 291.41248)" fill="black">
+          <tspan font-family="PingFang SC" font-size="13" font-weight="400" fill="black" x="0" y="14">自动研究规划、智能搜索</tspan>
+        </text>
+      </g>
+      <g id="Graphic_44">
+        <title>Text</title>
+        <text transform="translate(-280.9209 311.41248)" fill="black">
+          <tspan font-family="PingFang SC" font-size="13" font-weight="400" fill="black" x="0" y="14">内容分析、推理合并、</tspan>
+          <tspan font-family="Arial" font-size="13" font-weight="400" fill="black" y="14">task</tspan>
+          <tspan font-family="PingFang SC" font-size="13" font-weight="400" fill="black" y="14">组织</tspan>
+        </text>
+      </g>
+      <g id="Graphic_43">
+        <title>Text</title>
+        <text transform="translate(-256 331.41248)" fill="black">
+          <tspan font-family="PingFang SC" font-size="13" font-weight="400" fill="black" x="0" y="14">综合能力高度依赖模型</tspan>
+        </text>
+      </g>
+      <g id="Graphic_42">
+        <path d="M -306 357.98145 L -76 357.98145 C -67.71573 357.98145 -61 364.69717 -61 372.98145 L -61 382.98145 C -61 391.2657 -67.71573 397.98145 -76 397.98145 L -306 397.98145 C -314.28427 397.98145 -321 391.2657 -321 382.98145 L -321 372.98145 C -321 364.69717 -314.28427 357.98145 -306 357.98145 Z" fill="#fffbe6"/>
+        <path d="M -306 357.98145 L -76 357.98145 C -67.71573 357.98145 -61 364.69717 -61 372.98145 L -61 382.98145 C -61 391.2657 -67.71573 397.98145 -76 397.98145 L -306 397.98145 C -314.28427 397.98145 -321 391.2657 -321 382.98145 L -321 372.98145 C -321 364.69717 -314.28427 357.98145 -306 357.98145 Z" stroke="#ffd700" stroke-linecap="butt" stroke-linejoin="round" stroke-width="2"/>
+      </g>
+      <g id="Graphic_41">
+        <title>Text</title>
+        <text transform="translate(-303.92114 369.8634)" fill="black">
+          <tspan font-family="Arial" font-size="15" font-weight="400" fill="black" x="0" y="16">AHA</tspan>
+          <tspan font-family="PingFang SC" font-size="15" font-weight="400" fill="black" y="16">时刻：天级研究</tspan>
+          <tspan font-family="Arial" font-size="15" font-weight="400" fill="black" y="16">→</tspan>
+          <tspan font-family="PingFang SC" font-size="15" font-weight="400" fill="black" y="16">分钟级交付</tspan>
+        </text>
+      </g>
+      <g id="Graphic_40">
+        <path d="M -11 162.98145 L 229 162.98145 C 245.56854 162.98145 259 176.4129 259 192.98145 L 259 352.98145 C 259 369.55 245.56854 382.98145 229 382.98145 L -11 382.98145 C -27.568542 382.98145 -41 369.55 -41 352.98145 L -41 192.98145 C -41 176.4129 -27.568542 162.98145 -11 162.98145 Z" fill="url(#Obj_Gradient_3)"/>
+        <path d="M -11 162.98145 L 229 162.98145 C 245.56854 162.98145 259 176.4129 259 192.98145 L 259 352.98145 C 259 369.55 245.56854 382.98145 229 382.98145 L -11 382.98145 C -27.568542 382.98145 -41 369.55 -41 352.98145 L -41 192.98145 C -41 176.4129 -27.568542 162.98145 -11 162.98145 Z" stroke="#2196f3" stroke-linecap="butt" stroke-linejoin="round" stroke-width="4"/>
+      </g>
+      <g id="Graphic_39">
+        <circle cx="109" cy="202.98145" r="40.0000639160759" fill="white"/>
+        <circle cx="109" cy="202.98145" r="40.0000639160759" stroke="#2196f3" stroke-linecap="butt" stroke-linejoin="round" stroke-width="4"/>
+      </g>
+      <g id="Graphic_38">
+        <title>Text</title>
+        <text transform="translate(90 185.54907)" fill="black">
+          <tspan font-family="Apple Color Emoji" font-size="38" font-weight="400" fill="black" x="0" y="38">🔧</tspan>
+        </text>
+      </g>
+      <g id="Graphic_37">
+        <title>Text</title>
+        <text transform="translate(82.33398 239.08702)" fill="black">
+          <tspan font-family="Arial" font-size="24" font-weight="400" fill="black" x="0" y="22">MCP</tspan>
+        </text>
+      </g>
+      <g id="Graphic_36">
+        <title>Text</title>
+        <text transform="translate(64 269.8634)" fill="black">
+          <tspan font-family="PingFang SC" font-size="15" font-weight="400" fill="black" x="0" y="16">协议能力驱动</tspan>
+        </text>
+      </g>
+      <g id="Graphic_35">
+        <title>Text</title>
+        <text transform="translate(37.5 291.41248)" fill="black">
+          <tspan font-family="PingFang SC" font-size="13" font-weight="400" fill="black" x="0" y="14">自动工具发现、参数映射</tspan>
+        </text>
+      </g>
+      <g id="Graphic_34">
+        <title>Text</title>
+        <text transform="translate(18 311.41248)" fill="black">
+          <tspan font-family="PingFang SC" font-size="13" font-weight="400" fill="black" x="0" y="14">实时评估、动态优化、认证管理</tspan>
+        </text>
+      </g>
+      <g id="Graphic_33">
+        <title>Text</title>
+        <text transform="translate(23.055908 331.41248)" fill="black">
+          <tspan font-family="PingFang SC" font-size="13" font-weight="400" fill="black" x="0" y="14">自动化调用高度依赖</tspan>
+          <tspan font-family="Arial" font-size="13" font-weight="400" fill="black" y="14">MCP</tspan>
+          <tspan font-family="PingFang SC" font-size="13" font-weight="400" fill="black" y="14">协议</tspan>
+        </text>
+      </g>
+      <g id="Graphic_32">
+        <path d="M -6 357.98145 L 224 357.98145 C 232.28427 357.98145 239 364.69717 239 372.98145 L 239 382.98145 C 239 391.2657 232.28427 397.98145 224 397.98145 L -6 397.98145 C -14.284271 397.98145 -21 391.2657 -21 382.98145 L -21 372.98145 C -21 364.69717 -14.284271 357.98145 -6 357.98145 Z" fill="#fffbe6"/>
+        <path d="M -6 357.98145 L 224 357.98145 C 232.28427 357.98145 239 364.69717 239 372.98145 L 239 382.98145 C 239 391.2657 232.28427 397.98145 224 397.98145 L -6 397.98145 C -14.284271 397.98145 -21 391.2657 -21 382.98145 L -21 372.98145 C -21 364.69717 -14.284271 357.98145 -6 357.98145 Z" stroke="#ffd700" stroke-linecap="butt" stroke-linejoin="round" stroke-width="2"/>
+      </g>
+      <g id="Graphic_31">
+        <title>Text</title>
+        <text transform="translate(11.078857 369.8634)" fill="black">
+          <tspan font-family="Arial" font-size="15" font-weight="400" fill="black" x="0" y="16">AHA</tspan>
+          <tspan font-family="PingFang SC" font-size="15" font-weight="400" fill="black" y="16">时刻：无需人工配置工具</tspan>
+        </text>
+      </g>
+      <g id="Graphic_30">
+        <path d="M 289 162.98145 L 529 162.98145 C 545.56854 162.98145 559 176.4129 559 192.98145 L 559 352.98145 C 559 369.55 545.56854 382.98145 529 382.98145 L 289 382.98145 C 272.43146 382.98145 259 369.55 259 352.98145 L 259 192.98145 C 259 176.4129 272.43146 162.98145 289 162.98145 Z" fill="url(#Obj_Gradient_4)"/>
+        <path d="M 289 162.98145 L 529 162.98145 C 545.56854 162.98145 559 176.4129 559 192.98145 L 559 352.98145 C 559 369.55 545.56854 382.98145 529 382.98145 L 289 382.98145 C 272.43146 382.98145 259 369.55 259 352.98145 L 259 192.98145 C 259 176.4129 272.43146 162.98145 289 162.98145 Z" stroke="#9c27b0" stroke-linecap="butt" stroke-linejoin="round" stroke-width="4"/>
+      </g>
+      <g id="Graphic_29">
+        <circle cx="409" cy="202.98145" r="40.0000639160759" fill="white"/>
+        <circle cx="409" cy="202.98145" r="40.0000639160759" stroke="#9c27b0" stroke-linecap="butt" stroke-linejoin="round" stroke-width="4"/>
+      </g>
+      <g id="Graphic_28">
+        <title>Text</title>
+        <text transform="translate(390 185.54907)" fill="black">
+          <tspan font-family="Apple Color Emoji" font-size="38" font-weight="400" fill="black" x="0" y="38">🤖</tspan>
+        </text>
+      </g>
+      <g id="Graphic_27">
+        <title>Text</title>
+        <text transform="translate(386.31836 243.2537)" fill="black">
+          <tspan font-family="Arial" font-size="24" font-weight="400" fill="black" x="0" y="22">A2A</tspan>
+        </text>
+      </g>
+      <g id="Graphic_26">
+        <title>Text</title>
+        <text transform="translate(364 269.8634)" fill="black">
+          <tspan font-family="PingFang SC" font-size="15" font-weight="400" fill="black" x="0" y="16">协议能力驱动</tspan>
+        </text>
+      </g>
+      <g id="Graphic_25">
+        <title>Text</title>
+        <text transform="translate(331 291.41248)" fill="black">
+          <tspan font-family="PingFang SC" font-size="13" font-weight="400" fill="black" x="0" y="14">自动任务分解、智能体调度</tspan>
+        </text>
+      </g>
+      <g id="Graphic_24">
+        <title>Text</title>
+        <text transform="translate(318 311.41248)" fill="black">
+          <tspan font-family="PingFang SC" font-size="13" font-weight="400" fill="black" x="0" y="14">协作流程、进度跟踪、质量评估</tspan>
+        </text>
+      </g>
+      <g id="Graphic_23">
+        <title>Text</title>
+        <text transform="translate(331.7141 331.41248)" fill="black">
+          <tspan font-family="PingFang SC" font-size="13" font-weight="400" fill="black" x="0" y="14">调度协同高度依赖</tspan>
+          <tspan font-family="Arial" font-size="13" font-weight="400" fill="black" y="14">A2A</tspan>
+          <tspan font-family="PingFang SC" font-size="13" font-weight="400" fill="black" y="14">协议</tspan>
+        </text>
+      </g>
+      <g id="Graphic_22">
+        <path d="M 294 357.98145 L 524 357.98145 C 532.2843 357.98145 539 364.69717 539 372.98145 L 539 382.98145 C 539 391.2657 532.2843 397.98145 524 397.98145 L 294 397.98145 C 285.71573 397.98145 279 391.2657 279 382.98145 L 279 372.98145 C 279 364.69717 285.71573 357.98145 294 357.98145 Z" fill="#fffbe6"/>
+        <path d="M 294 357.98145 L 524 357.98145 C 532.2843 357.98145 539 364.69717 539 372.98145 L 539 382.98145 C 539 391.2657 532.2843 397.98145 524 397.98145 L 294 397.98145 C 285.71573 397.98145 279 391.2657 279 382.98145 L 279 372.98145 C 279 364.69717 285.71573 357.98145 294 357.98145 Z" stroke="#ffd700" stroke-linecap="butt" stroke-linejoin="round" stroke-width="2"/>
+      </g>
+      <g id="Graphic_21">
+        <title>Text</title>
+        <text transform="translate(311.07886 369.8634)" fill="black">
+          <tspan font-family="Arial" font-size="15" font-weight="400" fill="black" x="0" y="16">AHA</tspan>
+          <tspan font-family="PingFang SC" font-size="15" font-weight="400" fill="black" y="16">时刻：复杂任务自动分工</tspan>
+        </text>
+      </g>
+      <g id="Graphic_20">
+        <path d="M 643.6484 162.98145 L 929 162.98145 C 945.5685 162.98145 959 176.4129 959 192.98145 L 959 452.98145 C 959 469.55 945.5685 482.98145 929 482.98145 L 643.6484 482.98145 C 627.0799 482.98145 613.64844 469.55 613.64844 452.98145 L 613.64844 192.98145 C 613.64844 176.4129 627.0799 162.98145 643.6484 162.98145 Z" fill="url(#Obj_Gradient_5)"/>
+        <path d="M 643.6484 162.98145 L 929 162.98145 C 945.5685 162.98145 959 176.4129 959 192.98145 L 959 452.98145 C 959 469.55 945.5685 482.98145 929 482.98145 L 643.6484 482.98145 C 627.0799 482.98145 613.64844 469.55 613.64844 452.98145 L 613.64844 192.98145 C 613.64844 176.4129 627.0799 162.98145 643.6484 162.98145 Z" stroke="#ff5722" stroke-linecap="butt" stroke-linejoin="round" stroke-width="4"/>
+      </g>
+      <g id="Graphic_19">
+        <circle cx="778.5815" cy="207.1479" r="40.0000639160758" fill="white"/>
+        <circle cx="778.5815" cy="207.1479" r="40.0000639160758" stroke="#ff5722" stroke-linecap="butt" stroke-linejoin="round" stroke-width="4"/>
+      </g>
+      <g id="Graphic_18">
+        <title>Text</title>
+        <text transform="translate(759.5815 189.71552)" fill="black">
+          <tspan font-family="Apple Color Emoji" font-size="38" font-weight="400" fill="black" x="0" y="38">🌐</tspan>
+        </text>
+      </g>
+      <g id="Graphic_17">
+        <title>Text</title>
+        <text transform="translate(753.9077 244.64235)" fill="black">
+          <tspan font-family="Arial" font-size="24" font-weight="400" fill="black" x="0" y="22">ANP</tspan>
+        </text>
+      </g>
+      <g id="Graphic_16">
+        <title>Text</title>
+        <text transform="translate(711.08154 274.02985)" fill="black">
+          <tspan font-family="PingFang SC" font-size="15" font-weight="400" fill="black" x="0" y="16">生态级协议能力驱动</tspan>
+        </text>
+      </g>
+      <g id="Graphic_15">
+        <title>Text</title>
+        <text transform="translate(701.9153 294.02985)" fill="black">
+          <tspan font-family="Arial" font-size="15" font-weight="400" fill="black" x="0" y="16">ARM</tspan>
+          <tspan font-family="PingFang SC" font-size="15" font-weight="400" fill="black" y="16">：智能体关系管理</tspan>
+        </text>
+      </g>
+      <g id="Graphic_14">
+        <title>Text</title>
+        <text transform="translate(664 315.5789)" fill="black">
+          <tspan font-family="Arial" font-size="13" font-weight="400" fill="black" x="0" y="14">• </tspan>
+          <tspan font-family="PingFang SC" font-size="13" font-weight="400" fill="black" y="14">关系智能：理解信任、依赖、历史合作</tspan>
+        </text>
+      </g>
+      <g id="Graphic_13">
+        <title>Text</title>
+        <text transform="translate(683.5 335.5789)" fill="black">
+          <tspan font-family="Arial" font-size="13" font-weight="400" fill="black" x="0" y="14">• </tspan>
+          <tspan font-family="PingFang SC" font-size="13" font-weight="400" fill="black" y="14">能力智能：自动评估与匹配能力</tspan>
+        </text>
+      </g>
+      <g id="Graphic_12">
+        <title>Text</title>
+        <text transform="translate(673.3882 355.5789)" fill="black">
+          <tspan font-family="Arial" font-size="13" font-weight="400" fill="black" x="0" y="14">• </tspan>
+          <tspan font-family="PingFang SC" font-size="13" font-weight="400" fill="black" y="14">调用智能：最优路径</tspan>
+          <tspan font-family="Arial" font-size="13" font-weight="400" fill="black" y="14">/</tspan>
+          <tspan font-family="PingFang SC" font-size="13" font-weight="400" fill="black" y="14">协议</tspan>
+          <tspan font-family="Arial" font-size="13" font-weight="400" fill="black" y="14">/</tspan>
+          <tspan font-family="PingFang SC" font-size="13" font-weight="400" fill="black" y="14">安全策略</tspan>
+        </text>
+      </g>
+      <g id="Graphic_11">
+        <title>Text</title>
+        <text transform="translate(677 375.5789)" fill="black">
+          <tspan font-family="Arial" font-size="13" font-weight="400" fill="black" x="0" y="14">• </tspan>
+          <tspan font-family="PingFang SC" font-size="13" font-weight="400" fill="black" y="14">历史智能：基于历史持续优化组合</tspan>
+        </text>
+      </g>
+      <g id="Graphic_10">
+        <path d="M 649 399.7865 L 927 399.7865 C 935.2843 399.7865 942 406.50223 942 414.7865 L 942 434.7865 C 942 443.07077 935.2843 449.7865 927 449.7865 L 649 449.7865 C 640.7157 449.7865 634 443.07077 634 434.7865 L 634 414.7865 C 634 406.50223 640.7157 399.7865 649 399.7865 Z" fill="#fffbe6"/>
+        <path d="M 649 399.7865 L 927 399.7865 C 935.2843 399.7865 942 406.50223 942 414.7865 L 942 434.7865 C 942 443.07077 935.2843 449.7865 927 449.7865 L 649 449.7865 C 640.7157 449.7865 634 443.07077 634 434.7865 L 634 414.7865 C 634 406.50223 640.7157 399.7865 649 399.7865 Z" stroke="#ffd700" stroke-linecap="butt" stroke-linejoin="round" stroke-width="2"/>
+      </g>
+      <g id="Graphic_9">
+        <title>Text</title>
+        <text transform="translate(642.2932 414.2865)" fill="black">
+          <tspan font-family="Arial" font-size="15" font-weight="400" fill="black" x="0" y="16">AHA</tspan>
+          <tspan font-family="PingFang SC" font-size="15" font-weight="400" fill="black" y="16">时刻：像</tspan>
+          <tspan font-family="Arial" font-size="15" font-weight="400" fill="black" y="16">“</tspan>
+          <tspan font-family="PingFang SC" font-size="15" font-weight="400" fill="black" y="16">超级</tspan>
+          <tspan font-family="Arial" font-size="15" font-weight="400" fill="black" y="16">AI</tspan>
+          <tspan font-family="PingFang SC" font-size="15" font-weight="400" fill="black" y="16">人事部</tspan>
+          <tspan font-family="Arial" font-size="15" font-weight="400" fill="black" y="16">”</tspan>
+          <tspan font-family="PingFang SC" font-size="15" font-weight="400" fill="black" y="16">一样管理</tspan>
+          <tspan font-family="Arial" font-size="15" font-weight="400" fill="black" y="16">AI</tspan>
+          <tspan font-family="PingFang SC" font-size="15" font-weight="400" fill="black" y="16">生态</tspan>
+        </text>
+      </g>
+      <g id="Graphic_8">
+        <title>Text</title>
+        <text transform="translate(656.3242 483.7865)" fill="black">
+          <tspan font-family="Arial" font-size="13" font-weight="400" fill="black" x="11.194092" y="14">“</tspan>
+          <tspan font-family="PingFang SC" font-size="13" font-weight="400" fill="black" y="14">我只需说出目标，系统自动组建最优</tspan>
+          <tspan font-family="Arial" font-size="13" font-weight="400" fill="black" y="14">AI</tspan>
+          <tspan font-family="PingFang SC" font-size="13" font-weight="400" fill="black" y="14">团</tspan>
+          <tspan font-family="PingFang SC" font-size="13" font-weight="400" fill="black" x="23.83545" y="32">队，分工、授权、追踪、交付全自动</tspan>
+          <tspan font-family="Arial" font-size="13" font-weight="400" fill="black" y="32">”</tspan>
+        </text>
+      </g>
+      <g id="Graphic_7">
+        <title>Text</title>
+        <text transform="translate(658.85376 519.7865)" fill="black">
+          <tspan font-family="Arial" font-size="13" font-weight="400" fill="black" x="0" y="14">“</tspan>
+          <tspan font-family="PingFang SC" font-size="13" font-weight="400" fill="black" y="14">只调用被信任</tspan>
+          <tspan font-family="Arial" font-size="13" font-weight="400" fill="black" y="14">AI</tspan>
+          <tspan font-family="PingFang SC" font-size="13" font-weight="400" fill="black" y="14">，所有操作有完整历史可查</tspan>
+          <tspan font-family="Arial" font-size="13" font-weight="400" fill="black" y="14">”</tspan>
+        </text>
+      </g>
+      <g id="Graphic_6">
+        <path d="M -136 552.98145 L 694 552.98145 C 713.33 552.98145 729 568.6515 729 587.98145 L 729 698 C 729 717.33 713.33 733 694 733 L -136 733 C -155.32997 733 -171 717.33 -171 698 L -171 587.98145 C -171 568.6515 -155.32997 552.98145 -136 552.98145 Z" fill="url(#Obj_Gradient_6)"/>
+        <path d="M -136 552.98145 L 694 552.98145 C 713.33 552.98145 729 568.6515 729 587.98145 L 729 698 C 729 717.33 713.33 733 694 733 L -136 733 C -155.32997 733 -171 717.33 -171 698 L -171 587.98145 C -171 568.6515 -155.32997 552.98145 -136 552.98145 Z" stroke="#ffd700" stroke-linecap="butt" stroke-linejoin="round" stroke-width="3"/>
+      </g>
+      <g id="Graphic_5">
+        <title>Text</title>
+        <text transform="translate(106.32422 579.0444)" fill="black">
+          <tspan font-family="Apple Color Emoji" font-size="28" font-weight="400" fill="black" x="0" y="30">🌟</tspan>
+          <tspan font-family="Arial" font-size="28" font-weight="400" fill="black" y="30"> </tspan>
+          <tspan font-family="PingFang SC" font-size="28" font-weight="400" fill="black" y="30">终极愿景：通用</tspan>
+          <tspan font-family="Arial" font-size="28" font-weight="400" fill="black" y="30">AHA</tspan>
+          <tspan font-family="PingFang SC" font-size="28" font-weight="400" fill="black" y="30">时刻</tspan>
+        </text>
+      </g>
+      <g id="Graphic_4">
+        <title>Text</title>
+        <text transform="translate(-127.01074 627.5398)" fill="black">
+          <tspan font-family="PingFang SC" font-size="18" font-weight="400" fill="black" x="0" y="19">当</tspan>
+          <tspan font-family="Arial" font-size="18" font-weight="400" fill="black" y="19">ANP</tspan>
+          <tspan font-family="PingFang SC" font-size="18" font-weight="400" fill="black" y="19">成熟时，任何用户需求都能触发</tspan>
+          <tspan font-family="Arial" font-size="18" font-weight="400" fill="black" y="19">AHA</tspan>
+          <tspan font-family="PingFang SC" font-size="18" font-weight="400" fill="black" y="19">时刻，系统自动发现最佳智能体组合，无缝协作完成任务，</tspan>
+        </text>
+      </g>
+      <g id="Graphic_3">
+        <title>Text</title>
+        <text transform="translate(-33.03369 657.5398)" fill="black">
+          <tspan font-family="PingFang SC" font-size="18" font-weight="400" fill="black" x="0" y="19">让每个人都能享受</tspan>
+          <tspan font-family="Arial" font-size="18" font-weight="400" fill="black" y="19">DeepResearch</tspan>
+          <tspan font-family="PingFang SC" font-size="18" font-weight="400" fill="black" y="19">级自动化体验，覆盖生活和工作的方方面面。</tspan>
+        </text>
+      </g>
+      <g id="Graphic_2">
+        <title>Text</title>
+        <text transform="translate(77.51025 687.5398)" fill="black">
+          <tspan font-family="Apple Color Emoji" font-size="18" font-weight="400" fill="black" x="0" y="21">🎯</tspan>
+          <tspan font-family="Arial" font-size="18" font-weight="400" fill="black" y="21"> </tspan>
+          <tspan font-family="PingFang SC" font-size="18" font-weight="400" fill="black" y="21">从</tspan>
+          <tspan font-family="Arial" font-size="18" font-weight="400" fill="black" y="21">“</tspan>
+          <tspan font-family="PingFang SC" font-size="18" font-weight="400" fill="black" y="21">我需要学会使用工具</tspan>
+          <tspan font-family="Arial" font-size="18" font-weight="400" fill="black" y="21">” → “</tspan>
+          <tspan font-family="PingFang SC" font-size="18" font-weight="400" fill="black" y="21">我只需要表达需求</tspan>
+          <tspan font-family="Arial" font-size="18" font-weight="400" fill="black" y="21">”</tspan>
+        </text>
+      </g>
+    </g>
+  </g>
+</svg>

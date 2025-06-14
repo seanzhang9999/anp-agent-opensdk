@@ -1,3 +1,4 @@
+import logging
 import os
 from pathlib import Path
 from typing import List, Dict, Optional, Any
@@ -45,14 +46,17 @@ async def get_llm_response_with_rag(
 
     try:
         async with httpx.AsyncClient() as client:
+            print(f"start llm{payload}" )
             response = await client.post(
                 str(llm_config.apiBase).rstrip('/') + "/chat/completions", # Common path
                 json=payload,
                 headers=headers,
                 timeout=60.0 # Increased timeout for LLM calls
             )
+
         response.raise_for_status() # Will raise an exception for 4XX/5XX responses
         data = response.json()
+        print(f"get llm response {data}")
         
         if data.get("choices") and len(data["choices"]) > 0:
             reply = data["choices"][0].get("message", {}).get("content")
