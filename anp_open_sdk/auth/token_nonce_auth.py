@@ -14,15 +14,18 @@
 
 """Bearer token authentication module."""
 import logging
+import random
+import string
 from typing import Optional, Dict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import jwt
 from fastapi import HTTPException
 
 from datetime import datetime, timezone, timedelta
+from anp_open_sdk.anp_sdk_agent import LocalAgent
+from anp_open_sdk.auth.did_auth import VALID_SERVER_NONCES
 from anp_open_sdk.config.dynamic_config import dynamic_config
 from anp_open_sdk.auth.jwt_keys import get_jwt_public_key, get_jwt_private_key
-
 
 def create_access_token(private_key_path, data: Dict, expires_delta: int = None) -> str:
     """
@@ -87,30 +90,8 @@ async def handle_bearer_auth(token: str, req_did, resp_did, sdk= None) -> Dict:
             token_body = token
         
 
-        
-        # 从LocalAgent中获取token信息
-
-        if sdk is None:
-            from demo_autorun import get_user_cfg_list, find_user_cfg_by_did, LocalAgent
-            user_list, name_to_dir = get_user_cfg_list()
-            resp_did_cfg = find_user_cfg_by_did(user_list, name_to_dir, resp_did)
-            
-            if not resp_did_cfg:
-                logging.error(f"Cannot find configuration for resp_did: {resp_did}")
-                raise HTTPException(status_code=401, detail="Invalid response DID")
-            
-            resp_did_agent = LocalAgent(
-                id=resp_did_cfg.get('id'),
-                user_dir=resp_did_cfg.get('user_dir')
-            )
-            token_info = resp_did_agent.get_token_from_remote(req_did)
-
-        else:
-            from anp_open_sdk.anp_sdk import ANPSDK
-            from typing import cast
-            sdk= cast(ANPSDK, sdk)
-            resp_did_agent = sdk.get_agent(resp_did)
-            token_info = resp_did_agent.get_token_to_remote(req_did)
+        resp_did_agent = LocalAgent.from_did(resp_did)
+        token_info = resp_did_agent.contact_manager.get_token_to_remote(req_did)
 
         
         # 检查LocalAgent中是否存储了该req_did的token信息
@@ -182,3 +163,77 @@ async def handle_bearer_auth(token: str, req_did, resp_did, sdk= None) -> Dict:
     except Exception as e:
         logging.error(f"Token verification error: {e}")
         raise HTTPException(status_code=401, detail=f"Token verification failed: {str(e)}")
+
+
+def verify_timestamp(timestamp_str: str) -> bool:
+    """
+    Verify if a timestamp is within the valid period.
+
+    Args:
+        timestamp_str: ISO format timestamp string
+
+    Returns:
+        bool: Whether the timestamp is valid
+    """
+    try:
+        # Parse the timestamp string
+        request_time = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
+
+        # Get current time
+        current_time = datetime.now(timezone.utc)
+
+        # Calculate time difference
+        time_diff = abs((current_time - request_time).total_seconds() / 60)
+
+        nonce_expire_minutes = dynamic_config.get('anp_sdk.nonce_expire_minutes')
+
+        # Verify timestamp is within valid period
+        if time_diff > nonce_expire_minutes:
+            logging.error(f"Timestamp expired. Current time: {current_time}, Request time: {request_time}, Difference: {time_diff} minutes")
+            return False
+
+        return True
+
+    except ValueError as e:
+        logging.error(f"Invalid timestamp format: {e}")
+        return False
+    except Exception as e:
+        logging.error(f"Error verifying timestamp: {e}")
+        return False
+
+
+def is_valid_server_nonce(nonce: str) -> bool:
+    """
+    Check if a nonce is valid and not expired.
+
+    Args:
+        nonce: The nonce to check
+
+    Returns:
+        bool: Whether the nonce is valid
+    """
+    if nonce not in VALID_SERVER_NONCES:
+        return True
+
+    nonce_time = VALID_SERVER_NONCES[nonce]
+    current_time = datetime.now(timezone.utc)
+
+    nonce_expire_minutes = dynamic_config.get('anp_sdk.nonce_expire_minutes')
+
+    return current_time - nonce_time <= timedelta(minutes=nonce_expire_minutes)
+
+
+def generate_nonce(length: int = 16) -> str:
+    """
+    Generate a random nonce of specified length.
+
+    Args:
+        length: Length of the nonce to generate
+
+    Returns:
+        str: Generated nonce
+    """
+    characters = string.ascii_letters + string.digits
+    nonce = ''.join(random.choice(characters) for _ in range(length))
+    VALID_SERVER_NONCES[nonce] = datetime.now(timezone.utc)
+    return nonce

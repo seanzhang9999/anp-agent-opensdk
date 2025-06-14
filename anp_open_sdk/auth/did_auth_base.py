@@ -49,7 +49,7 @@ class BaseAuth(ABC):
     认证基类，包含通用认证相关方法
     """
 
-    def extract_dids_from_auth_header(self, auth_header: str) -> Tuple[Optional[str], Optional[str]]:
+    def extract_did_from_auth_header(self, auth_header: str) -> Tuple[Optional[str], Optional[str]]:
         """
         抽象方法：从认证头中提取 req_did 和 target_did（或 resp_did）
         """
@@ -71,6 +71,6 @@ class BaseDIDAuthenticator(ABC):
 
 
     @abstractmethod
-    async def verify_response(self, sdk, auth_header: str, context: AuthenticationContext) -> Tuple[bool, str]:
+    async def verify_response(self,  auth_header: str, context: AuthenticationContext) -> Tuple[bool, str]:
         """验证响应"""
         pass

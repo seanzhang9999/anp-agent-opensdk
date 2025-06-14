@@ -4,35 +4,58 @@ from typing import Optional, Dict, Any, List
 from cryptography.hazmat.primitives.asymmetric import ed25519
 from datetime import datetime
 
+from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives import serialization
+
 class DIDKeyPair(BaseModel):
-    """DID密钥对内存对象"""
+    """DID密钥对内存对象 (支持 secp256k1)"""
     private_key: bytes = Field(..., description="私钥字节")
     public_key: bytes = Field(..., description="公钥字节")
     key_id: str = Field(..., description="密钥ID")
-    
+    """DID密钥对内存对象"""
     class Config:
         arbitrary_types_allowed = True
-    
+
     @classmethod
     def from_private_key_bytes(cls, private_key_bytes: bytes, key_id: str = "key-1"):
-        """从私钥字节创建密钥对"""
-        private_key_obj = ed25519.Ed25519PrivateKey.from_private_bytes(private_key_bytes)
-        public_key_bytes = private_key_obj.public_key().public_bytes(
-            encoding=serialization.Encoding.Raw,
-            format=serialization.PublicFormat.Raw
+        """从 secp256k1 私钥字节创建密钥对"""
+        private_key_obj = ec.derive_private_key(
+            int.from_bytes(private_key_bytes, byteorder="big"), ec.SECP256K1()
+        )
+        public_key_obj = private_key_obj.public_key()
+        public_key_bytes = public_key_obj.public_bytes(
+            encoding=serialization.Encoding.X962,
+            format=serialization.PublicFormat.UncompressedPoint
         )
         return cls(
             private_key=private_key_bytes,
             public_key=public_key_bytes,
             key_id=key_id
         )
-    
+
     @classmethod
     def from_file_path(cls, private_key_path: str, key_id: str = "key-1"):
-        """从文件路径加载（向后兼容）"""
-        with open(private_key_path, 'rb') as f:
-            private_key_bytes = f.read()
-        return cls.from_private_key_bytes(private_key_bytes, key_id)
+        """从PEM/PKCS8 secp256k1私钥文件创建密钥对"""
+        with open(private_key_path, "rb") as key_file:
+            private_key = serialization.load_pem_private_key(
+                key_file.read(),
+                password=None
+            )
+            if not isinstance(private_key, ec.EllipticCurvePrivateKey):
+                raise ValueError("Loaded private key is not an EC key")
+            if private_key.curve.name != "secp256k1":
+                raise ValueError("Private key is not secp256k1 curve")
+            private_key_bytes = private_key.private_numbers().private_value.to_bytes(32, byteorder="big")
+            public_key_bytes = private_key.public_key().public_bytes(
+                encoding=serialization.Encoding.X962,
+                format=serialization.PublicFormat.UncompressedPoint
+            )
+        return cls(
+            private_key=private_key_bytes,
+            public_key=public_key_bytes,
+            key_id=key_id
+        )
+
 
 class DIDDocument(BaseModel):
     """DID文档内存对象"""
