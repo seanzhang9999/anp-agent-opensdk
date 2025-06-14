@@ -199,7 +199,7 @@ class WBADIDAuthenticator(BaseDIDAuthenticator):
                 extract_auth_header_parts_two_way, verify_auth_header_signature_two_way, resolve_did_wba_document
             )
             from anp_open_sdk.auth.did_auth_wba_custom_did_resolver import resolve_local_did_document
-            from anp_open_sdk.config.dynamic_config import dynamic_config
+            from anp_open_sdk.config.legacy.dynamic_config import dynamic_config
             import logging
 
             # 1. 尝试解析为两路认证

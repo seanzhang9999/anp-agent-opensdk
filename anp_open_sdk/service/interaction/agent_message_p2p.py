@@ -14,12 +14,10 @@
 
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import sys
-import os
 
 from anp_open_sdk.anp_sdk_agent import LocalAgent, RemoteAgent
 from urllib.parse import urlencode, quote
-from anp_open_sdk.config.dynamic_config import dynamic_config
+from anp_open_sdk.config.legacy.dynamic_config import dynamic_config
 from anp_open_sdk.auth.auth_client import agent_auth_request, handle_response
 
 async def agent_msg_post(sdk, caller_agent: str, target_agent: str, content: str, message_type: str = "text"):

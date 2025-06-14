@@ -13,7 +13,7 @@ load_dotenv(dotenv_path=BACKEND_BASE_DIR.parent / '.env') # Assumes .env is in m
 
 # Attempt to import ANP SDK components. This relies on PYTHONPATH being set correctly.
 try:
-    from anp_open_sdk.config.dynamic_config import dynamic_config
+    from anp_open_sdk.config.legacy.dynamic_config import dynamic_config
     ANP_USER_DID_PATH_KEY = 'anp_user_service.user_did_path' # The key used in your ANP SDK's config
     # Example: ANP_USER_BASE_PATH = Path(dynamic_config.get(ANP_USER_DID_PATH_KEY))
 except ImportError:

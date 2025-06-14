@@ -19,7 +19,7 @@ async def chat_with_personal_agent(request: ChatAgentRequest):
         # Or, return an error if personal_data is essential:
         # raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Personal data for user not found.")
 
-    from anp_open_sdk.config.dynamic_config import dynamic_config
+    from anp_open_sdk.config.legacy.dynamic_config import dynamic_config
 
     from dotenv import load_dotenv
     import os

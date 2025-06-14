@@ -1,32 +1,21 @@
 import asyncio
-import time
 import os
 import json
 from dotenv import load_dotenv
 load_dotenv()  # 这会加载项目根目录下的 .env 文件
 
-from datetime import datetime
-from sys import exception
 from typing import List, Dict, Any
 from urllib.parse import quote
-from pathlib import Path
 
 import requests
 import aiofiles
 from loguru import logger
-
-import requests
-import aiofiles
-from loguru import logger
-
-from anp_open_sdk.service.agent_message_p2p import agent_msg_post
-
 
 from anp_open_sdk.anp_sdk import ANPSDK, LocalAgent
 from anp_open_sdk.config.path_resolver import path_resolver
-from anp_open_sdk.service.agent_api_call import agent_api_call_post, agent_api_call_get
-from anp_open_sdk.service.agent_message_p2p import agent_msg_post
-from anp_open_sdk.service.anp_tool import ANPTool
+from anp_open_sdk.service.interaction.agent_api_call import agent_api_call_post, agent_api_call_get
+from anp_open_sdk.service.interaction.agent_message_p2p import agent_msg_post
+from anp_open_sdk.service.interaction.anp_tool import ANPTool
 from .step_helper import DemoStepHelper
 
 
@@ -111,12 +100,9 @@ class DemoTaskRunner:
         # 导入必要的模块
         from anp_open_sdk.anp_sdk_user_data import did_create_user, get_user_dir_did_doc_by_did
         from anp_open_sdk.anp_sdk_agent import LocalAgent
-        from anp_open_sdk.config.dynamic_config import dynamic_config
-        from pathlib import Path
+        from anp_open_sdk.config.legacy.dynamic_config import dynamic_config
         import os
         import shutil
-        import yaml
-        import json
 
         temp_agent = None
         temp_user_dir = None
@@ -363,7 +349,6 @@ class DemoTaskRunner:
         self.step_helper.pause("步骤3: 演示ANP工具爬虫功能")
 
         # 引入必要的依赖
-        from anp_open_sdk.service.anp_tool import ANPTool
         logger.info("成功导入ANPTool")
         
         
@@ -501,7 +486,7 @@ class DemoTaskRunner:
         self.step_helper.pause(f"启动{agent_name}智能爬取: {initial_url}")
         
         # 引入必要的依赖
-        from anp_open_sdk.service.anp_tool import ANPTool
+        from anp_open_sdk.service.interaction.anp_tool import ANPTool
         
         # 初始化变量
         visited_urls = set()

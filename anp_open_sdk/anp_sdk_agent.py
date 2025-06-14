@@ -23,9 +23,9 @@ from fastapi import Request
 from loguru import logger
 from starlette.responses import JSONResponse
 
-from anp_open_sdk.config.dynamic_config import dynamic_config
-from anp_open_sdk.config.dynamic_config import get_config_value
-from anp_open_sdk.service.anp_sdk_publisher_mail_backend import EnhancedMailManager
+from anp_open_sdk.config.legacy.dynamic_config import dynamic_config
+from anp_open_sdk.config.legacy.dynamic_config import get_config_value
+from anp_open_sdk.service.publisher.anp_sdk_publisher_mail_backend import EnhancedMailManager
 from anp_open_sdk.auth.did_auth_wba import parse_wba_did_host_port
 from anp_open_sdk.contact_manager import ContactManager
 
@@ -34,7 +34,6 @@ class RemoteAgent:
     def __init__(self, id: str, name: str = None, host: str = None, port: int = None, **kwargs):
         self.id = id
         self.name = name
-        import re
         self.host = host
         self.port = port
         if self.id and (self.host is None or self.port is None):
@@ -360,7 +359,7 @@ class LocalAgent:
 
     async def register_hosted_did(self, sdk):
         try:
-            from anp_open_sdk.service.anp_sdk_publisher_mail_backend import EnhancedMailManager
+            from anp_open_sdk.service.publisher.anp_sdk_publisher_mail_backend import EnhancedMailManager
             user_data_manager = sdk.user_data_manager
             user_data = user_data_manager.get_user_data(self.id)
             did_document = user_data.did_doc

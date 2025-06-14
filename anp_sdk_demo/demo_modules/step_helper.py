@@ -6,7 +6,7 @@ sys.path.append(project_root)
 
 from colorama import init, Fore, Style
 from loguru import logger
-from anp_open_sdk.config.dynamic_config import dynamic_config
+from anp_open_sdk.config.legacy.dynamic_config import dynamic_config
 
 init()  # 初始化colorama
 

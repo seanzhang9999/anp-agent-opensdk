@@ -8,7 +8,7 @@ import asyncio
 import sys
 import json
 from json import JSONEncoder
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 from dotenv import load_dotenv
 from loguru import logger
 
@@ -20,8 +20,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from anp_open_sdk.anp_sdk import ANPSDK
 from anp_open_sdk.anp_sdk_agent import LocalAgent
-from anp_open_sdk.service.anp_tool import ANPTool
-from anp_sdk_demo.demo_modules import agent_loader
+from anp_open_sdk.service.interaction.anp_tool import ANPTool
 
 
 class ANPToolCrawler:

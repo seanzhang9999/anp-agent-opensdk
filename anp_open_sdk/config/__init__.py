@@ -12,3 +12,48 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""ANP Open SDK 配置模块
+
+提供统一的配置管理功能，支持：
+- 统一配置管理（unified_config.py）
+- 类型提示和协议（config_types.py）
+- 向后兼容的动态配置（dynamic_config.py）
+- 路径解析（path_resolver.py）
+"""
+
+# 导入新的统一配置
+from .unified_config import config, UnifiedConfig, get_config_value
+
+# 向后兼容：保持原有接口可用
+from anp_open_sdk.config.legacy.dynamic_config import dynamic_config, get_config_value as legacy_get_config_value
+from .path_resolver import path_resolver
+
+# 类型提示
+from .config_types import (
+    UnifiedConfigProtocol,
+    AnpSdkConfig,
+    LlmConfig,
+    MailConfig,
+    EnvConfig,
+    SecretsConfig
+)
+
+__all__ = [
+    # 新的统一配置（推荐使用）
+    'config',
+    'UnifiedConfig',
+    'get_config_value',
+
+    # 向后兼容
+    'dynamic_config',
+    'legacy_get_config_value',
+    'path_resolver',
+
+    # 类型提示
+    'UnifiedConfigProtocol',
+    'AnpSdkConfig',
+    'LlmConfig',
+    'MailConfig',
+    'EnvConfig',
+    'SecretsConfig'
+]

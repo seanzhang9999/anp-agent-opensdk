@@ -55,7 +55,7 @@ web_api:
     webui-port: 8080
 mail:
   use_local_backend: true
-  local_backend_path: anp_open_sdk/testuse/mail_local_backend
+  local_backend_path: anp_open_sdk/simulate/mail_local_backend
   hoster_mail_user: "seanzhang9999@gmail.com"
   # 注意：密码等敏感信息请在 .env 文件中配置
   # HOSTER_MAIL_PASSWORD=your_password

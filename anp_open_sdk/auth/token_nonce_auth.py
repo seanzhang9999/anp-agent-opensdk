@@ -22,7 +22,7 @@ import jwt
 from fastapi import HTTPException
 
 from datetime import datetime, timezone, timedelta
-from anp_open_sdk.config.dynamic_config import dynamic_config
+from anp_open_sdk.config.legacy.dynamic_config import dynamic_config
 
 
 def create_access_token(private_key_path, data: Dict, expires_delta: int = None) -> str:

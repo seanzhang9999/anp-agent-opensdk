@@ -11,10 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pydantic.v1.networks import host_regex
 
 from anp_open_sdk.anp_sdk_user_data import LocalUserDataManager
-from anp_open_sdk.config.dynamic_config import get_config_value
+from anp_open_sdk.config.legacy.dynamic_config import get_config_value
 import urllib.parse
 import os
 import time
@@ -28,10 +27,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from anp_open_sdk.auth.auth_server import auth_middleware
 
 # 路由模块导入
-from anp_open_sdk.service import router_auth, router_did, router_publisher
+from anp_open_sdk.service.router import router_did, router_publisher, router_auth
 
 # 导入ANP核心组件
-from anp_open_sdk.config.dynamic_config import dynamic_config
+from anp_open_sdk.config.legacy.dynamic_config import dynamic_config
 from fastapi import Request, WebSocket, WebSocketDisconnect, FastAPI
 from fastapi.responses import StreamingResponse
 
@@ -41,7 +40,7 @@ from loguru import logger
 from anp_open_sdk.anp_sdk_agent import LocalAgent
 
 # Group SDK
-from anp_open_sdk.service.anp_sdk_group_runner import GroupManager, GroupRunner, Message, MessageType, Agent
+from anp_open_sdk.service.interaction.anp_sdk_group_runner import GroupManager, GroupRunner, Message, MessageType, Agent
 
 
 class ANPSDK:
@@ -121,7 +120,7 @@ class ANPSDK:
             return await auth_middleware(request, call_next, self.instance)
 
         # 创建路由器实例
-        from anp_open_sdk.service.router_agent import AgentRouter
+        from anp_open_sdk.service.router.router_agent import AgentRouter
         self.router = AgentRouter()
         
         self.logger = logger
@@ -151,8 +150,8 @@ class ANPSDK:
         return self.group_manager.list_groups()
 
     async def check_did_host_request(self):
-        from anp_open_sdk.service.anp_sdk_publisher_mail_backend import EnhancedMailManager
-        from anp_open_sdk.service.anp_sdk_publisher import DIDManager
+        from anp_open_sdk.service.publisher.anp_sdk_publisher_mail_backend import EnhancedMailManager
+        from anp_open_sdk.service.publisher.anp_sdk_publisher import DIDManager
         
         try:
             use_local = get_config_value('USE_LOCAL_MAIL', False)

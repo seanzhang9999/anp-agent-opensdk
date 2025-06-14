@@ -15,14 +15,13 @@
 """
 Publisher API router for hosted DID documents, agent descriptions, and API forwarding.
 """
-import os
 import json
 import yaml
 import logging
-from typing import Dict, List, Optional
+from typing import Dict
 from pathlib import Path
-from fastapi import APIRouter, Request, Response, HTTPException
-from anp_open_sdk.config.dynamic_config import dynamic_config
+from fastapi import APIRouter, Request, HTTPException
+from anp_open_sdk.config.legacy.dynamic_config import dynamic_config
 from anp_open_sdk.config.path_resolver import path_resolver
 from loguru import logger
 

@@ -32,17 +32,14 @@ from pathlib import Path
 import jwt
 import yaml
 import argparse
-import aiohttp
-import asyncio
 from datetime import datetime
 
 from Crypto.PublicKey import RSA
 from loguru import logger
-from typing import Dict, List, Tuple, Optional, Any
+from typing import Dict, List, Optional, Any
 
-from anp_open_sdk.config import path_resolver
 from anp_open_sdk.config.path_resolver import path_resolver
-from anp_open_sdk.config.dynamic_config import dynamic_config
+from anp_open_sdk.config.legacy.dynamic_config import dynamic_config
 from anp_open_sdk.base_user_data import BaseUserData, BaseUserDataManager
 
 def create_user(args):

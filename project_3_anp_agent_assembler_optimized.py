@@ -22,19 +22,14 @@ import asyncio
 import shutil
 import sys
 import json
-import time
 from datetime import datetime
 from json import JSONEncoder
-from typing import Dict, Any, List, Optional
 from urllib.parse import quote
 
 import yaml
 from anyio import Path
 from dotenv import load_dotenv
-from fastapi import FastAPI, Request
 from loguru import logger
-from openai.types.chat import ChatCompletionMessage
-from starlette.responses import JSONResponse
 
 # 加载环境变量
 load_dotenv()
@@ -42,11 +37,11 @@ load_dotenv()
 # 添加项目路径到系统路径
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from anp_open_sdk.config.dynamic_config import dynamic_config
+from anp_open_sdk.config.legacy.dynamic_config import dynamic_config
 from anp_open_sdk.config.path_resolver import path_resolver
 from anp_open_sdk.anp_sdk import ANPSDK
 from anp_open_sdk.anp_sdk_agent import LocalAgent
-from anp_open_sdk.service.anp_tool import ANPTool
+from anp_open_sdk.service.interaction.anp_tool import ANPTool
 from anp_sdk_demo.services.sdk_manager import DemoSDKManager
 
 

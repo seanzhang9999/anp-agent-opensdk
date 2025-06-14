@@ -3,8 +3,8 @@ import os
 import time
 from typing import Dict, Any, Callable, List
 from datetime import datetime
-from anp_open_sdk.service.anp_sdk_group_member import GroupMemberSDK
-from anp_open_sdk.service.anp_sdk_group_runner import Message, MessageType
+from anp_open_sdk.service.interaction.anp_sdk_group_member import GroupMemberSDK
+from anp_open_sdk.service.interaction.anp_sdk_group_runner import Message, MessageType
 from anp_open_sdk.config.path_resolver import path_resolver
 
 

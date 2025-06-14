@@ -19,19 +19,15 @@ from fastapi.responses import JSONResponse
 import sys
 import os
 from anp_open_sdk.anp_sdk_user_data import get_user_dir_did_doc_by_did, get_agent_cfg_by_user_dir
-from urllib3 import response
-
-from anp_open_sdk.anp_sdk_agent import LocalAgent
-from anp_open_sdk.config import path_resolver
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..","..")))
 import os
 import json
 import logging
-from typing import Dict, Optional
+from typing import Dict
 from pathlib import Path
 from fastapi import APIRouter, Request, Response, HTTPException
-from anp_open_sdk.config.dynamic_config import dynamic_config
+from anp_open_sdk.config.legacy.dynamic_config import dynamic_config
 from anp_open_sdk.config.path_resolver import path_resolver
 
 from loguru import logger
@@ -173,7 +169,6 @@ async def get_agent_description(resp_did: str, request: Request) -> Dict:
 @router.get("/wba/user/{resp_did}/{yaml_file_name}.yaml", summary="Get agent OpenAPI YAML")
 async def get_agent_openapi_yaml(resp_did: str, yaml_file_name, request: Request):
     import urllib.parse
-    import yaml
 
     if resp_did and resp_did.find("%3A") == -1:
         parts = resp_did.split(":", 4)  # 分割 4 份 把第三个冒号替换成%3A
@@ -208,7 +203,6 @@ async def get_agent_openapi_yaml(resp_did: str, yaml_file_name, request: Request
 @router.get("/wba/user/{resp_did}/{jsonrpc_file_name}.json", summary="Get agent JSON-RPC")
 async def get_agent_jsonrpc(resp_did: str, jsonrpc_file_name, request: Request):
     import urllib.parse
-    import json
 
     if resp_did and resp_did.find("%3A") == -1:
         parts = resp_did.split(":", 4)  # 分割 4 份 把第三个冒号替换成%3A

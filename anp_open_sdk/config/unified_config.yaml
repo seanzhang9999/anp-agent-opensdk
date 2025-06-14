@@ -1,0 +1,223 @@
+# ANP SDK 统一配置文件
+# 项目根目录自动检测，支持 {APP_ROOT} 占位符
+# 注释语法：# 表示注释，可以用于说明、TODO、DEPRECATED等
+
+# ==========================================
+# 应用核心配置
+# ==========================================
+anp_sdk:
+  debug_mode: true
+  host: localhost
+  port: 9527
+  
+  # 路径配置（支持 {APP_ROOT} 占位符自动替换）
+  user_did_path: "{APP_ROOT}/anp_open_sdk/anp_users"
+  user_hosted_path: "{APP_ROOT}/anp_open_sdk/anp_users_hosted"
+  group_msg_path: "{APP_ROOT}/anp_open_sdk"
+  
+  # 虚拟目录配置
+  auth_virtual_dir: "wba/auth"
+  msg_virtual_dir: "/agent/message"
+  
+  # 安全配置
+  token_expire_time: 3600          # Token过期时间（秒）
+  nonce_expire_minutes: 6          # Nonce过期时间（分钟）
+  jwt_algorithm: "RS256"           # JWT算法
+  user_did_key_id: "key-1"        # DID密钥ID
+  helper_lang: "zh"               # 帮助语言
+  
+  # 演示智能体配置
+  agent:
+    demo_agent1: "本田"
+    demo_agent2: "雅马哈"
+    demo_agent3: "铃木"
+    # did_hoster: "did:wba:localhost%3A7345:wba:user:1fac60af6e3c03bf"  # 暂时注释
+  
+  # 代理配置
+  proxy:
+    enabled: true
+    host: "127.0.0.1"
+    port: 1080
+
+# ==========================================
+# LLM 配置
+# ==========================================
+llm:
+  openrouter_api_url: "api.302ai.cn"
+  default_model: "deepseek/deepseek-chat-v3-0324:free"
+  max_tokens: 512
+  system_prompt: "你是一个智能助手，请根据用户的提问进行专业、简洁的回复。"
+  
+  # TODO: 添加更多LLM提供商支持
+  # openai_api_url: "https://api.openai.com/v1"
+  # anthropic_api_url: "https://api.anthropic.com"
+
+# ==========================================
+# 邮件配置
+# ==========================================
+mail:
+  use_local_backend: true
+  local_backend_path: "{APP_ROOT}/anp_open_sdk/simulate/mail_local_backend"
+  
+  # SMTP配置
+  smtp_server: "smtp.gmail.com"
+  smtp_port: 587
+  
+  # IMAP配置
+  imap_server: "imap.gmail.com"
+  imap_port: 993
+  
+  # 邮件用户配置（密码通过环境变量设置）
+  hoster_mail_user: "seanzhang9999@gmail.com"
+  sender_mail_user: "seanzhang9999@gmail.com"
+  register_mail_user: "seanzhang9999@gmail.com"
+
+# ==========================================
+# 聊天配置
+# ==========================================
+chat:
+  max_history_items: 50
+  max_process_count: 50
+
+# ==========================================
+# Web API 配置
+# ==========================================
+web_api:
+  server:
+    generate_new_did_each_time: true
+    webui_host: "localhost"
+    webui_port: 8080
+
+# ==========================================
+# 性能优化配置
+# ==========================================
+acceleration:
+  enable_local: false
+  performance_monitoring: true
+  cache_size: 1000
+
+# ==========================================
+# 环境变量映射定义
+# ==========================================
+env_mapping:
+  # 应用配置
+  debug_mode: ANP_DEBUG
+  host: ANP_HOST
+  port: ANP_PORT
+  
+  # 系统环境变量
+  system_path: PATH
+  home_dir: HOME
+  user_name: USER
+  shell: SHELL
+  temp_dir: TMPDIR
+  python_path: PYTHONPATH
+  python_home: PYTHONHOME
+  virtual_env: VIRTUAL_ENV
+  
+  # 开发工具环境变量
+  java_home: JAVA_HOME
+  node_path: NODE_PATH
+  go_path: GOPATH
+  
+  # API 密钥（敏感信息）
+  openai_api_key: OPENAI_API_KEY
+  anthropic_api_key: ANTHROPIC_API_KEY
+  
+  # 邮件密码（敏感信息）
+  mail_password: MAIL_PASSWORD
+  hoster_mail_password: HOSTER_MAIL_PASSWORD
+  sender_mail_password: SENDER_MAIL_PASSWORD
+  
+  # 数据库和服务
+  database_url: DATABASE_URL
+  redis_url: REDIS_URL
+  
+  # 其他配置
+  use_local_mail: USE_LOCAL_MAIL
+  enable_local_acceleration: ENABLE_LOCAL_ACCELERATION
+
+# ==========================================
+# 敏感信息列表（不缓存，每次从环境变量读取）
+# ==========================================
+secrets:
+  - openai_api_key
+  - anthropic_api_key
+  - mail_password
+  - hoster_mail_password
+  - sender_mail_password
+  - database_url
+  # - redis_url  # 如果Redis URL包含密码也应该加入
+
+# ==========================================
+# 环境变量类型转换
+# ==========================================
+env_types:
+  # 布尔类型
+  debug_mode: boolean
+  use_local_mail: boolean
+  enable_local_acceleration: boolean
+  
+  # 整数类型
+  port: integer
+  smtp_port: integer
+  imap_port: integer
+  webui_port: integer
+  token_expire_time: integer
+  nonce_expire_minutes: integer
+  max_history_items: integer
+  max_process_count: integer
+  cache_size: integer
+  
+  # 路径类型
+  home_dir: path
+  temp_dir: path
+  
+  # 路径列表类型（如 PATH、PYTHONPATH）
+  system_path: path_list
+  python_path: path_list
+
+# ==========================================
+# 路径处理配置
+# ==========================================
+path_config:
+  # 路径分隔符（跨平台自动检测）
+  path_separator: ":"  # Linux/macOS: ":", Windows: ";"
+  
+  # 是否解析为绝对路径
+  resolve_paths: true
+  
+  # 是否验证路径存在性
+  validate_existence: false
+
+# ==========================================
+# 迁移自原配置文件的其他配置
+# ==========================================
+
+# 用户服务配置（从 dynamic_config.yaml 迁移）
+anp_user_service:
+  user_did_path: "{APP_ROOT}/anp_user_service/anp_users"
+  model_name: "gpt-4.1-nano"
+  temperature: 0.3
+  api_base: "https://api.302ai.cn/v1"
+
+# 智能体配置（从 dynamic_config.yaml 迁移）
+agent:
+  bookmark_dir: "{APP_ROOT}/anp_core/anp_bookmark"
+  default_greeting: "ANPbot的问候，请二十字内回复我"
+
+# 演示自动运行配置（从 dynamic_config.yaml 迁移）
+demo_autorun:
+  user_did_path: "{APP_ROOT}/anp_core/anp_users"
+  user_did_key_id: "key-1"
+  auth_virtual_dir: "wba/test"
+  user_did_hostname: "localhost"
+  user_did_port_1: 9527
+  user_did_port_2: 9527
+
+# ==========================================
+# 发布者配置引用
+# ==========================================
+# 注意：publisher_config.yaml 作为独立文件保留
+# 这里只是记录路径引用
+publisher_config_path: "{APP_ROOT}/anp_open_sdk/config/publisher_config.yaml"

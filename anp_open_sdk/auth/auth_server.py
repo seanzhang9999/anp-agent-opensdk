@@ -18,9 +18,9 @@ Authentication middleware module.
 
 import logging
 import os
-from datetime import datetime, timezone
+from datetime import timezone
 from pathlib import Path
-from typing import Optional, Callable, Dict, Any
+from typing import Optional, Callable, Any
 import fnmatch
 import json
 
@@ -42,7 +42,7 @@ VALID_SERVER_NONCES: Dict[str, datetime] = {}
 # ... rest of code ...
 from ..agent_connect_hotpatch.authentication.did_wba_auth_header import DIDWbaAuthHeader
 from ..anp_sdk_agent import LocalAgent
-from ..config.dynamic_config import dynamic_config
+from anp_open_sdk.config.legacy.dynamic_config import dynamic_config
 
 EXEMPT_PATHS = [
     "/docs", "/anp-nlp/", "/ws/", "/publisher/agents", "/agent/group/*",
@@ -243,7 +243,7 @@ async def generate_auth_response(did, is_two_way_auth, resp_did):
     resp_did_agent = LocalAgent.from_did(resp_did)
 
     # 生成访问令牌
-    from anp_open_sdk.config.dynamic_config import dynamic_config
+    from anp_open_sdk.config.legacy.dynamic_config import dynamic_config
     from anp_open_sdk.auth.token_nonce_auth import create_access_token
     expiration_time = dynamic_config.get('anp_sdk.token_expire_time')
     access_token = create_access_token(
@@ -257,7 +257,7 @@ async def generate_auth_response(did, is_two_way_auth, resp_did):
     resp_did_auth_header = None
     if resp_did and resp_did != "没收到":
         try:
-            from anp_open_sdk.config.dynamic_config import dynamic_config
+            from anp_open_sdk.config.legacy.dynamic_config import dynamic_config
             # 获取resp_did用户目录
             key_id = "key-1"
 
@@ -317,7 +317,7 @@ def is_valid_server_nonce(nonce: str) -> bool:
     from datetime import datetime, timezone, timedelta
     import logging
     try:
-        from anp_open_sdk.config.dynamic_config import dynamic_config
+        from anp_open_sdk.config.legacy.dynamic_config import dynamic_config
         nonce_expire_minutes = dynamic_config.get('anp_sdk.nonce_expire_minutes', 5)
     except Exception:
         nonce_expire_minutes = 5

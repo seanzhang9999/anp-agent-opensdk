@@ -2,7 +2,7 @@ anp_open_sdk/anp_users/*
 anp_open_sdk/anp_users_hosted/*
 !anp_open_sdk/anp_users/user_hosted_agent-did.com*
 !anp_open_sdk/anp_users/user_hosted_agent-did.com*/*
-anp_open_sdk/testuse/*
+anp_open_sdk/simulate/*
 anp_chat_extension/node_modules/
 # Logs
 logs
@@ -189,7 +189,6 @@ anp_core/did_keys/
 
 
 chat_history.json
-anp_open_sdk/testuse/mail_local_backend/inbox/1748326599996_seanzhang9999_at_gmail.com.json
 web_agent_crawler_result.json
 anp_sdk_demo/demo_data/adapter_data_analysis_demo.json
 anp_sdk_demo/demo_data/adapter_decorator_demo.json

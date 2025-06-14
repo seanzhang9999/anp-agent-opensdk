@@ -5,7 +5,7 @@ import time  # 添加缺失的导入
 
 import aiohttp
 from typing import Dict, Any, Callable, List
-from anp_open_sdk.service.anp_sdk_group_runner import Message, MessageType
+from anp_open_sdk.service.interaction.anp_sdk_group_runner import Message, MessageType
 
 class GroupMemberSDK:
     """Agent 端的群组 SDK"""
@@ -31,7 +31,7 @@ class GroupMemberSDK:
             # 本地优化路径
             runner = self._local_sdk.get_group_runner(group_id)
             if runner:
-                from anp_open_sdk.service.anp_sdk_group_runner import Agent
+                from anp_open_sdk.service.interaction.anp_sdk_group_runner import Agent
                 agent = Agent(
                     id=self.agent_id,
                     name=name or self.agent_id,
