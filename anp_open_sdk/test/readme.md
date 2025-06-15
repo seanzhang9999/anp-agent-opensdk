@@ -2,6 +2,5 @@
 
 ## unified_config.py测试
 ```
-cd anp_open_sdk/test 
-python test_unified_config.py
+python anp_open_sdk/test/test_unified_config.py
 ```

@@ -31,6 +31,7 @@ from anp_open_sdk.service.router import router_did, router_publisher, router_aut
 
 # 导入ANP核心组件
 from anp_open_sdk.config.legacy.dynamic_config import dynamic_config
+from anp_open_sdk.config import config
 from fastapi import Request, WebSocket, WebSocketDisconnect, FastAPI
 from fastapi.responses import StreamingResponse
 
@@ -73,17 +74,17 @@ class ANPSDK:
         self.port = port
         if not hasattr(self, 'initialized'):
             self.server_running = False
-            self.port = port or dynamic_config.get('anp_sdk.user_did_port_1')
+            self.port = port or config.anp_sdk.user_did_port_1
             self.api_routes = {}
             self.api_registry = {}
             self.message_handlers = {}
             self.ws_connections = {}
             self.sse_clients = set()
             self.initialized = True
-        debugmode = dynamic_config.get("anp_sdk.debugmode")
-
+        debug_mode = config.anp_sdk.debug_mode
+        
         self.app = None
-        if debugmode:
+        if debug_mode:
             self.app = FastAPI(
                 title="ANP SDK Server in DebugMode",
                 description="ANP SDK Server in DebugMode",

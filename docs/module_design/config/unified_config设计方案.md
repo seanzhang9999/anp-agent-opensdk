@@ -405,7 +405,7 @@ port: 9527          # 行尾注释
 # DEPRECATED: 这个配置已废弃
 # old_config: "legacy_value"
 ```
-
+### 8.2 使用方法
 ```python
 from anp_open_sdk.config import config
 
@@ -424,3 +424,243 @@ secret_key = config.secrets.openai_api_key    # 不缓存，每次重新读取
 abs_path = config.resolve_path("{APP_ROOT}/logs/app.log")
 python_exe = config.find_in_path("python3")
 ```
+### 8.3 VS Code配置
+在你的项目根目录创建 .vscode/settings.json：
+
+```
+{
+    "python.analysis.typeCheckingMode": "basic",
+    "python.analysis.autoImportCompletions": true,
+    "python.analysis.completeFunctionParens": true,
+    "python.analysis.autoSearchPaths": true,
+    "python.analysis.extraPaths": ["./anp_open_sdk"],
+    "python.languageServer": "Pylance"
+}
+```
+
+### 8.4 添加新配置的方法
+
+#### 8.4.1 在默认配置中添加新的顶级配置项
+
+```
+def _get_default_config(self) -> dict:
+    """获取默认配置"""
+    return {
+        "# ANP SDK 统一配置文件": None,
+        "# 项目根目录自动检测，支持 {APP_ROOT} 占位符": None,
+
+        "anp_sdk": {
+            # ... 现有配置 ...
+        },
+
+        "llm": {
+            # ... 现有配置 ...
+        },
+
+        "mail": {
+            # ... 现有配置 ...
+        },
+
+        # 🔥 新增顶级配置项
+        "database": {
+            "host": "localhost",
+            "port": 5432,
+            "name": "anp_db",
+            "pool_size": 10,
+            "timeout": 30
+        },
+
+        "cache": {
+            "type": "redis",
+            "host": "localhost", 
+            "port": 6379,
+            "expire_time": 3600
+        },
+
+        # ... 其他现有配置 ...
+    }
+```
+#### 8.4.2 在 UnifiedConfig 的 __annotations__ 中声明
+
+```
+class UnifiedConfig:
+    def __init__(self, config_file: Optional[str] = None):
+        """初始化统一配置管理器"""
+        self.logger = logging.getLogger(__name__)
+        
+        # 🔥 在这里添加新的顶级配置项的类型提示
+        self.__annotations__ = {
+            'anp_sdk': 'ConfigNode',
+            'llm': 'ConfigNode', 
+            'mail': 'ConfigNode',
+            'database': 'ConfigNode',  # 🔥 新增
+            'cache': 'ConfigNode',     # 🔥 新增
+            'env': 'EnvConfig',
+            'secrets': 'SecretsConfig',
+        }
+        
+        # ... 其余初始化代码 ...
+```
+#### 8.4.3 在 __dir__ 方法中添加（可选，用于更好的IDE支持）
+
+```
+def __dir__(self) -> List[str]:
+    """支持 IDE 的自动完成"""
+    config_attrs = [
+        'anp_sdk', 'llm', 'mail', 
+        'database', 'cache',  # 🔥 新增
+        'env', 'secrets'
+    ]
+    method_attrs = [
+        'resolve_path', 'get_app_root', 'find_in_path', 'get_path_info', 'add_to_path',
+        'load', 'save', 'reload', 'to_dict'
+    ]
+    return config_attrs + method_attrs
+```
+#### 8.4.4. 如果需要环境变量映射，在相应配置中添加
+
+```
+def _get_default_config(self) -> dict:
+    return {
+        # ... 其他配置 ...
+        
+        "env_mapping": {
+            # ... 现有映射 ...
+            
+            # 🔥 如果新配置项需要环境变量支持
+            "database_host": "DATABASE_HOST",
+            "database_port": "DATABASE_PORT", 
+            "database_name": "DATABASE_NAME",
+            "cache_host": "CACHE_HOST",
+            "cache_port": "CACHE_PORT",
+        },
+
+        "env_types": {
+            # ... 现有类型 ...
+            
+            # 🔥 新增环境变量的类型
+            "database_port": "integer",
+            "cache_port": "integer",
+        },
+
+        # 🔥 如果有敏感信息，添加到 secrets 列表
+        "secrets": [
+            "openai_api_key",
+            "anthropic_api_key", 
+            "mail_password",
+            "hoster_mail_password",
+            "sender_mail_password",
+            "database_url",
+            "database_password",  # 🔥 新增
+            "cache_password",     # 🔥 新增
+        ],
+    }
+```
+#### 8.4.5. 完整示例：添加一个新的 monitoring 配置项
+
+```
+class UnifiedConfig:
+    def __init__(self, config_file: Optional[str] = None):
+        # 🔥 步骤1：添加类型提示
+        self.__annotations__ = {
+            'anp_sdk': 'ConfigNode',
+            'llm': 'ConfigNode', 
+            'mail': 'ConfigNode',
+            'monitoring': 'ConfigNode',  # 🔥 新增
+            'env': 'EnvConfig',
+            'secrets': 'SecretsConfig',
+        }
+        
+        # ... 其余代码 ...
+
+    def _get_default_config(self) -> dict:
+        return {
+            # ... 现有配置 ...
+            
+            # 🔥 步骤2：添加默认配置
+            "monitoring": {
+                "enabled": True,
+                "metrics_port": 8080,
+                "log_level": "INFO",
+                "export_interval": 60,
+                "endpoints": {
+                    "health": "/health",
+                    "metrics": "/metrics",
+                    "status": "/status"
+                }
+            },
+
+            "env_mapping": {
+                # ... 现有映射 ...
+                # 🔥 步骤3：添加环境变量映射（如果需要）
+                "monitoring_enabled": "MONITORING_ENABLED",
+                "monitoring_port": "MONITORING_PORT",
+                "monitoring_log_level": "MONITORING_LOG_LEVEL",
+            },
+
+            "env_types": {
+                # ... 现有类型 ...
+                # 🔥 步骤4：添加环境变量类型
+                "monitoring_enabled": "boolean",
+                "monitoring_port": "integer",
+            },
+
+            # ... 其他配置 ...
+        }
+
+    def __dir__(self) -> List[str]:
+        # 🔥 步骤5：添加到自动完成列表
+        config_attrs = [
+            'anp_sdk', 'llm', 'mail', 'monitoring',  # 🔥 新增
+            'env', 'secrets'
+        ]
+        # ... 其余代码 ...
+```
+#### 8.4.6. 使用新的配置项
+添加完成后，你就可以这样使用：
+
+
+```
+from anp_open_sdk.config import config
+
+# 🔥 新的顶级配置项现在可以使用了
+print(config.monitoring.enabled)           # True
+print(config.monitoring.metrics_port)      # 8080
+print(config.monitoring.log_level)         # "INFO"
+print(config.monitoring.endpoints.health)  # "/health"
+
+# 🔥 IDE 会提供完整的自动完成和类型提示
+config.monitoring.  # 自动完成：enabled, metrics_port, log_level, export_interval, endpoints
+```
+#### 8.4.7. 配置文件也会自动更新
+当你第一次运行时，新的配置会自动写入到 unified_config.yaml 文件中：
+
+```
+anp_sdk:
+  # ... 现有配置 ...
+
+llm:
+  # ... 现有配置 ...
+
+mail:
+  # ... 现有配置 ...
+
+# 🔥 新增的配置项会自动出现
+monitoring:
+  enabled: true
+  metrics_port: 8080
+  log_level: INFO
+  export_interval: 60
+  endpoints:
+    health: /health
+    metrics: /metrics
+    status: /status
+```
+#### 8.4.8 总结
+要添加新的顶级配置项，你需要：
+
+ - ✅_get_default_config() - 添加默认配置数据
+ - ✅ __annotations__ - 添加类型提示（必需，用于IDE支持）
+ - ✅ __dir__() - 添加到自动完成列表（可选，但推荐）
+ - ✅ 环境变量映射 - 如果需要环境变量支持
+ - ✅ 敏感信息列表 - 如果包含敏感信息

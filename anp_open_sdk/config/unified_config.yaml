@@ -5,10 +5,25 @@
 # ==========================================
 # 应用核心配置
 # ==========================================
+
+
+
+
+
+
+
+
 anp_sdk:
   debug_mode: true
   host: localhost
   port: 9527
+  sdk_host: localhost
+  publisher_config_path: /anp_open_sdk/config/publisher_config.yaml
+  sdk_port: 9527
+
+
+  user_did_port_1: 9527
+  user_did_port_2: 9528
   
   # 路径配置（支持 {APP_ROOT} 占位符自动替换）
   user_did_path: "{APP_ROOT}/anp_open_sdk/anp_users"
@@ -31,7 +46,7 @@ anp_sdk:
     demo_agent1: "本田"
     demo_agent2: "雅马哈"
     demo_agent3: "铃木"
-    # did_hoster: "did:wba:localhost%3A7345:wba:user:1fac60af6e3c03bf"  # 暂时注释
+    did_hoster: "did:wba:localhost%3A7345:wba:user:1fac60af6e3c03bf"  # 暂时注释
   
   # 代理配置
   proxy:
@@ -47,7 +62,7 @@ llm:
   default_model: "deepseek/deepseek-chat-v3-0324:free"
   max_tokens: 512
   system_prompt: "你是一个智能助手，请根据用户的提问进行专业、简洁的回复。"
-  
+
   # TODO: 添加更多LLM提供商支持
   # openai_api_url: "https://api.openai.com/v1"
   # anthropic_api_url: "https://api.anthropic.com"
@@ -72,6 +87,7 @@ mail:
   sender_mail_user: "seanzhang9999@gmail.com"
   register_mail_user: "seanzhang9999@gmail.com"
 
+
 # ==========================================
 # 聊天配置
 # ==========================================
@@ -95,6 +111,7 @@ acceleration:
   enable_local: false
   performance_monitoring: true
   cache_size: 1000
+
 
 # ==========================================
 # 环境变量映射定义
@@ -201,6 +218,7 @@ anp_user_service:
   temperature: 0.3
   api_base: "https://api.302ai.cn/v1"
 
+
 # 智能体配置（从 dynamic_config.yaml 迁移）
 agent:
   bookmark_dir: "{APP_ROOT}/anp_core/anp_bookmark"
@@ -215,9 +233,3 @@ demo_autorun:
   user_did_port_1: 9527
   user_did_port_2: 9527
 
-# ==========================================
-# 发布者配置引用
-# ==========================================
-# 注意：publisher_config.yaml 作为独立文件保留
-# 这里只是记录路径引用
-publisher_config_path: "{APP_ROOT}/anp_open_sdk/config/publisher_config.yaml"

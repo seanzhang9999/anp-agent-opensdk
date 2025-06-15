@@ -1,0 +1,8 @@
+{
+    "python.analysis.typeCheckingMode": "basic",
+    "python.analysis.autoImportCompletions": true,
+    "python.analysis.completeFunctionParens": true,
+    "python.analysis.autoSearchPaths": true,
+    "python.analysis.extraPaths": ["./anp_open_sdk"],
+    "python.languageServer": "Pylance"
+}

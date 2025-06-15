@@ -22,7 +22,17 @@
 """
 
 # 导入新的统一配置
-from .unified_config import config, UnifiedConfig, get_config_value
+from .unified_config import config as _config, UnifiedConfig, get_config_value
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .config_types import UnifiedConfigProtocol
+    config: UnifiedConfigProtocol = _config  # 明确类型
+else:
+    config = _config
+
+
+
 
 # 向后兼容：保持原有接口可用
 from anp_open_sdk.config.legacy.dynamic_config import dynamic_config, get_config_value as legacy_get_config_value

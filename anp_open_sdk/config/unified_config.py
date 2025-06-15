@@ -27,10 +27,16 @@ import sys
 import threading
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union,TYPE_CHECKING
 import yaml
 import logging
 from types import SimpleNamespace
+
+
+# 类型检查时的导入
+if TYPE_CHECKING:
+    from typing_extensions import Self
+
 
 
 class ConfigNode:
@@ -39,82 +45,178 @@ class ConfigNode:
     def __init__(self, data: dict, parent_path: str = ""):
         self._data = data
         self._parent_path = parent_path
+
+        # 为 PyCharm 和 Pylance 提供类型提示
+        self.__annotations__ = {}
         
         # 动态创建属性，支持代码提示
         for key, value in data.items():
             if isinstance(value, dict):
-                setattr(self, key, ConfigNode(value, f"{parent_path}.{key}" if parent_path else key))
+                child_node = ConfigNode(value, f"{parent_path}.{key}" if parent_path else key)
+                setattr(self, key, child_node)
+                # 使用字符串避免循环引用，PyCharm 和 Pylance 都能识别
+                self.__annotations__[key] = 'ConfigNode'
             else:
                 setattr(self, key, value)
-    
+                # 智能类型推断
+                self.__annotations__[key] = self._infer_type_annotation(key, value)
+
+
+    def _infer_type_annotation(self, key: str, value: Any) -> str:
+        """为 IDE 推断类型注解字符串"""
+        # 基于键名的智能推断
+        key_lower = key.lower()
+
+        if 'port' in key_lower and isinstance(value, (int, str)):
+            return 'int'
+        elif 'path' in key_lower:
+            return 'Path'
+        elif key_lower in ['debug', 'debug_mode', 'enable', 'enabled'] or key_lower.startswith('use_'):
+            return 'bool'
+        elif key_lower in ['host', 'server', 'url', 'algorithm', 'lang', 'language']:
+            return 'str'
+        elif 'timeout' in key_lower or 'expire' in key_lower or key_lower.startswith('max_'):
+            return 'int'
+
+        # 基于值类型的推断
+        if isinstance(value, bool):
+            return 'bool'
+        elif isinstance(value, int):
+            return 'int'
+        elif isinstance(value, float):
+            return 'float'
+        elif isinstance(value, str):
+            # 判断字符串是否可能是路径
+            if ('/' in value or '\\' in value or '{APP_ROOT}' in value or
+                    key_lower.endswith('_path') or key_lower.endswith('_dir')):
+                return 'Path'
+            return 'str'
+        elif isinstance(value, Path):
+            return 'Path'
+        elif isinstance(value, list):
+            return 'List[Any]'
+        elif isinstance(value, dict):
+            return 'Dict[str, Any]'
+        else:
+            return 'Any'
+
+
     def __getattr__(self, name: str) -> Any:
         if name in self._data:
             return self._data[name]
         raise AttributeError(f"配置项 '{self._parent_path}.{name}' 不存在")
-    
+
+
     def __setattr__(self, name: str, value: Any) -> None:
         if name.startswith('_'):
             super().__setattr__(name, value)
         else:
-            self._data[name] = value
+            if hasattr(self, '_data'):
+                self._data[name] = value
+                # 更新类型注解
+                if hasattr(self, '__annotations__'):
+                    self.__annotations__[name] = self._infer_type_annotation(name, value)
             super().__setattr__(name, value)
-    
+
+
+    def __dir__(self) -> List[str]:
+        """支持 IDE 的自动完成"""
+        return list(self._data.keys()) + ['_data', '_parent_path']
+
+
     def __repr__(self) -> str:
         return f"ConfigNode({self._parent_path})"
 
 
 class EnvConfig:
+    
     """环境变量配置节点，支持属性访问"""
+    
     
     def __init__(self, env_mapping: dict, env_types: dict, config_instance):
         self._env_mapping = env_mapping
         self._env_types = env_types
         self._config_instance = config_instance
         self._cache = {}
-        
+
+        # 为 IDE 提供类型提示
+        self.__annotations__ = {}
+        for attr_name, env_key in env_mapping.items():
+            type_name = env_types.get(attr_name, 'string')
+            self.__annotations__[attr_name] = self._type_name_to_annotation(type_name)
+
         # 预加载映射的环境变量
         self._load_mapped_env()
+
+    def _type_name_to_annotation(self, type_name: str) -> str:
+        """将类型名称转换为类型注解字符串"""
+        type_mapping = {
+            'boolean': 'Optional[bool]',
+            'integer': 'Optional[int]',
+            'float': 'Optional[float]',
+            'string': 'Optional[str]',
+            'path': 'Optional[Path]',
+            'path_list': 'Optional[List[Path]]',
+            'list': 'Optional[List[str]]',
+        }
+        return type_mapping.get(type_name, 'Optional[Any]')
     
     def _load_mapped_env(self):
         """加载映射的环境变量"""
         for attr_name, env_key in self._env_mapping.items():
             raw_value = os.environ.get(env_key)
             if raw_value is not None:
+                # 对于 system_path，直接使用原始值，不进行类型转换
                 if attr_name == 'system_path':
                     self._cache[attr_name] = raw_value
                     setattr(self, attr_name, raw_value)
                 else:
-                    converted_value = self._config_instance._convert_env_type(raw_value, self._env_types.get(attr_name, 'string'))
+                    converted_value = self._config_instance._convert_env_type(
+                        raw_value, self._env_types.get(attr_name, 'string')
+                    )
                     self._cache[attr_name] = converted_value
                     setattr(self, attr_name, converted_value)
             else:
                 self._cache[attr_name] = None
                 setattr(self, attr_name, None)
-    
+
     def __getattr__(self, name: str) -> Any:
         # 先检查缓存
         if name in self._cache:
             return self._cache[name]
-        
+
         # 检查预定义映射
         if name in self._env_mapping:
             env_key = self._env_mapping[name]
             raw_value = os.environ.get(env_key)
             if raw_value is not None:
-                converted_value = self._config_instance._convert_env_type(raw_value, self._env_types.get(name, 'string'))
-                self._cache[name] = converted_value
-                return converted_value
-        
+                # 对于 system_path，直接返回原始值
+                if name == 'system_path':
+                    self._cache[name] = raw_value
+                    return raw_value
+                else:
+                    converted_value = self._config_instance._convert_env_type(
+                        raw_value, self._env_types.get(name, 'string')
+                    )
+                    self._cache[name] = converted_value
+                    return converted_value
+
         # 动态查找环境变量
         env_key = name.upper().replace('.', '_')
         raw_value = os.environ.get(env_key)
         if raw_value is not None:
-            converted_value = self._config_instance._convert_env_type(raw_value, self._env_types.get(name, 'string'))
+            converted_value = self._config_instance._convert_env_type(
+                raw_value, self._env_types.get(name, 'string')
+            )
             self._cache[name] = converted_value
             return converted_value
-        
+
         return None
-    
+
+    def __dir__(self) -> List[str]:
+        """支持 IDE 的自动完成"""
+        return list(self._env_mapping.keys()) + ['reload', 'to_dict']
+
     def __setattr__(self, name: str, value: Any) -> None:
         if name.startswith('_'):
             super().__setattr__(name, value)
@@ -152,13 +254,21 @@ class SecretsConfig:
     def __init__(self, secrets_list: list, env_mapping: dict):
         self._secrets_list = secrets_list
         self._env_mapping = env_mapping
-    
+        # 为 IDE 提供类型提示
+        self.__annotations__ = {}
+        for secret_name in secrets_list:
+            self.__annotations__[secret_name] = 'Optional[str]'
+
     def __getattr__(self, name: str) -> Any:
         if name in self._secrets_list and name in self._env_mapping:
             # 每次都从环境变量重新读取，不缓存
             return os.environ.get(self._env_mapping[name])
         raise AttributeError(f"敏感配置项 '{name}' 未定义")
-    
+
+    def __dir__(self) -> List[str]:
+        """支持 IDE 的自动完成"""
+        return self._secrets_list + ['to_dict']
+
     def __iter__(self):
         return iter(self._secrets_list)
     
@@ -168,6 +278,7 @@ class SecretsConfig:
 
 
 class UnifiedConfig:
+
     """统一配置管理器"""
     
     def __init__(self, config_file: Optional[str] = None):
@@ -177,7 +288,18 @@ class UnifiedConfig:
             config_file: 配置文件路径，如果为None则使用默认路径
         """
         self.logger = logging.getLogger(__name__)
-        
+
+
+        # 为 IDE 提供顶级类型提示
+        self.__annotations__ = {
+            'anp_sdk': 'ConfigNode',
+            'llm': 'ConfigNode',
+            'mail': 'ConfigNode',
+            'env': 'EnvConfig',
+            'secrets': 'SecretsConfig',
+        }
+
+
         # 配置文件路径
         self._config_file = self._resolve_config_file(config_file)
         
@@ -198,7 +320,18 @@ class UnifiedConfig:
         
         # 创建环境变量和敏感信息访问
         self._create_env_configs()
-    
+        
+
+
+    def __dir__(self) -> List[str]:
+        """支持 IDE 的自动完成"""
+        config_attrs = ['anp_sdk', 'llm', 'mail', 'env', 'secrets']
+        method_attrs = [
+            'resolve_path', 'get_app_root', 'find_in_path', 'get_path_info', 'add_to_path',
+            'load', 'save', 'reload', 'to_dict'
+        ]
+        return config_attrs + method_attrs
+
     def _resolve_config_file(self, config_file: Optional[str]) -> Path:
         """解析配置文件路径"""
         if config_file:
@@ -503,6 +636,8 @@ class UnifiedConfig:
                 "debug_mode": True,
                 "host": "localhost",
                 "port": 9527,
+                "user_did_port_1": 9527,  # 添加这个配置项
+                "user_did_port_2": 9528,
                 "user_did_path": "{APP_ROOT}/anp_open_sdk/anp_users",
                 "user_hosted_path": "{APP_ROOT}/anp_open_sdk/anp_users_hosted",
                 "auth_virtual_dir": "wba/auth",
