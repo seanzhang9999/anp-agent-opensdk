@@ -28,12 +28,19 @@ async def chat_with_personal_agent(request: ChatAgentRequest):
     # Get API key from environment variables via settings
 
     api_key = config.secrets.openai_api_key
-
+    
+    if not api_key:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="OpenAI API key is not configured on the server."
+        )
+    
+    from pydantic import HttpUrl
 
     llm_config = LLMConfig(
-        apiBase=config.anp_user_service.api_base,  # 必须是 http(s):// 开头的有效URL
-        apiKey= api_key,
-        model= config.anp_user_service.model_name
+        apiBase=HttpUrl(f"http://{config.anp_user_service.api_base}"),  # 必须是 http(s):// 开头的有效URL
+        apiKey=api_key,
+        model=config.anp_user_service.model_name
     )
 
 
