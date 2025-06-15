@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-
+from anp_open_sdk.config import config
 # Base directory of the backend_py package
 BACKEND_BASE_DIR = Path(__file__).resolve().parent.parent.parent
 USERS_CREDENTIALS_FILE = BACKEND_BASE_DIR / "users_credentials.json"

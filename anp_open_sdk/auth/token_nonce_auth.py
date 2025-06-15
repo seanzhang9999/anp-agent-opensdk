@@ -22,8 +22,10 @@ import jwt
 from fastapi import HTTPException
 
 from datetime import datetime, timezone, timedelta
-from anp_open_sdk.config.legacy.dynamic_config import dynamic_config
 
+from anp_open_sdk.auth.auth_server import VALID_SERVER_NONCES
+from anp_open_sdk.config.legacy.dynamic_config import dynamic_config
+from anp_open_sdk.config import config
 
 def create_access_token(private_key_path, data: Dict, expires_delta: int = None) -> str:
     """
@@ -38,8 +40,8 @@ def create_access_token(private_key_path, data: Dict, expires_delta: int = None)
         str: Encoded JWT token
     """
 
-    token_expire_time = dynamic_config.get("anp_sdk.token_expire_time")
-    
+    token_expire_time = config.anp_sdk.token_expire_time
+
     to_encode = data.copy()
     expires = datetime.now(timezone.utc) + (timedelta(minutes=expires_delta) if expires_delta else timedelta(seconds=token_expire_time))
     to_encode.update({"exp": expires})
@@ -50,8 +52,7 @@ def create_access_token(private_key_path, data: Dict, expires_delta: int = None)
         logging.error("Failed to load JWT private key")
         raise HTTPException(status_code=500, detail="Internal server error during token generation")
     
-    jwt_algorithm = dynamic_config.get("anp_sdk.jwt_algorithm")
-
+    jwt_algorithm = config.anp_sdk.jwt_algorithm
     # Create the JWT token using RS256 algorithm with private key
     encoded_jwt = jwt.encode(
         to_encode, 
@@ -81,8 +82,7 @@ def verify_timestamp(timestamp_str: str) -> bool:
         # Calculate time difference
         time_diff = abs((current_time - request_time).total_seconds() / 60)
 
-        nonce_expire_minutes = dynamic_config.get('anp_sdk.nonce_expire_minutes')
-
+        nonce_expire_minutes = config.anp_sdk.nonce_expire_minutes
         # Verify timestamp is within valid period
         if time_diff > nonce_expire_minutes:
             logging.error(f"Timestamp expired. Current time: {current_time}, Request time: {request_time}, Difference: {time_diff} minutes")

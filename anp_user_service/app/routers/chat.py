@@ -1,8 +1,10 @@
+import logging
+
 from fastapi import APIRouter, HTTPException, status
 from anp_user_service.app.models.schemas import ChatAgentRequest, ChatResponse, LLMConfig
 from anp_user_service.app.services.user_service import get_user_personal_data_path
 from anp_user_service.app.services.llm_service import get_llm_response_with_rag
-
+from anp_open_sdk.config import config
 router = APIRouter()
 
 @router.post("/chat/agent", response_model=ChatResponse)
@@ -21,19 +23,20 @@ async def chat_with_personal_agent(request: ChatAgentRequest):
 
     from anp_open_sdk.config.legacy.dynamic_config import dynamic_config
 
-    from dotenv import load_dotenv
-    import os
-    load_dotenv()
 
 
     # Get API key from environment variables via settings
-    api_key = os.environ.get("OPENAI_API_KEY")
-    
+
+    api_key = config.secrets.openai_api_key
+
+
     llm_config = LLMConfig(
-        apiBase=dynamic_config.get("anp_user_service.api_base"),  # 必须是 http(s):// 开头的有效URL
+        apiBase=config.anp_user_service.api_base,  # 必须是 http(s):// 开头的有效URL
         apiKey= api_key,
-        model= dynamic_config.get("anp_user_service.model_name")
+        model= config.anp_user_service.model_name
     )
+
+
 
     reply, error = await get_llm_response_with_rag(
         user_message=request.message,

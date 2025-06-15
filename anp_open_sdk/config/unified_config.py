@@ -36,7 +36,10 @@ from types import SimpleNamespace
 # 类型检查时的导入
 if TYPE_CHECKING:
     from typing_extensions import Self
-
+    from .config_types import (
+        AnpSdkConfig, LlmConfig, MailConfig, AnpUserServiceConfig,
+        EnvConfig, SecretsConfig
+    )
 
 
 class ConfigNode:
@@ -279,6 +282,16 @@ class SecretsConfig:
 
 class UnifiedConfig:
 
+    # 添加类型注解
+    anp_sdk: 'AnpSdkConfig'
+    llm: 'LlmConfig'
+    mail: 'MailConfig'
+    anp_user_service: 'AnpUserServiceConfig'
+    env: 'EnvConfig'
+    secrets: 'SecretsConfig'
+
+
+
     """统一配置管理器"""
     
     def __init__(self, config_file: Optional[str] = None):
@@ -289,6 +302,8 @@ class UnifiedConfig:
         """
         self.logger = logging.getLogger(__name__)
 
+        # 自动加载项目根目录的 .env 文件
+        self._load_project_env()
 
         # 为 IDE 提供顶级类型提示
         self.__annotations__ = {
@@ -297,6 +312,8 @@ class UnifiedConfig:
             'mail': 'ConfigNode',
             'env': 'EnvConfig',
             'secrets': 'SecretsConfig',
+            'anp_user_service': 'ConfigNode',
+
         }
 
 
@@ -320,12 +337,49 @@ class UnifiedConfig:
         
         # 创建环境变量和敏感信息访问
         self._create_env_configs()
-        
 
+    def _load_project_env(self):
+        """自动加载项目根目录的 .env 文件"""
+        try:
+            from dotenv import load_dotenv
+            from .path_resolver import path_resolver
+
+            # 优先使用 path_resolver 定位 .env 文件
+            env_paths = []
+
+            # 1. 项目根目录
+            try:
+                app_root = Path(path_resolver.get_app_root())
+                env_paths.append(app_root / '.env')
+            except RuntimeError:
+                pass
+
+            # 2. 当前工作目录
+            env_paths.append(Path.cwd() / '.env')
+
+            # 3. 从当前文件向上查找
+            current = Path(__file__).parent
+            while current != current.parent:
+                env_paths.append(current / '.env')
+                current = current.parent
+
+            # 尝试加载第一个存在的 .env 文件
+            for env_file in env_paths:
+                if env_file.exists():
+                    load_dotenv(env_file)
+                    self.logger.info(f"已加载 .env 文件: {env_file}")
+                    return
+
+            self.logger.warning("未找到 .env 文件")
+
+        except ImportError:
+            self.logger.warning("python-dotenv 未安装，跳过 .env 文件加载")
+        except Exception as e:
+            self.logger.error(f"加载 .env 文件时出错: {e}")
 
     def __dir__(self) -> List[str]:
         """支持 IDE 的自动完成"""
-        config_attrs = ['anp_sdk', 'llm', 'mail', 'env', 'secrets']
+        config_attrs = ['anp_sdk', 'llm', 'mail', 'env', 'secrets','anp_user_service']
         method_attrs = [
             'resolve_path', 'get_app_root', 'find_in_path', 'get_path_info', 'add_to_path',
             'load', 'save', 'reload', 'to_dict'
@@ -671,6 +725,12 @@ class UnifiedConfig:
                 "imap_port": 993
             },
 
+            "anp_user_service": {
+                "user_did_path": "{APP_ROOT}/anp_user_service/anp_users",
+                "model_name": "gpt-4.1-nano",
+                "temperature": 0.3,
+                "api_base": "https://api.302ai.cn/v1"
+            },
             "env_mapping": {
                 "# 应用配置": None,
                 "debug_mode": "ANP_DEBUG",

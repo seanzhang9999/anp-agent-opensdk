@@ -7,6 +7,15 @@ from typing import Protocol, List, Dict, Any, Optional
 from pathlib import Path
 
 
+
+class AnpUserServiceConfig(Protocol):
+    """ANP User Service 配置协议"""
+    user_did_path: str
+    model_name: str
+    temperature: float
+    api_base: str
+
+
 class AnpSdkConfig(Protocol):
     """ANP SDK 配置协议"""
     debug_mode: bool
@@ -142,6 +151,7 @@ class UnifiedConfigProtocol(Protocol):
     chat: ChatConfig
     web_api: WebApiConfig
     acceleration: AccelerationConfig
+    anp_user_service: AnpUserServiceConfig
     
     # 环境变量和敏感信息
     env: EnvConfig
