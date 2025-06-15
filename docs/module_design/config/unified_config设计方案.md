@@ -511,3 +511,22 @@ print(config.get_path_info())
 # 导出全部配置
 print(config.to_dict())
 ```
+
+1. 想要配置一个不是默认值的配置项，应该怎么做？
+方法一：手动在 unified_config.yaml 中增加或修改该项的值
+这样下次加载时会覆盖 meta_config.yaml 的默认值。
+
+方法二：如果该项设置了 saveable: true，你可以在运行时用代码修改它，然后调用 config.save()，它才会被写入 unified_config.yaml。
+
+2. saveable:true 的配置项，只有在运行时被修改并调用 save，才会写入 unified_config.yaml
+仅仅访问（读取）不会写入配置文件。
+只有你在代码里赋值（如 config.anp_sdk.debug_mode = False），然后调用 config.save()，才会写入 unified_config.yaml。
+3. 不是 saveable:true 的配置项
+无论你怎么修改、调用 save，都不会写入 unified_config.yaml。
+只能通过手动编辑 unified_config.yaml 或 meta_config.yaml（默认值）来配置。
+4. 总结
+手动写 unified_config.yaml：任何配置项都可以这样做，适合初始化或批量配置。
+自动写 unified_config.yaml：仅限 
+saveable: true
+ 且运行时被修改并调用 save 的配置项。
+仅访问不会写入：只有赋值+save才会写入。
