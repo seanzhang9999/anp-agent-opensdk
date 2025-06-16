@@ -2,40 +2,62 @@
 
 from agent_connect.authentication import resolve_did_wba_document
 
-
-from .did_auth_base import BaseDIDResolver, BaseDIDSigner, BaseAuthHeaderBuilder, BaseDIDAuthenticator, BaseAuth
+from .did_auth_base import (
+    BaseDIDResolver,
+    BaseDIDSigner,
+    BaseAuthHeaderBuilder,
+    BaseDIDAuthenticator,
+    BaseAuth,
+    BaseDIDUserManager,
+)
 from .did_auth_wba_custom_did_resolver import resolve_local_did_document
 from .token_nonce_auth import verify_timestamp
-from .schemas import DIDDocument, DIDKeyPair, DIDCredentials, AuthenticationContext
+from .schemas import (
+    DIDDocument,
+    DIDKeyPair,
+    DIDCredentials,
+    AuthenticationContext,
+    DIDUser,
+)
 import json
 import base64
-from typing import Optional, Dict, Any, Tuple
+from typing import Optional, Dict, Any, Tuple, List
 import re
 from loguru import logger
+                    from agent_connect.authentication.did_wba import extract_auth_header_parts
 
-from agent_connect.authentication.did_wba import extract_auth_header_parts
-
-from ..agent_connect_hotpatch.authentication.did_wba import extract_auth_header_parts_two_way, \
-    verify_auth_header_signature_two_way
+from ..agent_connect_hotpatch.authentication.did_wba import (
+    extract_auth_header_parts_two_way,
+    verify_auth_header_signature_two_way,
+                    )
 from ..anp_sdk_user_data import LocalUserDataManager
 
+from anp_open_sdk.anp_sdk_user_data import (
+    save_user_to_file,
+    load_user_from_file,
+    list_all_users_from_file,
+                    )
 
+import secrets
+import os
+import yaml
+from datetime import datetime
+
+from Crypto.PublicKey import RSA
 
 class WBADIDResolver(BaseDIDResolver):
     """WBA DID解析器实现"""
-    
+
     async def resolve_did_document(self, did: str) -> Optional[DIDDocument]:
         """解析WBA DID文档"""
         try:
-            # 先尝试本地解析
             from anp_open_sdk.auth.did_auth_wba_custom_did_resolver import resolve_local_did_document
             did_doc_dict = await resolve_local_did_document(did)
-            
+
             if not did_doc_dict:
-                # 回退到标准解析器
                 from agent_connect.authentication.did_wba import resolve_did_wba_document
                 did_doc_dict = await resolve_did_wba_document(did)
-            
+
             if did_doc_dict:
                 return DIDDocument(
                     did=did_doc_dict.get('id', did),
@@ -44,32 +66,31 @@ class WBADIDResolver(BaseDIDResolver):
                     service_endpoints=did_doc_dict.get('service', []),
                     raw_document=did_doc_dict
                 )
-            
         except Exception as e:
             logger.error(f"DID解析失败: {e}")
-        
+
         return None
-    
+
     def supports_did_method(self, did: str) -> bool:
         """检查是否支持WBA DID方法"""
         return did.startswith("did:wba:") or did.startswith("did:key:")
 
 class WBADIDSigner(BaseDIDSigner):
     """WBA DID签名器实现"""
-    
+
     def sign_payload(self, payload: str, key_pair: DIDKeyPair) -> str:
         """使用Ed25519签名"""
         from cryptography.hazmat.primitives.asymmetric import ed25519
-        
+
         private_key_obj = ed25519.Ed25519PrivateKey.from_private_bytes(key_pair.private_key)
         signature_bytes = private_key_obj.sign(payload.encode('utf-8'))
         return base64.b64encode(signature_bytes).decode('utf-8')
-    
+
     def verify_signature(self, payload: str, signature: str, public_key: bytes) -> bool:
         """验证Ed25519签名"""
         try:
             from cryptography.hazmat.primitives.asymmetric import ed25519
-            
+
             public_key_obj = ed25519.Ed25519PublicKey.from_public_bytes(public_key)
             signature_bytes = base64.b64decode(signature)
             public_key_obj.verify(signature_bytes, payload.encode('utf-8'))
@@ -84,68 +105,59 @@ class WBAAuthHeaderBuilder(BaseAuthHeaderBuilder):
         user_data = user_data_manager.get_user_data(context.caller_did)
 
         did_document_path = user_data.did_doc_path
-        private_key_path =user_data.did_private_key_file_path
+        private_key_path = user_data.did_private_key_file_path
 
         if context.use_two_way_auth:
-            # 优先用 hotpatch 的 DIDWbaAuthHeader
             from anp_open_sdk.agent_connect_hotpatch.authentication.did_wba_auth_header import DIDWbaAuthHeader as TwoWayDIDWbaAuthHeader
             auth_client = TwoWayDIDWbaAuthHeader(
                 did_document_path=did_document_path,
                 private_key_path=private_key_path
-            )
+        )
         else:
-            # 用 agent_connect 的 DIDWbaAuthHeader
             from agent_connect.authentication.did_wba_auth_header import DIDWbaAuthHeader as OneWayDIDWbaAuthHeader
             auth_client = OneWayDIDWbaAuthHeader(
                 did_document_path=did_document_path,
                 private_key_path=private_key_path
             )
 
-        # 判断是否有 get_auth_header_two_way 方法
         if hasattr(auth_client, 'get_auth_header_two_way'):
-            # 双向认证
             auth_headers = auth_client.get_auth_header_two_way(
                 context.request_url, context.target_did
             )
         else:
-            # 单向/降级认证
             auth_headers = auth_client.get_auth_header(
                 context.request_url
             )
         return auth_headers
 
     def parse_auth_header(self, auth_header: str) -> Dict[str, Any]:
-            from anp_open_sdk.agent_connect_hotpatch.authentication.did_wba import extract_auth_header_parts_two_way
-            try:
-                header_parts = extract_auth_header_parts_two_way(auth_header)
-                if header_parts:
-                    did, nonce, timestamp, resp_did, keyid, signature = header_parts
-                    return {
-                        'did': did,
-                        'nonce': nonce,
-                        'timestamp': timestamp,
-                        'resp_did': resp_did,
-                        'key_id': keyid,
-                        'signature': signature
-                    }
-            except Exception as e:
-                logger.error(f"解析认证头失败: {e}")
-            return {}
+        from anp_open_sdk.agent_connect_hotpatch.authentication.did_wba import extract_auth_header_parts_two_way
+        try:
+            header_parts = extract_auth_header_parts_two_way(auth_header)
+            if header_parts:
+                did, nonce, timestamp, resp_did, keyid, signature = header_parts
+                return {
+                    'did': did,
+                    'nonce': nonce,
+                    'timestamp': timestamp,
+                    'resp_did': resp_did,
+                    'key_id': keyid,
+                    'signature': signature
+                }
+    except Exception as e:
+            logger.error(f"解析认证头失败: {e}")
+        return {}
 
 class WBADIDAuthenticator(BaseDIDAuthenticator):
     """WBA DID认证器实现"""
 
     def __init__(self, resolver, signer, header_builder, base_auth):
         super().__init__(resolver, signer, header_builder, base_auth)
-        # 其他初始化（如有）
 
     async def authenticate_request(self, context: AuthenticationContext, credentials: DIDCredentials) -> Tuple[bool, str, Dict[str, Any]]:
-        """执行WBA认证请求"""
         import aiohttp
         import logging
-        """执行WBA认证请求"""
         try:
-            # 构建认证头
             auth_headers = self.header_builder.build_auth_header(context, credentials)
             request_url = context.request_url
             method = getattr(context, 'method', 'GET')
@@ -153,11 +165,9 @@ class WBADIDAuthenticator(BaseDIDAuthenticator):
             custom_headers = getattr(context, 'custom_headers', None)
             resp_did = getattr(context, 'target_did', None)
             if custom_headers:
-                # 合并认证头和自定义头，auth_headers 优先覆盖
-                merged_headers = {**custom_headers ,**auth_headers}
+                merged_headers = {**custom_headers, **auth_headers}
             else:
                 merged_headers = auth_headers
-            # 发送带认证头的请求
             async with aiohttp.ClientSession() as session:
                 if method.upper() == "GET":
                     async with session.get(request_url, headers=merged_headers) as response:
@@ -170,7 +180,6 @@ class WBADIDAuthenticator(BaseDIDAuthenticator):
                                 response_data = json.loads(response_text)
                             except Exception:
                                 response_data = {"text": response_text}
-                                # 检查 Authorization header
                         return status, response.headers, response_data
                 elif method.upper() == "POST":
                     async with session.post(request_url, headers=merged_headers, json=json_data) as response:
@@ -186,14 +195,12 @@ class WBADIDAuthenticator(BaseDIDAuthenticator):
                         return status, response.headers, response_data
                 else:
                     logging.error(f"Unsupported HTTP method: {method}")
-                    return False, "",{"error": "Unsupported HTTP method"}
+                    return False, "", {"error": "Unsupported HTTP method"}
         except Exception as e:
             logging.error(f"Error in authenticate_request: {e}", exc_info=True)
             return False, "", {"error": str(e)}
 
-
-    async def verify_response(self, auth_header: str  ,context: AuthenticationContext) -> Tuple[bool, str]:
-        """验证WBA响应（借鉴 handle_did_auth 主要认证逻辑）"""
+    async def verify_response(self, auth_header: str, context: AuthenticationContext) -> Tuple[bool, str]:
         try:
             from anp_open_sdk.agent_connect_hotpatch.authentication.did_wba import (
                 extract_auth_header_parts_two_way, verify_auth_header_signature_two_way, resolve_did_wba_document
@@ -202,7 +209,6 @@ class WBADIDAuthenticator(BaseDIDAuthenticator):
             from anp_open_sdk.config.legacy.dynamic_config import dynamic_config
             import logging
 
-            # 1. 尝试解析为两路认证
             try:
                 header_parts = extract_auth_header_parts_two_way(auth_header)
                 if not header_parts:
@@ -210,7 +216,6 @@ class WBADIDAuthenticator(BaseDIDAuthenticator):
                 did, nonce, timestamp, resp_did, keyid, signature = header_parts
                 is_two_way_auth = True
             except (ValueError, TypeError) as e:
-                # 回退到标准认证
                 try:
                     from agent_connect.authentication.did_wba import extract_auth_header_parts
                     header_parts = extract_auth_header_parts(auth_header)
@@ -222,7 +227,6 @@ class WBADIDAuthenticator(BaseDIDAuthenticator):
                 except Exception as fallback_error:
                     return False, f"Authentication parsing failed: {fallback_error}"
 
-            # 2. 验证时间戳
             nonce_expire_minutes = dynamic_config.get('anp_sdk.nonce_expire_minutes')
             from datetime import datetime, timezone
             try:
@@ -234,7 +238,6 @@ class WBADIDAuthenticator(BaseDIDAuthenticator):
             except Exception as e:
                 return False, f"Invalid timestamp: {e}"
 
-            # Verify nonce validity
             from .auth_server import is_valid_server_nonce
             if not is_valid_server_nonce(nonce):
                 logging.error(f"Invalid or expired nonce: {nonce}")
@@ -242,7 +245,6 @@ class WBADIDAuthenticator(BaseDIDAuthenticator):
             else:
                 logger.info(f"nonce通过防重放验证{nonce}")
 
-            # 3. 解析DID文档
             did_document = await resolve_local_did_document(did)
             if not did_document:
                 try:
@@ -252,7 +254,6 @@ class WBADIDAuthenticator(BaseDIDAuthenticator):
             if not did_document:
                 return False, "Failed to resolve DID document"
 
-            # 4. 验证签名
             try:
                 if is_two_way_auth:
                     is_valid, message = verify_auth_header_signature_two_way(
@@ -280,11 +281,7 @@ class WBADIDAuthenticator(BaseDIDAuthenticator):
 
 class WBAAuth(BaseAuth):
     def extract_did_from_auth_header(self, auth_header: str) -> Tuple[Optional[str], Optional[str]]:
-        """
-        支持两路和标准认证头的 DID 提取
-        """
         try:
-            # 优先尝试两路认证
             from anp_open_sdk.agent_connect_hotpatch.authentication.did_wba import extract_auth_header_parts_two_way
             parts = extract_auth_header_parts_two_way(auth_header)
             if parts and len(parts) == 6:
@@ -294,7 +291,6 @@ class WBAAuth(BaseAuth):
             pass
 
         try:
-            # 回退到标准认证
             parts = extract_auth_header_parts(auth_header)
             if parts and len(parts) >= 4:
                 did, nonce, timestamp, keyid, signature = parts
@@ -304,13 +300,7 @@ class WBAAuth(BaseAuth):
 
         return None, None
 
-
-
 def parse_wba_did_host_port(did: str) -> Tuple[Optional[str], Optional[int]]:
-    """
-    从 did:wba:host%3Aport:xxxx / did:wba:host:port:xxxx / did:wba:host:xxxx
-    解析 host 和 port
-    """
     m = re.match(r"did:wba:([^%:]+)%3A(\d+):", did)
     if m:
         return m.group(1), int(m.group(2))
@@ -323,27 +313,18 @@ def parse_wba_did_host_port(did: str) -> Tuple[Optional[str], Optional[int]]:
     return None, None
 
 def get_response_DIDAuthHeader_Token(response_header: Dict) -> Tuple[Optional[str], Optional[str]]:
-    """从响应头中获取DIDAUTHHeader
-
-    Args:
-        response_header: 响应头字典
-
-    Returns:
-        Tuple[str, str]: (did_auth_header, token) 双向认证头和访问令牌
-    """
     if "Authorization" in response_header:
         auth_value = response_header["Authorization"]
         if isinstance(auth_value, str) and auth_value.startswith('Bearer '):
-                token = auth_value[7:]  # Extract token after 'Bearer '
-                logger.info("获得单向认证令牌，兼容无双向认证的服务")
-                return "单向认证", token
-        # If Authorization is a dict, execute existing logic
+            token = auth_value[7:]
+            logger.info("获得单向认证令牌，兼容无双向认证的服务")
+            return "单向认证", token
         else:
             try:
-                auth_value =  response_header.get("Authorization")
-                auth_value= json.loads(auth_value)
+                auth_value = response_header.get("Authorization")
+                auth_value = json.loads(auth_value)
                 token = auth_value[0].get("access_token")
-                did_auth_header =auth_value[0].get("resp_did_auth_header", {}).get("Authorization")
+                did_auth_header = auth_value[0].get("resp_did_auth_header", {}).get("Authorization")
                 if did_auth_header and token:
                     logger.info("令牌包含双向认证信息，进行双向校验")
                     return "双向认证", token
@@ -358,15 +339,6 @@ def get_response_DIDAuthHeader_Token(response_header: Dict) -> Tuple[Optional[st
         return None, None
 
 async def check_response_DIDAtuhHeader(auth_value: str) -> bool:
-
-    """检查响应头中的DIDAUTHHeader是否正确
-
-    Args:
-        auth_value: 认证头字符串
-
-    Returns:
-        bool: 验证是否成功
-    """
     try:
         header_parts = extract_auth_header_parts_two_way(auth_value)
     except Exception as e:
@@ -384,10 +356,8 @@ async def check_response_DIDAtuhHeader(auth_value: str) -> bool:
         logger.error("Timestamp expired or invalid")
         return False
 
-    # 尝试使用自定义解析器解析DID文档
     did_document = await resolve_local_did_document(did)
 
-    # 如果自定义解析器失败，尝试使用标准解析器
     if not did_document:
         try:
             did_document = await resolve_did_wba_document(did)
@@ -400,11 +370,8 @@ async def check_response_DIDAtuhHeader(auth_value: str) -> bool:
         return False
 
     try:
-        # 重新构造完整的授权头
         full_auth_header = auth_value
-        target_url = "virtual.WBAback" # 迁就现在的url parse代码
-
-        # 调用验证函数
+        target_url = "virtual.WBAback"
         is_valid, message = verify_auth_header_signature_two_way(
             auth_header=full_auth_header,
             did_document=did_document,
@@ -418,4 +385,91 @@ async def check_response_DIDAtuhHeader(auth_value: str) -> bool:
         logger.error(f"验证签名时出错: {e}")
         return False
 
+class WBADIDUserManager(BaseDIDUserManager):
+    """WBA DID用户管理实现"""
 
+    def create_user(self, params: Dict[str, Any]) -> DIDUser:
+        unique_id = secrets.token_hex(8)
+        path_segments = [params['dir'], params['type'], unique_id]
+        agent_description_url = f"http://{params['host']}:{params['port']}/{params['dir']}/{params['type']}{unique_id}/ad.json"
+        from agent_connect.authentication.did_wba import create_did_wba_document
+        did_document, keys = create_did_wba_document(
+            hostname=params['host'],
+            port=params['port'],
+            path_segments=path_segments,
+            agent_description_url=agent_description_url
+        )
+        did_id = did_document['id']
+        key_id = did_document.get('key_id') or list(keys.keys())[0]
+        agent_cfg = {
+            "name": params['name'],
+            "unique_id": unique_id,
+            "did": did_id,
+            "type": params['type'],
+            "owner": {"name": "anpsdk 创造用户", "@id": "https://localhost"},
+            "description": params.get("description", "anpsdk的测试用户"),
+            "version": "0.1.0",
+            "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+
+        user_dir = params.get("user_dir") or f"user_{unique_id}"
+        user_dir_path = os.path.abspath(user_dir)
+        try:
+            os.makedirs(user_dir_path, exist_ok=True)
+            # 写 agent_cfg.yaml
+            with open(os.path.join(user_dir_path, "agent_cfg.yaml"), "w", encoding="utf-8") as f:
+                yaml.dump(agent_cfg, f, allow_unicode=True, sort_keys=False)
+            # 写 did_document.json
+            with open(os.path.join(user_dir_path, "did_document.json"), "w", encoding="utf-8") as f:
+                json.dump(did_document, f, indent=4, ensure_ascii=False)
+            # 写密钥
+            for kid, (priv, pub) in keys.items():
+                with open(os.path.join(user_dir_path, f"{kid}_private.pem"), "wb") as f:
+                    f.write(priv)
+                with open(os.path.join(user_dir_path, f"{kid}_public.pem"), "wb") as f:
+                    f.write(pub)
+            # 生成JWT密钥对
+            try:
+            rsa_key = RSA.generate(2048)
+            private_jwt = rsa_key.export_key()
+            public_jwt = rsa_key.publickey().export_key()
+            jwt_private_key_path = os.path.join(user_dir_path, "private_key.pem")
+            jwt_public_key_path = os.path.join(user_dir_path, "public_key.pem")
+            with open(jwt_private_key_path, "wb") as f:
+                f.write(private_jwt)
+            with open(jwt_public_key_path, "wb") as f:
+                f.write(public_jwt)
+        except Exception as e:
+            raise RuntimeError(f"JWT密钥生成失败: {e}")
+        except Exception as e:
+            import shutil
+            shutil.rmtree(user_dir_path, ignore_errors=True)
+            raise RuntimeError(f"创建DID用户文件失败: {e}")
+
+        return DIDUser(
+            name=agent_cfg["name"],
+            unique_id=agent_cfg["unique_id"],
+            did=agent_cfg["did"],
+            agent_type=agent_cfg["type"],
+            cfg=agent_cfg,
+            did_document=did_document,
+            did_document_path=os.path.join(user_dir_path, "did_document.json"),
+            key_id=key_id,
+            did_private_key_path=os.path.join(user_dir_path, f"{key_id}_private.pem"),
+            did_public_key_path=os.path.join(user_dir_path, f"{key_id}_public.pem"),
+            jwt_private_key_path=os.path.join(user_dir_path, "private_key.pem"),
+            jwt_public_key_path=os.path.join(user_dir_path, "public_key.pem"),
+            user_dir=user_dir_path,
+            created_at=agent_cfg["created_at"],
+            owner=agent_cfg.get("owner"),
+            hosted_config=agent_cfg.get("hosted_config")
+        )
+
+    def save_user(self, user: DIDUser):
+        save_user_to_file(user)
+
+    def load_user(self, did: str) -> Optional[DIDUser]:
+        return load_user_from_file(did)
+
+    def list_users(self) -> list:
+        return list_all_users_from_file()
