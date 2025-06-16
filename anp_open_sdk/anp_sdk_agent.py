@@ -109,6 +109,8 @@ class LocalAgent:
         user_data_manager = LocalUserDataManager()
         user_data_manager.load_users()
         user_data = user_data_manager.get_user_data(did)
+        if name == "未命名":
+            name = user_data.name
         if not user_data:
             raise ValueError(f"未找到 DID 为 {did} 的用户数据")
         return cls(user_data, name, agent_type)

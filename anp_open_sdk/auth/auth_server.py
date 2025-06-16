@@ -20,6 +20,8 @@ import logging
 import os
 from datetime import timezone
 from pathlib import Path
+import random
+import string
 from typing import Optional, Callable, Any
 import fnmatch
 import json
@@ -27,7 +29,7 @@ import json
 import jwt
 from fastapi import Request, HTTPException, Response
 from fastapi.responses import JSONResponse
-
+from anp_open_sdk.config import config
 from .did_auth_base import BaseDIDAuthenticator
 from .schemas import AuthenticationContext
 # ... existing imports ...
@@ -43,12 +45,27 @@ VALID_SERVER_NONCES: Dict[str, datetime] = {}
 from ..agent_connect_hotpatch.authentication.did_wba_auth_header import DIDWbaAuthHeader
 from ..anp_sdk_agent import LocalAgent
 from anp_open_sdk.config.legacy.dynamic_config import dynamic_config
+from anp_open_sdk.config import config
 
 EXEMPT_PATHS = [
     "/docs", "/anp-nlp/", "/ws/", "/publisher/agents", "/agent/group/*",
     "/redoc", "/openapi.json", "/wba/hostuser/*", "/wba/user/*", "/", "/favicon.ico",
     "/agents/example/ad.json"
 ]
+
+def generate_nonce(length: int = 16) -> str:
+    """
+    Generate a random nonce of specified length.
+    Args:
+        length: Length of the nonce to generate
+    Returns:
+        str: Generated nonce
+    """
+    characters = string.ascii_letters + string.digits
+    nonce = ''.join(random.choice(characters) for _ in range(length))
+    VALID_SERVER_NONCES[nonce] = datetime.now(timezone.utc)
+    return nonce
+
 
 def is_exempt(path):
     return any(fnmatch.fnmatch(path, pattern) for pattern in EXEMPT_PATHS)
@@ -65,9 +82,8 @@ def create_authenticator(auth_method: str = "wba") -> BaseDIDAuthenticator:
         raise ValueError(f"Unsupported authentication method: {auth_method}")
 
 class AgentAuthServer:
-    def __init__(self, authenticator: BaseDIDAuthenticator , sdk ):
+    def __init__(self, authenticator: BaseDIDAuthenticator  ):
         self.authenticator = authenticator
-        self.sdk = sdk
 
     async def verify_request(self, request: Request) -> (bool, str, Dict[str, Any]):
         auth_header = request.headers.get("Authorization")
@@ -113,7 +129,7 @@ async def authenticate_request(request: Request, auth_server: AgentAuthServer) -
 
 async def auth_middleware(request: Request, call_next: Callable, sdk, auth_method: str = "wba" ) -> Response:
     try:
-        auth_server = AgentAuthServer(create_authenticator(auth_method),sdk)
+        auth_server = AgentAuthServer(create_authenticator(auth_method))
         response_auth = await authenticate_request(request, auth_server)
 
         headers = dict(request.headers)
@@ -223,12 +239,12 @@ async def handle_bearer_auth(token: str, req_did, resp_did, sdk= None) -> Dict:
                 raise HTTPException(status_code=401, detail="Invalid token payload")
 
             logging.info(f"LocalAgent存储中未找到{req_did}提交的token,公钥验证通过")
-        return [{
+        return {
             "access_token": token,
             "token_type": "bearer",
             "req_did": req_did,
             "resp_did": resp_did,
-        }]
+        }
 
     except jwt.PyJWTError as e:
         logging.error(f"JWT verification error: {e}")
@@ -259,16 +275,9 @@ async def generate_auth_response(did, is_two_way_auth, resp_did):
         try:
             from anp_open_sdk.config.legacy.dynamic_config import dynamic_config
             # 获取resp_did用户目录
-            key_id = "key-1"
 
-            userdid_filepath = dynamic_config.get('anp_sdk.user_did_path')
-            userdid_filepath = os.path.join(userdid_filepath, f"user_{resp_did[-16:]}")
-            did_document_path = f"{userdid_filepath}/did_document.json"
-            private_key_path = f"{userdid_filepath}/{key_id}_private.pem"
-
-            if resp_did_agent.is_hosted_did:
-                did_document_path = resp_did_agent.did_document_path
-                private_key_path = resp_did_agent.private_key_path
+            did_document_path = resp_did_agent.did_document_path
+            private_key_path = resp_did_agent.private_key_path
 
             # 检查文件是否存在
             if Path(did_document_path).exists() and Path(private_key_path).exists():

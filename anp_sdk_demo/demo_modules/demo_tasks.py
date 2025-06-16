@@ -139,7 +139,7 @@ class DemoTaskRunner:
 
 
             @temp_agent.register_message_handler("*")
-            def handle_temp_message(msg):
+            async def handle_temp_message(msg):
                 """临时智能体的消息处理函数"""
                 logger.info(f"[{temp_agent.name}] 收到消息: {msg}")
 
@@ -258,14 +258,25 @@ class DemoTaskRunner:
             
             # 查找并注册托管智能体
             hosted_agents = find_and_register_hosted_agent(self.sdk, user_datas)
+
             if not hosted_agents:
                 logger.warning("未找到托管智能体，跳过托管消息演示")
                 return
-                
-            hosted_agent = hosted_agents[0]
+            # 跳过 公共托管智能体 找到最近的一个自己申请的托管智能体 因为公共托管智能体没开消息服务
+            hosted_agent = next((agent for agent in hosted_agents if agent.parent_did is not None), None)
+            hosted_agent.name = "本地托管智能体"
+
+            @hosted_agent.register_message_handler("*")
+            async def handle_hosted_message(msg):
+                logger.info(f"[{hosted_agent.name}] 收到消息: {msg}")
+                reply_content = f"这是来自托管智能体 {hosted_agent.name} 的自动回复，已收到消息: {msg.get('content')}"
+                reply_message = {
+                    "reply": reply_content,
+                }
+                return reply_message
+
             self.sdk.register_agent(hosted_agent)
-            logger.info(f"注册托管智能体: {hosted_agent.name}")
-            
+
             # 查找公共托管智能体
             public_hosted_data = user_data_manager.get_user_data_by_name("托管智能体_did:wba:agent-did.com:test:public")
             if public_hosted_data:

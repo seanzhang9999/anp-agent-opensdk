@@ -15,15 +15,12 @@
 """Bearer token authentication module."""
 import logging
 import os
-import random
-import string
 from typing import Optional, Dict
 import jwt
 from fastapi import HTTPException
 
 from datetime import datetime, timezone, timedelta
 
-from anp_open_sdk.auth.auth_server import VALID_SERVER_NONCES
 from anp_open_sdk.config.legacy.dynamic_config import dynamic_config
 from anp_open_sdk.config import config
 
@@ -98,18 +95,7 @@ def verify_timestamp(timestamp_str: str) -> bool:
         return False
 
 
-def generate_nonce(length: int = 16) -> str:
-    """
-    Generate a random nonce of specified length.
-    Args:
-        length: Length of the nonce to generate
-    Returns:
-        str: Generated nonce
-    """
-    characters = string.ascii_letters + string.digits
-    nonce = ''.join(random.choice(characters) for _ in range(length))
-    VALID_SERVER_NONCES[nonce] = datetime.now(timezone.utc)
-    return nonce
+
 
 
 def get_jwt_private_key(key_path: str = None ) -> Optional[str]:

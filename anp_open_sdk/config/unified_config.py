@@ -37,7 +37,7 @@ def _convert_type(value, type_name):
             return float(value)
         elif type_name == "bool":
             if isinstance(value, bool):
-        return value
+                return value
             return str(value).lower() in ("true", "1", "yes", "on")
         elif type_name == "path":
             return Path(str(value))
