@@ -13,7 +13,7 @@ origins = [
     "http://localhost:8080", # Common dev server port
     "null", # For local file testing if popup is opened directly
     # "chrome-extension://your_chrome_extension_id_here" # IMPORTANT for production
-    "chrome-extension://ajlongbdekphgoofpcnnikaclbfelnof"
+    "chrome-extension://djlkliaeodleddflahameeolknjgikdl"
 ]
 
 app.add_middleware(

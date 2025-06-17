@@ -7,10 +7,11 @@
 #     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
+# distributed under the License is distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from mcp.server import websocket
 
 from anp_open_sdk.anp_sdk_user_data import LocalUserDataManager
 from anp_open_sdk.config.legacy.dynamic_config import get_config_value
@@ -22,40 +23,27 @@ import json
 from datetime import datetime
 from typing import Dict, Any, Optional, List
 from fastapi.middleware.cors import CORSMiddleware
-
-
-# 安全中间件
 from anp_open_sdk.auth.auth_server import auth_middleware
-
-# 路由模块导入
 from anp_open_sdk.service.router import router_did, router_publisher, router_auth
-
-# 导入ANP核心组件
 from anp_open_sdk.config.legacy.dynamic_config import dynamic_config
 from anp_open_sdk.config import config
 from fastapi import Request, WebSocket, WebSocketDisconnect, FastAPI
 from fastapi.responses import StreamingResponse
-
-# 配置日志
-
-from utils.log_base import  logging as logger
+from utils.log_base import logging as logger
 from anp_open_sdk.anp_sdk_agent import LocalAgent
-
-# Group SDK
 from anp_open_sdk.service.interaction.anp_sdk_group_runner import GroupManager, GroupRunner, Message, MessageType, Agent
-
+from anp_open_sdk.sdk_mode import SdkMode
 
 class ANPSDK:
-    """ANP SDK主类，提供简单易用的接口"""
+    """ANP SDK主类，支持多种运行模式"""
     
-    # 单例模式
     instance = None
     _instances = {}
 
     @classmethod
     def get_instance(cls, port):
         if port not in cls._instances:
-            cls._instances[port] = cls(port)
+            cls._instances[port] = cls(SdkMode.MULTI_AGENT_ROUTER, ws_port=port)
         return cls._instances[port]
     
     def __new__(cls, *args, **kwargs):
@@ -63,28 +51,28 @@ class ANPSDK:
             cls.instance = super().__new__(cls)
         return cls.instance
     
-    def __init__(self, port: int = None):
-        """初始化ANP SDK
-        
-        Args:
-            did: 可选，指定使用的DID，如果不指定则提供选择或创建新DID的功能
-            user_dir: 可选，指定用户目录，默认使用配置中的目录
-            port: 可选，指定服务器端口，默认使用配置中的端口
-        """
+    def __init__(self, mode = SdkMode.MULTI_AGENT_ROUTER, agents=None, ws_host="0.0.0.0", ws_port=9527, **kwargs):
+        if hasattr(self, 'initialized'):
+            return
+        self.mode = mode
+        self.agents = agents or []
+        self.port = ws_port
+        self.server_running = False
+        self.api_routes = {}
+        self.api_registry = {}
+        self.message_handlers = {}
+        self.ws_connections = {}
+        self.sse_clients = set()
+        self.logger = logger
+        self.proxy_client = None
+        self.proxy_mode = False
+        self.proxy_task = None
+        self.group_manager = GroupManager(self)
+        self.user_data_manager = LocalUserDataManager()
+        self.agent = None
+        self.initialized = True
 
-        self.port = port
-        if not hasattr(self, 'initialized'):
-            self.server_running = False
-            self.port = port or config.anp_sdk.user_did_port_1
-            self.api_routes = {}
-            self.api_registry = {}
-            self.message_handlers = {}
-            self.ws_connections = {}
-            self.sse_clients = set()
-            self.initialized = True
         debug_mode = config.anp_sdk.debug_mode
-        
-        self.app = None
         if debug_mode:
             self.app = FastAPI(
                 title="ANP SDK Server in DebugMode",
@@ -93,7 +81,7 @@ class ANPSDK:
                 reload=True,
                 docs_url="/docs",
                 redoc_url="/redoc"
-            )
+                    )
         else:
             self.app = FastAPI(
                 title="ANP SDK Server",
@@ -102,12 +90,8 @@ class ANPSDK:
                 reload=False,
                 docs_url=None,
                 redoc_url=None
-            )
-
+                    )
         self.app.state.sdk = self
-
-        self.user_data_manager = LocalUserDataManager()
-        self.agent = None  # 不再自动 new LocalAgent
 
         self.app.add_middleware(
             CORSMiddleware,
@@ -121,40 +105,54 @@ class ANPSDK:
         async def auth_middleware_wrapper(request, call_next):
             return await auth_middleware(request, call_next, self.instance)
 
-        # 创建路由器实例
         from anp_open_sdk.service.router.router_agent import AgentRouter
         self.router = AgentRouter()
-        
-        self.logger = logger
-        
-        self.proxy_client = None
-        self.proxy_mode = False
-        self.proxy_task = None
-        
-        # 群组管理
-        self.group_manager = GroupManager(self)
+        if mode == SdkMode.MULTI_AGENT_ROUTER:
+            for agent in self.agents:
+                self.register_agent(agent)
+            self._register_default_routes()
+        elif mode == SdkMode.DID_HOST_SERVER:
+            self._register_default_routes()
+        elif mode == SdkMode.SDK_WS_PROXY_SERVER:
+            self._register_default_routes()
+            self._register_ws_proxy_server(ws_host, ws_port)
+        # 其他模式由LocalAgent主导
+
+
+    def _register_ws_proxy_server(self, ws_host, ws_port):
+        self.ws_clients = {}
+
+        @self.app.websocket("/ws/agent")
+        async def ws_agent_endpoint(websocket: WebSocket):
+            await websocket.accept()
+            client_id = id(websocket)
+            self.ws_clients[client_id] = websocket
+            try:
+                while True:
+                    msg = await websocket.receive_text()
+                    data = json.loads(msg)
+                    # 处理代理注册、DID发布、API代理等
+            except Exception as e:
+                    self.logger.error(f"WebSocket客户端断开: {e}")
+            finally:
+                    self.ws_clients.pop(client_id, None)
 
     def register_group_runner(self, group_id: str, runner_class: type[GroupRunner],
                              url_pattern: Optional[str] = None):
-        """注册 GroupRunner 到特定 group_id"""
         self.group_manager.register_runner(group_id, runner_class, url_pattern)
 
     def unregister_group_runner(self, group_id: str):
-        """注销 GroupRunner"""
         self.group_manager.unregister_runner(group_id)
 
     def get_group_runner(self, group_id: str) -> Optional[GroupRunner]:
-        """获取 GroupRunner"""
         return self.group_manager.get_runner(group_id)
 
     def list_groups(self) -> List[str]:
-        """列出所有已注册的群组"""
         return self.group_manager.list_groups()
 
     async def check_did_host_request(self):
         from anp_open_sdk.service.publisher.anp_sdk_publisher_mail_backend import EnhancedMailManager
         from anp_open_sdk.service.publisher.anp_sdk_publisher import DIDManager
-        
         try:
             use_local = get_config_value('USE_LOCAL_MAIL', False)
             logger.debug(f"管理邮箱检查前初始化，使用本地文件邮件后端参数设置:{use_local}")
@@ -203,14 +201,12 @@ class ANPSDK:
                 mail_manager.mark_message_as_read(message_id)
             
             return result
-            
         except Exception as e:
             error_msg = f"处理DID托管请求时发生错误: {e}"
             logger.error(error_msg)
             return error_msg
 
     def register_agent(self, agent: LocalAgent):
-        """注册智能体到路由器"""
         self.router.register_agent(agent)
         self.logger.debug(f"已注册智能体到SDK: {agent.id}")
         self._register_default_routes()
@@ -372,16 +368,14 @@ class ANPSDK:
                 yaml_path = os.path.join(docs_dir, f"openapi_{safe_agent_id}.yaml")
                 with open(yaml_path, 'w', encoding='utf-8') as f:
                     yaml.dump(openapi_spec, f, allow_unicode=True, sort_keys=False)
+
     def get_agents(self):
-        """获取所有已注册的智能体"""
         return self.router.local_agents.values()
 
     def get_agent(self, did: str):
-        """获取指定DID的智能体"""
         return self.router.get_agent(did)
-    
-    def _register_default_routes(self):
 
+    def _register_default_routes(self):
         self.app.include_router(router_auth.router)
         self.app.include_router(router_did.router)
         self.app.include_router(router_publisher.router)
@@ -822,39 +816,23 @@ class ANPSDK:
         return host, int(port)
 
     def unregister_agent(self, agent_id: str):
-        """
-        Unregister an agent from the router by its ID
-
-        Args:
-            agent_id: The ID of the agent to unregister
-
-        Returns:
-            bool: True if the agent was successfully unregistered, False otherwise
-        """
         try:
-            # Check if the agent exists in the router
             if agent_id not in self.router.local_agents:
                 self.logger.warning(f"Agent {agent_id} not found in the router")
                 return False
 
-            # Remove the agent from the router
             agent = self.router.local_agents.pop(agent_id, None)
 
-            # Clean up related resources
-            # 1. Remove from API registry if exists
             if agent_id in self.api_registry:
                 del self.api_registry[agent_id]
 
-            # 2. Remove from group managers if the agent is in any groups
             for group_id in self.list_groups():
                 runner = self.get_group_runner(group_id)
                 if runner and runner.is_member(agent_id):
                     runner.remove_member(agent_id)
 
-            # Log the successful removal
             self.logger.debug(f"Successfully unregistered agent: {agent_id}")
 
-            # If this was the last agent, consider stopping the server
             if not self.router.local_agents:
                 self.logger.debug(f"No agents remaining in the router")
 

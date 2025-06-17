@@ -3,7 +3,7 @@ anp_open_sdk/anp_users_hosted/*
 !anp_open_sdk/anp_users/user_hosted_agent-did.com*
 !anp_open_sdk/anp_users/user_hosted_agent-did.com*/*
 anp_open_sdk/simulate/*
-anp_chat_extension/node_modules/
+anp_user_extension/node_modules/
 # Logs
 logs
 *.log

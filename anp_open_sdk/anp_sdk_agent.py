@@ -19,7 +19,7 @@ from datetime import datetime
 from typing import Dict, Any, Callable
 
 import nest_asyncio
-from fastapi import Request
+from fastapi import FastAPI, Request
 from utils.log_base import  logging as logger
 from starlette.responses import JSONResponse
 
@@ -28,7 +28,7 @@ from anp_open_sdk.config.legacy.dynamic_config import get_config_value
 from anp_open_sdk.service.publisher.anp_sdk_publisher_mail_backend import EnhancedMailManager
 from anp_open_sdk.auth.did_auth_wba import parse_wba_did_host_port
 from anp_open_sdk.contact_manager import ContactManager
-
+from anp_open_sdk.sdk_mode import SdkMode
 
 class RemoteAgent:
     def __init__(self, id: str, name: str = None, host: str = None, port: int = None, **kwargs):
@@ -464,3 +464,58 @@ class LocalAgent:
         except Exception as e:
             logger.error(f"创建托管DID文件夹失败: {e}")
             return False, ''
+
+    def start(self, mode: SdkMode, ws_proxy_url=None, host="0.0.0.0", port=8000):
+        if mode == SdkMode.AGENT_SELF_SERVICE:
+            self._start_self_service(host, port)
+        elif mode == SdkMode.AGENT_WS_PROXY_CLIENT:
+            self._start_self_service(host, port)
+            asyncio.create_task(self._start_ws_proxy_client(ws_proxy_url))
+        # 其他模式由ANPSDK主导
+
+    def _start_self_service(self, host, port):
+        self.app = FastAPI(title=f"{self.name} LocalAgent", description="LocalAgent Self-Service API", version="1.0.0")
+        self._register_self_routes()
+        import uvicorn
+        uvicorn.run(self.app, host=host, port=port)
+
+    def _register_self_routes(self):
+        from fastapi import Request
+
+        @self.app.post("/agent/api/{agent_id}/{path:path}")
+        async def agent_api(agent_id: str, path: str, request: Request):
+            if agent_id != self.id:
+                return JSONResponse(status_code=404, content={"status": "error", "message": "Agent ID not found"})
+            request_data = await request.json()
+            return await self.handle_request(agent_id, request_data, request)
+
+        # 可扩展更多自服务API
+
+    async def _start_ws_proxy_client(self, ws_proxy_url):
+        import websockets
+        while True:
+            try:
+                async with websockets.connect(ws_proxy_url) as ws:
+                    await self._ws_proxy_loop(ws)
+            except Exception as e:
+                self.logger.error(f"WebSocket代理连接失败: {e}")
+                await asyncio.sleep(5)
+
+    async def _ws_proxy_loop(self, ws):
+        await ws.send(json.dumps({"type": "register", "did": self.id}))
+        async for msg in ws:
+            data = json.loads(msg)
+            # 处理来自中心的请求
+            # 这里可以根据data内容调用self.handle_request等
+            # 例如:
+            req_type = data.get("type")
+            if req_type == "api_call":
+                # 伪造一个Request对象
+                class DummyRequest:
+                    def __init__(self, json_data):
+                        self._json = json_data
+                    async def json(self):
+                        return self._json
+                response = await self.handle_request(self.id, data, DummyRequest(data))
+                await ws.send(json.dumps({"type": "response", "data": response}))
+            # 可扩展其他消息类型
