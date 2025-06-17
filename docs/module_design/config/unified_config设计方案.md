@@ -182,9 +182,6 @@ env_mapping:
 
 ```Python
 from anp_open_sdk.config import config
-
-# 或者显式导入
-from anp_open_sdk.config.unified_config import config
 ```
 
 #### 配置文件访问（支持代码提示）
@@ -292,27 +289,6 @@ config.update({
 
 ### 4.4 高级功能
 
-#### 配置验证
-
-```
-# 检查必需的环境变量
-missing = config.validate_required_env([
-    'openai_api_key', 
-    'database_url'
-])
-if missing:
-    raise RuntimeError(f"缺少环境变量: {missing}")
-```
-
-#### 开发环境检查
-
-```
-# 检查开发工具
-dev_status = config.check_dev_environment()
-for tool, status in dev_status.items():
-    logger.debug(f"{tool}: {'✓' if status else '✗'}")
-```
-
 #### 配置导出
 
 ```
@@ -322,8 +298,6 @@ config_dict = config.to_dict()
 # 导出环境变量配置
 env_dict = config.env.to_dict()
 
-# 生成配置文档
-config.generate_docs("config_reference.md")
 ```
 
 ## 5. 类型提示支持
@@ -365,36 +339,11 @@ class UnifiedConfigProtocol(Protocol):
 - 类型检查：mypy/pylance 支持
 - 重构安全：重命名配置项时自动更新引用
 
-## 6. 迁移计划
 
-### 6.1 向后兼容
+# 6.部署和环境配置
+统一加载环境变量，支持.evn /  export / dockerfile不同配置的统一读取
 
-```
-# 保持旧接口兼容
-from anp_open_sdk.config.dynamic_config import dynamic_config  # 仍然可用
-from anp_open_sdk.config.path_resolver import path_resolver    # 仍然可用
-
-# 新接口
-from anp_open_sdk.config import config  # 推荐使用
-```
-
-### 6.2 迁移步骤
-
-- 阶段1：实现 unified_config.py，保持旧接口兼容
-- 阶段2：迁移现有配置到 unified_config.yaml
-- 阶段3：更新代码使用新接口
-- 阶段4：移除旧配置文件和接口
-
-### 6.3 自动迁移工具
-
-```
-# 配置迁移脚本
-python -m anp_open_sdk.config.migrate_config
-```
-
-# 7.部署和环境配置
-
-## 7.1 开发环境
+## 6.1 开发环境
 
 ```
 # .env 文件
@@ -404,7 +353,7 @@ OPENAI_API_KEY=sk-xxx
 DATABASE_URL=sqlite:///dev.db
 ```
 
-## 7.2 生产环境
+## 6.2 生产环境
 
 ```
 # 环境变量
@@ -414,7 +363,7 @@ export OPENAI_API_KEY=sk-prod-xxx
 export DATABASE_URL=postgresql://prod-server/db
 ```
 
-## 7.3 Docker 支持
+## 6.3 Docker 支持
 
 ```
 # Dockerfile
@@ -423,9 +372,9 @@ ENV ANP_PORT=8080
 COPY unified_config.yaml /app/anp_open_sdk/config/
 ```
 
-# 8 附录
+# 7 附录
 
-## 8.1 注释展示
+## 7.1 注释展示
 
 ```yaml
 # 这是行注释
@@ -440,7 +389,7 @@ port: 9527          # 行尾注释
 # old_config: "legacy_value"
 ```
 
-### 8.2 使用方法
+### 7.2 使用方法
 
 ```python
 from anp_open_sdk.config import config
@@ -461,7 +410,7 @@ abs_path = config.resolve_path("{APP_ROOT}/logs/app.log")
 python_exe = config.find_in_path("python3")
 ```
 
-### 8.3 VS Code配置
+### 7.3 VS Code配置
 
 在你的项目根目录创建 .vscode/settings.json：
 
@@ -476,9 +425,9 @@ python_exe = config.find_in_path("python3")
 }
 ```
 
-### 8.4 使用方式
+### 7.4 使用方式
 ```
-from anp_open_sdk.config.unified_config import config
+from anp_open_sdk.config import config
 
 logger.debug(config.anp_sdk.debug_mode)
 logger.debug(config.llm.default_model)
@@ -488,7 +437,7 @@ logger.debug(config.to_dict())  # 导出全部配置（敏感信息自动隐藏�
 
 
 
-from anp_open_sdk.config.unified_config import config
+from anp_open_sdk.config import config
 
 # 访问配置
 logger.debug(config.anp_sdk.debug_mode)
@@ -511,22 +460,42 @@ logger.debug(config.get_path_info())
 # 导出全部配置
 logger.debug(config.to_dict())
 ```
+### 7.5 添加删除
+ - 添加删除配置项，只需要在unified_config.yaml中添加删除即可
+ - 如果删除的在_get_default_config中存在，可以考虑也删除，否则会有默认值
+ - 如果想IDE自动提示可选（避免出错），要在 config_types.py中添加对应的提示类
 
-1. 想要配置一个不是默认值的配置项，应该怎么做？
-方法一：手动在 unified_config.yaml 中增加或修改该项的值
-这样下次加载时会覆盖 meta_config.yaml 的默认值。
+一处编辑，反复使用，还是比较值的
+可以多层级
 
-方法二：如果该项设置了 saveable: true，你可以在运行时用代码修改它，然后调用 config.save()，它才会被写入 unified_config.yaml。
+```python
 
-2. saveable:true 的配置项，只有在运行时被修改并调用 save，才会写入 unified_config.yaml
-仅仅访问（读取）不会写入配置文件。
-只有你在代码里赋值（如 config.anp_sdk.debug_mode = False），然后调用 config.save()，才会写入 unified_config.yaml。
-3. 不是 saveable:true 的配置项
-无论你怎么修改、调用 save，都不会写入 unified_config.yaml。
-只能通过手动编辑 unified_config.yaml 或 meta_config.yaml（默认值）来配置。
-4. 总结
-手动写 unified_config.yaml：任何配置项都可以这样做，适合初始化或批量配置。
-自动写 unified_config.yaml：仅限 
-saveable: true
- 且运行时被修改并调用 save 的配置项。
-仅访问不会写入：只有赋值+save才会写入。
+class LogConfig(Protocol):
+    """日志配置协议"""
+    log_level: Optional[str]
+    detail: LogDetailConfig
+class LogConfig(Protocol): #配置类及属性
+    """日志配置协议"""
+    log_level: Optional[str]
+
+class UnifiedConfigProtocol(Protocol):
+    """统一配置协议"""
+    # 主要配置节点
+    logger: LogConfig # 增加配置项名称 和对应类
+
+```
+
+```python
+# IDE 会自动提示 logger、log_level、detail、file、max_size
+print(config.logger.log_level)
+print(config.logger.detail.file)
+print(config.logger.detail.max_size)
+```
+
+```yaml
+logger:
+  log_level: DEBUG
+  detail:
+    file: "/tmp/app.log"
+    max_size: 100
+```

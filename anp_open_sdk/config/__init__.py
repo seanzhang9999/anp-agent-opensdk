@@ -33,38 +33,3 @@ else:
 
 
 
-
-# 向后兼容：保持原有接口可用
-from anp_open_sdk.config.legacy.dynamic_config import dynamic_config, get_config_value as legacy_get_config_value
-from .path_resolver import path_resolver
-
-# 类型提示
-from .config_types import (
-    UnifiedConfigProtocol,
-    AnpSdkConfig,
-    LlmConfig,
-    MailConfig,
-    EnvConfig,
-    SecretsConfig
-)
-
-__all__ = [
-    # 新的统一配置（推荐使用）
-    'config',
-    'UnifiedConfig',
-    'get_config_value',
-
-    # 向后兼容
-    'dynamic_config',
-    'legacy_get_config_value',
-    'path_resolver',
-
-    # 类型提示
-    'UnifiedConfigProtocol',
-    'AnpSdkConfig',
-    'LlmConfig',
-    'MailConfig',
-    'EnvConfig',
-    'SecretsConfig'
-]
-

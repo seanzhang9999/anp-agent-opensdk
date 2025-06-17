@@ -7,15 +7,6 @@ from typing import Protocol, List, Dict, Any, Optional
 from pathlib import Path
 
 
-
-class AnpUserServiceConfig(Protocol):
-    """ANP User Service 配置协议"""
-    user_did_path: str
-    model_name: str
-    temperature: float
-    api_base: str
-
-
 class AnpSdkConfig(Protocol):
     """ANP SDK 配置协议"""
     debug_mode: bool
@@ -98,7 +89,7 @@ class EnvConfig(Protocol):
     debug_mode: Optional[bool]
     host: Optional[str]
     port: Optional[int]
-    
+
     # 系统环境变量
     system_path: Optional[List[Path]]
     home_dir: Optional[Path]
@@ -108,28 +99,40 @@ class EnvConfig(Protocol):
     python_path: Optional[List[Path]]
     python_home: Optional[str]
     virtual_env: Optional[str]
-    
+
     # 开发工具
     java_home: Optional[str]
     node_path: Optional[str]
     go_path: Optional[str]
-    
+
     # API 密钥
     openai_api_key: Optional[str]
     anthropic_api_key: Optional[str]
-    
+
     # 邮件密码
     mail_password: Optional[str]
     hoster_mail_password: Optional[str]
     sender_mail_password: Optional[str]
-    
+
     # 数据库和服务
     database_url: Optional[str]
     redis_url: Optional[str]
-    
+
     # 其他配置
     use_local_mail: Optional[bool]
     enable_local_acceleration: Optional[bool]
+
+
+class LogDetailConfig(Protocol):
+    file: Optional[str]
+    max_size: Optional[int]
+
+class LogConfig(Protocol):
+    """日志配置协议"""
+    log_level: Optional[str]
+    detail: LogDetailConfig
+
+
 
 
 class SecretsConfig(Protocol):
@@ -145,13 +148,13 @@ class SecretsConfig(Protocol):
 class UnifiedConfigProtocol(Protocol):
     """统一配置协议"""
     # 主要配置节点
+    logger: LogConfig
     anp_sdk: AnpSdkConfig
     llm: LlmConfig
     mail: MailConfig
     chat: ChatConfig
     web_api: WebApiConfig
     acceleration: AccelerationConfig
-    anp_user_service: AnpUserServiceConfig
     
     # 环境变量和敏感信息
     env: EnvConfig
