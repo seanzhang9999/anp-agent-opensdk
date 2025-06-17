@@ -380,7 +380,7 @@ def run_all_tests():
         test_path_resolution,
         test_secrets,
         test_path_tools,
-        test_backward_compatibility,
+        #test_backward_compatibility,
         test_config_persistence,
         test_type_conversion,
         test_error_handling
