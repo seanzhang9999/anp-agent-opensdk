@@ -542,13 +542,17 @@ class DemoTaskRunner:
         # 创建客户端
         try:
             # 尝试使用环境变量创建合适的客户端
+            from anp_open_sdk.config import config
+            config.reload()
+            api_key = config.secrets.openai_api_key
+            base_url = config.llm.api_url
             model_name = os.environ.get("OPENAI_MODEL_NAME", "gpt-4o")
             model_provider = os.environ.get("MODEL_PROVIDER", "openai").lower()
             if model_provider == "openai":
                 from openai import AsyncOpenAI
                 client = AsyncOpenAI(
-                    api_key=os.environ.get("OPENAI_API_KEY"),
-                    base_url=os.environ.get("OPENAI_API_BASE_URL", "https://api.openai.com/v1")
+                    api_key=api_key,
+                    base_url=base_url
                 )
         except Exception as e:
             logger.error(f"创建LLM客户端失败: {e}")

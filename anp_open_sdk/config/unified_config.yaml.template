@@ -5,7 +5,11 @@
 # 应用核心配置
 # ==========================================
 
-log_level: INFO
+log_settings:
+  log_level: DEBUG
+  detail:
+    file: "/tmp/app.log"
+    max_size: 100
 
 anp_sdk:
   debug_mode: true                    # 调试模式
@@ -32,7 +36,7 @@ anp_sdk:
 # LLM 配置
 # ==========================================
 llm:
-  openrouter_api_url: "api.302ai.cn"
+  api_url: "https://api.302ai.cn/v1"
   default_model: "deepseek/deepseek-chat-v3-0324:free"
   max_tokens: 512
   system_prompt: "你是一个智能助手，请根据用户的提问进行专业、简洁的回复。"

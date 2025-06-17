@@ -116,6 +116,6 @@ def set_log_color_level(level):
 from anp_open_sdk.config import config
 
 
-log_level_str = config.logger.log_level
+log_level_str = config.log_settings.log_level.upper()
 log_level = getattr(logging, log_level_str, logging.INFO)  # 转换为 int，默认INFO
 logger = setup_logging(log_level)

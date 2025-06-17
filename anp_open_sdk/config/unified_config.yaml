@@ -1,7 +1,7 @@
 '# ANP SDK 统一配置文件': null
 '# 项目根目录自动检测，支持 {APP_ROOT} 占位符': null
 
-logger:
+log_settings:
   log_level: DEBUG
   detail:
     file: "/tmp/app.log"
@@ -28,7 +28,7 @@ anp_sdk:
     demo_agent2: 雅马哈
     demo_agent3: 铃木
 llm:
-  openrouter_api_url: api.302ai.cn
+  api_url: https://api.302ai.cn/v1
   default_model: deepseek/deepseek-chat-v3-0324:free
   max_tokens: 512
   system_prompt: 你是一个智能助手，请根据用户的提问进行专业、简洁的回复。

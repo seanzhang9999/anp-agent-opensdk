@@ -39,7 +39,7 @@ class AnpSdkProxyConfig(Protocol):
 
 class LlmConfig(Protocol):
     """LLM 配置协议"""
-    openrouter_api_url: str
+    api_url: str
     default_model: str
     max_tokens: int
     system_prompt: str
@@ -148,7 +148,7 @@ class SecretsConfig(Protocol):
 class UnifiedConfigProtocol(Protocol):
     """统一配置协议"""
     # 主要配置节点
-    logger: LogConfig
+    log_settings: LogConfig
     anp_sdk: AnpSdkConfig
     llm: LlmConfig
     mail: MailConfig
