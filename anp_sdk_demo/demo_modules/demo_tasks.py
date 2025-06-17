@@ -58,12 +58,12 @@ class DemoTaskRunner:
             
             
             
-            await self.run_api_demo(agent1, agent2)
-            await self.run_message_demo(agent2, agent3, agent1)
-            await self.run_agent_lifecycle_demo(agent1,agent2,agent3)
+            #await self.run_api_demo(agent1, agent2)
+            #await self.run_message_demo(agent2, agent3, agent1)
+            #await self.run_agent_lifecycle_demo(agent1,agent2,agent3)
 
             await self.run_hosted_did_demo(agent1)  # 添加托管 DID 演示
-            await self.run_group_chat_demo(agent1, agent2,agent3)
+            #await self.run_group_chat_demo(agent1, agent2,agent3)
             self.step_helper.pause("所有演示完成")
             
         except Exception as e:

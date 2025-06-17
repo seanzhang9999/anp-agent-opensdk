@@ -6,13 +6,8 @@
 # 应用核心配置
 # ==========================================
 
-
-
-
-
-
-
-
+logger:
+  log_level: DEBUG
 anp_sdk:
   debug_mode: true
   host: localhost

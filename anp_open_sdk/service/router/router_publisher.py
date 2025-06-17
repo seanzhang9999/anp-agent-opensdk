@@ -31,7 +31,7 @@ router = APIRouter(tags=["publisher"])
 @router.get("/wba/hostuser/{user_id}/did.json", summary="Get Hosted DID document")
 async def get_hosted_did_document(user_id: str) -> Dict:
     """
-    Retrieve a DID document by user ID from anp_user_hosted.
+    Retrieve a DID document by user ID from anp_users_hosted.
     """
     did_path = Path(dynamic_config.get('anp_sdk.user_hosted_path', 'anp_users_hosted'))
     did_path = did_path.joinpath(f"user_{user_id}", "did_document.json")
