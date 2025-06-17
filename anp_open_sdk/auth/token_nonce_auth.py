@@ -13,7 +13,8 @@
 # limitations under the License.
 
 """Bearer token authentication module."""
-import logging
+from utils.log_base import logger
+
 import os
 from typing import Optional, Dict
 import jwt
@@ -46,7 +47,7 @@ def create_access_token(private_key_path, data: Dict, expires_delta: int = None)
     # Get private key for signing
     private_key = get_jwt_private_key(private_key_path)
     if not private_key:
-        logging.error("Failed to load JWT private key")
+        logger.debug("Failed to load JWT private key")
         raise HTTPException(status_code=500, detail="Internal server error during token generation")
     
     jwt_algorithm = config.anp_sdk.jwt_algorithm
@@ -82,16 +83,16 @@ def verify_timestamp(timestamp_str: str) -> bool:
         nonce_expire_minutes = config.anp_sdk.nonce_expire_minutes
         # Verify timestamp is within valid period
         if time_diff > nonce_expire_minutes:
-            logging.error(f"Timestamp expired. Current time: {current_time}, Request time: {request_time}, Difference: {time_diff} minutes")
+            logger.debug(f"Timestamp expired. Current time: {current_time}, Request time: {request_time}, Difference: {time_diff} minutes")
             return False
 
         return True
 
     except ValueError as e:
-        logging.error(f"Invalid timestamp format: {e}")
+        logger.debug(f"Invalid timestamp format: {e}")
         return False
     except Exception as e:
-        logging.error(f"Error verifying timestamp: {e}")
+        logger.debug(f"Error verifying timestamp: {e}")
         return False
 
 
@@ -109,16 +110,16 @@ def get_jwt_private_key(key_path: str = None ) -> Optional[str]:
     """
 
     if not os.path.exists(key_path):
-        logging.error(f"Private key file not found: {key_path}")
+        logger.debug(f"Private key file not found: {key_path}")
         return None
 
     try:
         with open(key_path, "r") as f:
             private_key = f.read()
-        logging.info(f"读取到Token签名密钥文件{key_path}，准备签发Token")
+        logger.debug(f"读取到Token签名密钥文件{key_path}，准备签发Token")
         return private_key
     except Exception as e:
-        logging.error(f"Error reading private key file: {e}")
+        logger.debug(f"Error reading private key file: {e}")
         return None
 
 
@@ -133,14 +134,14 @@ def get_jwt_public_key(key_path: str = None) -> Optional[str]:
         Optional[str]: The public key content as a string, or None if the file cannot be read
     """
     if not os.path.exists(key_path):
-        logging.error(f"Public key file not found: {key_path}")
+        logger.debug(f"Public key file not found: {key_path}")
         return None
 
     try:
         with open(key_path, "r") as f:
             public_key = f.read()
-        logging.info(f"Successfully read public key from {key_path}")
+        logger.debug(f"Successfully read public key from {key_path}")
         return public_key
     except Exception as e:
-        logging.error(f"Error reading public key file: {e}")
+        logger.debug(f"Error reading public key file: {e}")
         return None

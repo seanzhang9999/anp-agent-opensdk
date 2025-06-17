@@ -20,7 +20,7 @@ from typing import Dict, Any, Callable
 
 import nest_asyncio
 from fastapi import Request
-from loguru import logger
+from utils.log_base import  logging as logger
 from starlette.responses import JSONResponse
 
 from anp_open_sdk.config.legacy.dynamic_config import dynamic_config
@@ -159,7 +159,7 @@ class LocalAgent:
                     if self.id not in ANPSDK.instance.api_registry:
                         ANPSDK.instance.api_registry[self.id] = []
                     ANPSDK.instance.api_registry[self.id].append(api_info)
-                    print(f"注册 API: {api_info}")
+                    logger.debug(f"注册 API: {api_info}")
                 return f
             return decorator
         else:
@@ -176,7 +176,7 @@ class LocalAgent:
                 if self.id not in ANPSDK.instance.api_registry:
                     ANPSDK.instance.api_registry[self.id] = []
                 ANPSDK.instance.api_registry[self.id].append(api_info)
-                print(f"注册 API: {api_info}")
+                logger.debug(f"注册 API: {api_info}")
             return func
 
     def register_message_handler(self, msg_type: str, func: Callable = None):
@@ -317,7 +317,7 @@ class LocalAgent:
             import re
             import json
             use_local = get_config_value('USE_LOCAL_MAIL', False)
-            logger.info(f"注册邮箱检查前初始化，使用本地文件邮件后端参数设置:{use_local}")
+            logger.debug(f"注册邮箱检查前初始化，使用本地文件邮件后端参数设置:{use_local}")
             mail_manager = EnhancedMailManager(use_local_backend=use_local)
             responses = mail_manager.get_unread_hosted_responses()
             if not responses:
@@ -333,19 +333,19 @@ class LocalAgent:
                         else:
                             did_document = body
                     except Exception as e:
-                        logger.info(f"无法解析 did_document: {e}")
+                        logger.debug(f"无法解析 did_document: {e}")
                         continue
                     did_id = did_document.get('id', '')
                     m = re.search(r'did:wba:([^:]+)%3A(\d+):', did_id)
                     if not m:
-                        logger.info(f"无法从id中提取host:port: {did_id}")
+                        logger.debug(f"无法从id中提取host:port: {did_id}")
                         continue
                     host = m.group(1)
                     port = m.group(2)
                     success, hosted_dir_name = self._create_hosted_did_folder(host, port, did_document)
                     if success:
                         mail_manager.mark_message_as_read(message_id)
-                        logger.info(f"已创建托管DID文件夹: {hosted_dir_name}")
+                        logger.debug(f"已创建托管DID文件夹: {hosted_dir_name}")
                         count += 1
                     else:
                         logger.error(f"创建托管DID文件夹失败: {host}:{port}")
@@ -368,12 +368,12 @@ class LocalAgent:
             if did_document is None:
                 raise ValueError("当前 LocalAgent 未包含 did_document")
             use_local = get_config_value('USE_LOCAL_MAIL', False)
-            logger.info(f"注册邮箱检查前初始化，使用本地文件邮件后端参数设置:{use_local}")
+            logger.debug(f"注册邮箱检查前初始化，使用本地文件邮件后端参数设置:{use_local}")
             mail_manager = EnhancedMailManager(use_local_backend=use_local)
             register_email = os.environ.get('REGISTER_MAIL_USER')
             success = mail_manager.send_hosted_did_request(did_document, register_email)
             if success:
-                logger.info("托管DID申请邮件已发送")
+                logger.debug("托管DID申请邮件已发送")
                 return True
             else:
                 logger.error("发送托管DID申请邮件失败")
@@ -439,7 +439,7 @@ class LocalAgent:
                 dst_path = hosted_dir / key_file
                 if src_path.exists():
                     shutil.copy2(src_path, dst_path)
-                    logger.info(f"已复制密钥文件: {key_file}")
+                    logger.debug(f"已复制密钥文件: {key_file}")
                 else:
                     logger.warning(f"源密钥文件不存在: {src_path}")
             did_doc_path = hosted_dir / 'did_document.json'
@@ -459,7 +459,7 @@ class LocalAgent:
             config_path = hosted_dir / 'agent_cfg.yaml'
             with open(config_path, 'w', encoding='utf-8') as f:
                 yaml.dump(hosted_config, f, default_flow_style=False, allow_unicode=True)
-            logger.info(f"托管DID文件夹创建成功: {hosted_dir}")
+            logger.debug(f"托管DID文件夹创建成功: {hosted_dir}")
             return True, hosted_dir_name
         except Exception as e:
             logger.error(f"创建托管DID文件夹失败: {e}")

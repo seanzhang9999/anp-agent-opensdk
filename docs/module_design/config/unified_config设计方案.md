@@ -253,7 +253,7 @@ config.add_to_path("/usr/local/custom/bin")
 
 # 获取路径信息
 path_info = config.get_path_info()
-print(f"PATH 中有 {path_info['path_count']} 个目录")
+logger.debug(f"PATH 中有 {path_info['path_count']} 个目录")
 ```
 
 ### 4.3 配置更新
@@ -310,7 +310,7 @@ if missing:
 # 检查开发工具
 dev_status = config.check_dev_environment()
 for tool, status in dev_status.items():
-    print(f"{tool}: {'✓' if status else '✗'}")
+    logger.debug(f"{tool}: {'✓' if status else '✗'}")
 ```
 
 #### 配置导出
@@ -480,21 +480,21 @@ python_exe = config.find_in_path("python3")
 ```
 from anp_open_sdk.config.unified_config import config
 
-print(config.anp_sdk.debug_mode)
-print(config.llm.default_model)
-print(config.mail.smtp_server)
-print(config.secrets.openai_api_key)  # 只从环境变量读取
-print(config.to_dict())  # 导出全部配置（敏感信息自动隐藏）
+logger.debug(config.anp_sdk.debug_mode)
+logger.debug(config.llm.default_model)
+logger.debug(config.mail.smtp_server)
+logger.debug(config.secrets.openai_api_key)  # 只从环境变量读取
+logger.debug(config.to_dict())  # 导出全部配置（敏感信息自动隐藏）
 
 
 
 from anp_open_sdk.config.unified_config import config
 
 # 访问配置
-print(config.anp_sdk.debug_mode)
-print(config.llm.default_model)
-print(config.mail.smtp_server)
-print(config.secrets.openai_api_key)
+logger.debug(config.anp_sdk.debug_mode)
+logger.debug(config.llm.default_model)
+logger.debug(config.mail.smtp_server)
+logger.debug(config.secrets.openai_api_key)
 
 # 热加载
 config.reload()
@@ -503,13 +503,13 @@ config.reload()
 config.save()
 
 # 路径相关
-print(config.resolve_path("{APP_ROOT}/some/dir"))
-print(config.get_app_root())
-print(config.find_in_path("python"))
-print(config.get_path_info())
+logger.debug(config.resolve_path("{APP_ROOT}/some/dir"))
+logger.debug(config.get_app_root())
+logger.debug(config.find_in_path("python"))
+logger.debug(config.get_path_info())
 
 # 导出全部配置
-print(config.to_dict())
+logger.debug(config.to_dict())
 ```
 
 1. 想要配置一个不是默认值的配置项，应该怎么做？

@@ -24,7 +24,7 @@ import sys
 import re
 import urllib.parse
 import base64
-import logging
+from utils.log_base import logger
 from typing import Any, Dict, Tuple, Optional, List, Callable, Union
 import aiohttp
 import asyncio
@@ -43,6 +43,7 @@ import traceback
 from agent_connect.authentication.verification_methods import create_verification_method, VerificationMethod, CURVE_MAPPING
 import jcs
 
+from utils.log_base import logging as logger
 
 def _is_ip_address(hostname: str) -> bool:
     """Check if a hostname is an IP address."""
@@ -104,23 +105,23 @@ def create_did_wba_document(
     if _is_ip_address(hostname):
         raise ValueError("Hostname cannot be an IP address")
     
-    logging.info(f"Creating DID WBA document for hostname: {hostname}")
+    logger.debug(f"Creating DID WBA document for hostname: {hostname}")
     
     # Build base DID
     did_base = f"did:wba:{hostname}"
     if port is not None:
         encoded_port = urllib.parse.quote(f":{port}")
         did_base = f"{did_base}{encoded_port}"
-        logging.debug(f"Added port to DID base: {did_base}")
+        logger.debug(f"Added port to DID base: {did_base}")
     
     did = did_base
     if path_segments:
         did_path = ":".join(path_segments)
         did = f"{did_base}:{did_path}"
-        logging.debug(f"Added path segments to DID: {did}")
+        logger.debug(f"Added path segments to DID: {did}")
     
     # Generate secp256k1 key pair
-    logging.debug("Generating secp256k1 key pair")
+    logger.debug("Generating secp256k1 key pair")
     secp256k1_private_key = ec.generate_private_key(ec.SECP256K1())
     secp256k1_public_key = secp256k1_private_key.public_key()
     
@@ -167,7 +168,7 @@ def create_did_wba_document(
         )
     }
     
-    logging.info(f"Successfully created DID document with ID: {did}")
+    logger.debug(f"Successfully created DID document with ID: {did}")
     return did_document, keys
 
 async def resolve_did_wba_document(did: str) -> Dict:
@@ -184,7 +185,7 @@ async def resolve_did_wba_document(did: str) -> Dict:
         ValueError: If DID format is invalid
         aiohttp.ClientError: If HTTP request fails
     """
-    logging.info(f"Resolving DID document for: {did}")
+    logger.debug(f"Resolving DID document for: {did}")
 
     # Validate DID format
     if not did.startswith("did:wba:"):
@@ -208,7 +209,7 @@ async def resolve_did_wba_document(did: str) -> Dict:
             else:
                 url += '/.well-known/did.json'
             
-            logging.debug(f"Requesting DID document from URL: {url}")
+            logger.debug(f"Requesting DID document from URL: {url}")
             
             # TODO: Add DNS-over-HTTPS support
             # resolver = aiohttp.AsyncResolver(nameservers=['8.8.8.8'])
@@ -232,14 +233,14 @@ async def resolve_did_wba_document(did: str) -> Dict:
                         f"Got: {did_document.get('id')}"
                     )
 
-                logging.info(f"Successfully resolved DID document for: {did}")
+                logger.debug(f"Successfully resolved DID document for: {did}")
                 return did_document
 
     except aiohttp.ClientError as e:
-        logging.error(f"Failed to resolve DID document: {str(e)}\nStack trace:\n{traceback.format_exc()}")
+        logger.debug(f"Failed to resolve DID document: {str(e)}\nStack trace:\n{traceback.format_exc()}")
         return None
     except Exception as e:
-        logging.error(f"Failed to resolve DID document: {str(e)}\nStack trace:\n{traceback.format_exc()}")
+        logger.debug(f"Failed to resolve DID document: {str(e)}\nStack trace:\n{traceback.format_exc()}")
         return None
 
 # Add a sync wrapper for backward compatibility
@@ -278,7 +279,7 @@ def generate_auth_header_two_way(
     Raises:
         ValueError: If the DID document format is invalid.
     """
-    # logging.info("Starting to generate DID authentication header.")
+    # logger.debug("Starting to generate DID authentication header.")
     
     # Validate DID document
     did = did_document.get('id')
@@ -305,10 +306,10 @@ def generate_auth_header_two_way(
     
     # Normalize JSON using JCS
     canonical_json = jcs.canonicalize(data_to_sign)
-    logging.debug(f"generate_auth_header Canonical JSON: {canonical_json}")
-    print("[签名] canonical_json:", canonical_json)
+    logger.debug(f"generate_auth_header Canonical JSON: {canonical_json}")
+    logger.debug(f"[签名] canonical_json:{canonical_json}")
     content_hash = hashlib.sha256(canonical_json).digest()
-    print("[签名] content_hash:", content_hash.hex())
+    logger.debug(f"[签名] content_hash:{content_hash.hex()} ")
     # Calculate SHA-256 hash
     from agent_connect.authentication.did_wba_auth_header import DIDWbaAuthHeader
     # Create verifier and encode signature
@@ -326,9 +327,9 @@ def generate_auth_header_two_way(
         f'signature="{signature}"'
     )
     
-    #logging.info("Successfully generated DID authentication header.")
-    logging.info(f"生成认证头: 提交方 {did} -> 认证方 {resp_did}")
-    #logging.info(f"生成认证头: {auth_header}")
+    #logger.debug("Successfully generated DID authentication header.")
+    logger.debug(f"生成认证头: 提交方 {did} -> 认证方 {resp_did}")
+    #logger.debug(f"生成认证头: {auth_header}")
     
     return auth_header
 
@@ -440,7 +441,7 @@ def _extract_ec_public_key_from_jwk(jwk: Dict) -> ec.EllipticCurvePublicKey:
         public_numbers = ec.EllipticCurvePublicNumbers(x, y, curve)
         return public_numbers.public_key()
     except Exception as e:
-        logging.error(f"Invalid JWK parameters: {str(e)}\nStack trace:\n{traceback.format_exc()}")
+        logger.debug(f"Invalid JWK parameters: {str(e)}\nStack trace:\n{traceback.format_exc()}")
         raise ValueError(f"Invalid JWK parameters: {str(e)}")
 
 def _extract_ed25519_public_key_from_multibase(multibase: str) -> ed25519.Ed25519PublicKey:
@@ -462,7 +463,7 @@ def _extract_ed25519_public_key_from_multibase(multibase: str) -> ed25519.Ed2551
         key_bytes = base58.b58decode(multibase[1:])
         return ed25519.Ed25519PublicKey.from_public_bytes(key_bytes)
     except Exception as e:
-        logging.error(f"Invalid multibase key: {str(e)}\nStack trace:\n{traceback.format_exc()}")
+        logger.debug(f"Invalid multibase key: {str(e)}\nStack trace:\n{traceback.format_exc()}")
         raise ValueError(f"Invalid multibase key: {str(e)}")
 
 def _extract_ed25519_public_key_from_base58(base58_key: str) -> ed25519.Ed25519PublicKey:
@@ -482,7 +483,7 @@ def _extract_ed25519_public_key_from_base58(base58_key: str) -> ed25519.Ed25519P
         key_bytes = base58.b58decode(base58_key)
         return ed25519.Ed25519PublicKey.from_public_bytes(key_bytes)
     except Exception as e:
-        logging.error(f"Invalid base58 key: {str(e)}\nStack trace:\n{traceback.format_exc()}")
+        logger.debug(f"Invalid base58 key: {str(e)}\nStack trace:\n{traceback.format_exc()}")
         raise ValueError(f"Invalid base58 key: {str(e)}")
 def _extract_secp256k1_public_key_from_multibase(multibase: str) -> ec.EllipticCurvePublicKey:
     """
@@ -515,7 +516,7 @@ def _extract_secp256k1_public_key_from_multibase(multibase: str) -> ec.EllipticC
             key_bytes
         )
     except Exception as e:
-        logging.error(f"Invalid multibase key: {str(e)}\nStack trace:\n{traceback.format_exc()}")
+        logger.debug(f"Invalid multibase key: {str(e)}\nStack trace:\n{traceback.format_exc()}")
         raise ValueError(f"Invalid multibase key: {str(e)}")
 
 def _extract_public_key(verification_method: Dict) -> Union[ec.EllipticCurvePublicKey, ed25519.Ed25519PublicKey]:
@@ -601,7 +602,7 @@ def extract_auth_header_parts_two_way(auth_header: str) -> Tuple[str, str, str, 
     Raises:
         ValueError: If any required field is missing in the auth header
     """
-    logging.debug(f"Extracting auth header parts from: {auth_header}")
+    logger.debug(f"Extracting auth header parts from: {auth_header}")
     
     required_fields = {
         'did': r'(?i)did="([^"]+)"',
@@ -623,7 +624,7 @@ def extract_auth_header_parts_two_way(auth_header: str) -> Tuple[str, str, str, 
             raise ValueError(f"Missing required field in auth header: {field}")
         parts[field] = match.group(1)
     
-    logging.debug(f"Extracted auth header parts: {parts}")
+    logger.debug(f"Extracted auth header parts: {parts}")
     return (parts['did'], parts['nonce'], parts['timestamp'], 
             parts['resp_did'], parts['verification_method'], parts['signature'])
 
@@ -645,7 +646,7 @@ def verify_auth_header_signature_two_way(
             - Boolean indicating if verification was successful
             - Message describing the verification result or error
     """
-    #logging.info("Starting DID authentication header verification")
+    #logger.debug("Starting DID authentication header verification")
     
     try:
         # Extract auth header parts
@@ -667,8 +668,8 @@ def verify_auth_header_signature_two_way(
 
         canonical_json = jcs.canonicalize(data_to_verify)
         content_hash = hashlib.sha256(canonical_json).digest()
-        print("[验签] canonical_json:", canonical_json)
-        print("[验签] content_hash:", content_hash.hex())
+        logger.debug(f"[验签] canonical_json:{canonical_json}")
+        logger.debug(f"[验签] content_hash:{content_hash.hex()}")
 
         verification_method_id = f"{client_did}#{verification_method}"
         method_dict = _find_verification_method(did_document, verification_method_id)
@@ -686,10 +687,10 @@ def verify_auth_header_signature_two_way(
             return False, f"Verification error: {str(e)}"
             
     except ValueError as e:
-        logging.error(f"Error extracting auth header parts: {str(e)}")
+        logger.debug(f"Error extracting auth header parts: {str(e)}")
         return False, str(e)
     except Exception as e:
-        logging.error(f"Error during verification process: {str(e)}")
+        logger.debug(f"Error during verification process: {str(e)}")
         return False, f"Verification process error: {str(e)}"
 
 def generate_auth_json(
@@ -713,7 +714,7 @@ def generate_auth_json(
     Raises:
         ValueError: If DID document format is invalid
     """
-    logging.info("Starting to generate DID authentication JSON")
+    logger.debug("Starting to generate DID authentication JSON")
     
     # Validate DID document
     did = did_document.get('id')
@@ -757,7 +758,7 @@ def generate_auth_json(
         "signature": signature
     }
     
-    logging.info("Successfully generated DID authentication JSON")
+    logger.debug("Successfully generated DID authentication JSON")
     return json.dumps(auth_json)
 
 def verify_auth_json_signature(
@@ -778,7 +779,7 @@ def verify_auth_json_signature(
             - Boolean indicating if verification was successful
             - Message describing the verification result or error
     """
-    logging.info("Starting DID authentication JSON verification")
+    logger.debug("Starting DID authentication JSON verification")
     
     try:
         # Parse JSON string (if input is string)
@@ -832,8 +833,8 @@ def verify_auth_json_signature(
             return False, f"Verification error: {str(e)}"
             
     except ValueError as e:
-        logging.error(f"Error extracting authentication data: {str(e)}")
+        logger.debug(f"Error extracting authentication data: {str(e)}")
         return False, str(e)
     except Exception as e:
-        logging.error(f"Error during verification process: {str(e)}")
+        logger.debug(f"Error during verification process: {str(e)}")
         return False, f"Verification process error: {str(e)}"

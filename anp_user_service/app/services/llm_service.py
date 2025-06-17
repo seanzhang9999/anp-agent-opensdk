@@ -1,5 +1,6 @@
-import logging
-import os
+from typer.cli import utils_app
+
+from utils.log_base import logger
 from pathlib import Path
 from typing import List, Dict, Optional, Any
 import httpx
@@ -46,7 +47,7 @@ async def get_llm_response_with_rag(
 
     try:
         async with httpx.AsyncClient() as client:
-            print(f"start llm{payload}" )
+            logger.debug(f"start llm{payload}" )
             response = await client.post(
                 str(llm_config.apiBase).rstrip('/') + "/chat/completions", # Common path
                 json=payload,
@@ -56,7 +57,7 @@ async def get_llm_response_with_rag(
 
         response.raise_for_status() # Will raise an exception for 4XX/5XX responses
         data = response.json()
-        print(f"get llm response {data}")
+        logger.debug(f"get llm response {data}")
         
         if data.get("choices") and len(data["choices"]) > 0:
             reply = data["choices"][0].get("message", {}).get("content")

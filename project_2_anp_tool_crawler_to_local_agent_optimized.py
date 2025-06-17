@@ -25,7 +25,7 @@ import yaml
 from anyio import Path
 from dotenv import load_dotenv
 from fastapi import Request
-from loguru import logger
+from utils.log_base import  logging as logger
 from starlette.responses import JSONResponse
 
 from anp_open_sdk.anp_sdk_user_data import LocalUserDataManager
@@ -110,7 +110,7 @@ class ANPToolCrawler:
             if user_data:
                 agent = LocalAgent.from_did(user_data.did)
                 self.sdk.register_agent(agent)
-                logger.info(f"使用托管身份智能体进行爬取: {agent.name}")
+                logger.debug(f"使用托管身份智能体进行爬取: {agent.name}")
                 return agent
             else:
                 logger.error("未找到托管智能体")
@@ -193,7 +193,7 @@ class ANPToolCrawler:
                                  use_two_way_auth: bool = True, task_type: str = "general",
                                  max_documents: int = 10, agent_name: str = "智能爬虫"):
         """通用智能爬虫功能"""
-        logger.info(f"启动{agent_name}智能爬取: {initial_url}")
+        logger.debug(f"启动{agent_name}智能爬取: {initial_url}")
 
         # 初始化变量
         visited_urls = set()
@@ -216,7 +216,7 @@ class ANPToolCrawler:
             crawled_documents.append(
                 {"url": initial_url, "method": "GET", "content": initial_content}
             )
-            logger.info(f"成功获取初始URL: {initial_url}")
+            logger.debug(f"成功获取初始URL: {initial_url}")
         except Exception as e:
             logger.error(f"获取初始URL失败: {str(e)}")
             return self._create_error_result(str(e), visited_urls, crawled_documents, task_type)
@@ -305,10 +305,10 @@ class ANPToolCrawler:
 
         while current_iteration < max_documents:
             current_iteration += 1
-            logger.info(f"开始爬取迭代 {current_iteration}/{max_documents}")
+            logger.debug(f"开始爬取迭代 {current_iteration}/{max_documents}")
 
             if len(crawled_documents) >= max_documents:
-                logger.info(f"已达到最大爬取文档数 {max_documents}，停止爬取")
+                logger.debug(f"已达到最大爬取文档数 {max_documents}，停止爬取")
                 messages.append({
                     "role": "system",
                     "content": f"你已爬取 {len(crawled_documents)} 个文档，达到最大爬取限制 {max_documents}。请根据获取的信息做出最终总结。",
@@ -329,12 +329,12 @@ class ANPToolCrawler:
                     "tool_calls": response_message.tool_calls,
                 })
 
-                logger.info(f"\n模型思考:\n{response_message.content}")
+                logger.debug(f"\n模型思考:\n{response_message.content}")
                 if response_message.tool_calls:
-                    logger.info(f"\n模型调用:\n{response_message.tool_calls}")
+                    logger.debug(f"\n模型调用:\n{response_message.tool_calls}")
 
                 if not response_message.tool_calls:
-                    logger.info("模型没有请求任何工具调用，结束爬取")
+                    logger.debug("模型没有请求任何工具调用，结束爬取")
                     break
 
                 # 处理工具调用
@@ -406,7 +406,7 @@ class ANPToolCrawler:
         if len(body) == 0:
             message_value = self._find_message_in_args(function_args)
             if message_value is not None:
-                logger.info(f"模型发出调用消息：{message_value}")
+                logger.debug(f"模型发出调用消息：{message_value}")
                 body = {"message": message_value}
 
         try:
@@ -421,7 +421,7 @@ class ANPToolCrawler:
                     url=url, method=method, headers=headers, params=params, body=body
                 )
             
-            logger.info(f"ANPTool 响应 [url: {url}]")
+            logger.debug(f"ANPTool 响应 [url: {url}]")
             
             visited_urls.add(url)
             crawled_documents.append({"url": url, "method": method, "content": result})
@@ -465,7 +465,7 @@ class ANPToolCrawler:
 
 async def create_python_agent(sdk: ANPSDK):
     """创建Python代码生成智能体"""
-    logger.info("步骤1: 创建Python代码生成智能体")
+    logger.debug("步骤1: 创建Python代码生成智能体")
 
     from anp_open_sdk.anp_sdk_user_data import did_create_user
 
@@ -484,19 +484,19 @@ async def create_python_agent(sdk: ANPSDK):
         logger.error("智能体创建失败")
         return None
 
-    logger.info(f"智能体创建成功，DID: {did_document['id']}")
+    logger.debug(f"智能体创建成功，DID: {did_document['id']}")
 
     # 创建LocalAgent实例并注册
     python_agent = LocalAgent.from_did(did_document['id'])
     sdk.register_agent(python_agent)
-    logger.info(f"智能体 {python_agent.name} 注册成功")
+    logger.debug(f"智能体 {python_agent.name} 注册成功")
     
     return python_agent
 
 
 def register_agent_api_handlers(sdk: ANPSDK, python_agent: LocalAgent):
     """为Python智能体注册API处理函数"""
-    logger.info("步骤2: 注册API处理函数")
+    logger.debug("步骤2: 注册API处理函数")
     
     @python_agent.expose_api("/tasks/send", methods=["POST"])
     async def task_receive(request_data, request: Request):
@@ -524,13 +524,13 @@ def register_agent_api_handlers(sdk: ANPSDK, python_agent: LocalAgent):
             if not message:
                 return JSONResponse({"error": "Missing 'message' field"}, status_code=400)
                 
-            logger.info(f"收到代码生成请求: {message}")
+            logger.debug(f"收到代码生成请求: {message}")
             
             # 调用LLM生成代码
             code_response = await call_llm(message)
             code = extract_code_from_response(code_response)
             
-            logger.info("代码生成完成")
+            logger.debug("代码生成完成")
             
             # 构建响应
             response = {
@@ -546,12 +546,12 @@ def register_agent_api_handlers(sdk: ANPSDK, python_agent: LocalAgent):
             return JSONResponse({"error": str(e)}, status_code=500)
             
         finally:
-            logger.info(f"任务耗时: {time.time() - start:.2f}s")
+            logger.debug(f"任务耗时: {time.time() - start:.2f}s")
 
 
 async def configure_agent_interfaces(python_agent: LocalAgent):
     """配置智能体API和接口描述"""
-    logger.info("步骤3: 配置智能体接口")
+    logger.debug("步骤3: 配置智能体接口")
 
     from anp_open_sdk.anp_sdk_user_data import get_user_dir_did_doc_by_did
 
@@ -579,7 +579,7 @@ async def configure_agent_interfaces(python_agent: LocalAgent):
     # 保存配置文件
     await save_interface_files(user_full_path, agent_description, api_interface, jsonrpc_interface)
     
-    logger.info("智能体接口配置完成")
+    logger.debug("智能体接口配置完成")
     return True
 
 
@@ -709,7 +709,7 @@ async def save_interface_files(user_full_path: str, agent_description: dict,
     
     with open(template_ad_path, 'w', encoding='utf-8') as f:
         json.dump(agent_description, f, ensure_ascii=False, indent=2)
-    logger.info(f"智能体描述文件已保存: {template_ad_path}")
+    logger.debug(f"智能体描述文件已保存: {template_ad_path}")
 
     # 保存YAML接口文件
     template_yaml_path = Path(user_full_path) / "codegen-interface.yaml"
@@ -718,7 +718,7 @@ async def save_interface_files(user_full_path: str, agent_description: dict,
     
     with open(template_yaml_path, "w", encoding="utf-8") as file:
         yaml.dump(api_interface, file, allow_unicode=True)
-    logger.info(f"YAML接口文件已保存: {template_yaml_path}")
+    logger.debug(f"YAML接口文件已保存: {template_yaml_path}")
 
     # 保存JSON-RPC接口文件
     template_jsonrpc_path = Path(user_full_path) / "codegen-interface.json"
@@ -727,13 +727,13 @@ async def save_interface_files(user_full_path: str, agent_description: dict,
     
     with open(template_jsonrpc_path, "w", encoding="utf-8") as file:
         json.dump(jsonrpc_interface, file, indent=2, ensure_ascii=False)
-    logger.info(f"JSON-RPC接口文件已保存: {template_jsonrpc_path}")
+    logger.debug(f"JSON-RPC接口文件已保存: {template_jsonrpc_path}")
 
 
 async def run_crawler_demo(crawler: ANPToolCrawler, target_agent: LocalAgent, 
                          task_input: str, output_file: str = "crawler_result.json"):
     """运行爬虫演示 - 基本版本"""
-    logger.info(f"开始爬虫演示: {task_input}")
+    logger.debug(f"开始爬虫演示: {task_input}")
     
     result = await crawler.run_crawler_demo(
         task_input=task_input,
@@ -747,7 +747,7 @@ async def run_crawler_demo(crawler: ANPToolCrawler, target_agent: LocalAgent,
     # 保存结果到文件
     with open(output_file, 'w', encoding='utf-8') as f:
         json.dump(result, f, ensure_ascii=False, indent=2, cls=CustomJSONEncoder)
-    logger.info(f"爬取结果已保存到 {output_file}")
+    logger.debug(f"爬取结果已保存到 {output_file}")
     
     return result
 
@@ -756,7 +756,7 @@ async def run_crawler_demo_with_different_agent(crawler: ANPToolCrawler,
                                                target_agent: LocalAgent, 
                                                sdk: ANPSDK, task_input: str):
     """使用不同智能体身份运行爬虫演示"""
-    logger.info(f"使用不同智能体身份运行爬虫演示: {task_input}")
+    logger.debug(f"使用不同智能体身份运行爬虫演示: {task_input}")
     
     # 获取另一个智能体
     user_data = sdk.user_data_manager.get_user_data_by_name("本田")
@@ -779,7 +779,7 @@ async def run_crawler_demo_with_different_agent(crawler: ANPToolCrawler,
     output_file = "anp_sdk_demo/demo_data/agent1_crawler_result.json"
     with open(output_file, 'w', encoding='utf-8') as f:
         json.dump(result, f, ensure_ascii=False, indent=2, cls=CustomJSONEncoder)
-    logger.info(f"爬取结果已保存到 {output_file}")
+    logger.debug(f"爬取结果已保存到 {output_file}")
     
     return result
 
@@ -788,7 +788,7 @@ async def run_web_agent_crawler_demo(crawler: ANPToolCrawler,
                                    task_input: str = "查询北京天津上海今天的天气",
                                    initial_url: str = "https://agent-search.ai/ad.json"):
     """运行Web智能体爬虫演示 - 来自project_1的功能"""
-    logger.info(f"开始Web智能体爬虫演示: {task_input}")
+    logger.debug(f"开始Web智能体爬虫演示: {task_input}")
     
     result = await crawler.run_crawler_demo(
         task_input=task_input,
@@ -803,14 +803,14 @@ async def run_web_agent_crawler_demo(crawler: ANPToolCrawler,
     output_file = "web_agent_crawler_result.json"
     with open(output_file, 'w', encoding='utf-8') as f:
         json.dump(result, f, ensure_ascii=False, indent=2, cls=CustomJSONEncoder)
-    logger.info(f"Web智能体爬取结果已保存到 {output_file}")
+    logger.debug(f"Web智能体爬取结果已保存到 {output_file}")
     
     return result
 
 
 async def cleanup_resources(sdk: ANPSDK, python_agent: LocalAgent):
     """清理临时资源"""
-    logger.info("步骤6: 清理临时资源")
+    logger.debug("步骤6: 清理临时资源")
     
     try:
         from anp_open_sdk.anp_sdk_user_data import get_user_dir_did_doc_by_did
@@ -823,7 +823,7 @@ async def cleanup_resources(sdk: ANPSDK, python_agent: LocalAgent):
             
         # 从SDK注销智能体
         sdk.unregister_agent(python_agent.id)
-        logger.info(f"智能体 {python_agent.name} 已从SDK注销")
+        logger.debug(f"智能体 {python_agent.name} 已从SDK注销")
         
         # 删除用户目录
         user_dirs = dynamic_config.get('anp_sdk.user_did_path')
@@ -831,7 +831,7 @@ async def cleanup_resources(sdk: ANPSDK, python_agent: LocalAgent):
         
         if os.path.exists(user_full_path):
             shutil.rmtree(user_full_path)
-            logger.info(f"用户目录已删除: {user_full_path}")
+            logger.debug(f"用户目录已删除: {user_full_path}")
             
     except Exception as e:
         logger.error(f"清理资源时发生错误: {e}")
@@ -936,10 +936,10 @@ async def main():
     5. 运行Web智能体爬虫演示
     6. 清理资源
     """
-    logger.info("=== ANP智能爬虫演示开始 ===")
+    logger.debug("=== ANP智能爬虫演示开始 ===")
     
     # 步骤1: 初始化SDK
-    logger.info("步骤1: 初始化ANP SDK")
+    logger.debug("步骤1: 初始化ANP SDK")
     sdk = ANPSDK()
     
     # 步骤2: 创建Python代码生成智能体
@@ -958,17 +958,17 @@ async def main():
         return
     
     # 步骤5: 启动服务
-    logger.info("步骤4: 启动ANP服务")
+    logger.debug("步骤4: 启动ANP服务")
     sdk_manager = DemoSDKManager()
     sdk_manager.start_server(sdk)
     
     # 步骤6: 创建并运行爬虫演示
-    logger.info("步骤5: 运行智能爬虫演示")
+    logger.debug("步骤5: 运行智能爬虫演示")
     crawler = ANPToolCrawler(sdk)
     
     try:
         # 演示1: 基本爬虫功能 - 生成冒泡排序代码
-        logger.info("\n=== 演示1: 本地智能体 - 基本爬虫功能 ===")
+        logger.debug("\n=== 演示1: 本地智能体 - 基本爬虫功能 ===")
         await run_crawler_demo(
             crawler, 
             python_agent, 
@@ -977,7 +977,7 @@ async def main():
         )
         
         # 演示2: 使用不同智能体身份 - 生成随机数代码
-        logger.info("\n=== 演示2: 本地智能体 - 使用不同智能体身份 ===")
+        logger.debug("\n=== 演示2: 本地智能体 - 使用不同智能体身份 ===")
         await run_crawler_demo_with_different_agent(
             crawler, 
             python_agent, 
@@ -986,14 +986,14 @@ async def main():
         )
         
         # 演示3: Web智能体爬虫演示 - 来自project_1的功能
-        logger.info("\n=== 演示3: Web智能体 - 天气查询功能 ===")
+        logger.debug("\n=== 演示3: Web智能体 - 天气查询功能 ===")
         await run_web_agent_crawler_demo(
             crawler,
             "查询北京天津上海今天的天气",
             "https://agent-search.ai/ad.json"
         )
         
-        logger.info("\n=== 所有演示完成 ===")
+        logger.debug("\n=== 所有演示完成 ===")
         
     except Exception as e:
         logger.error(f"演示过程中发生错误: {e}")
@@ -1003,7 +1003,7 @@ async def main():
     finally:
         # 步骤7: 清理资源
         await cleanup_resources(sdk, python_agent)
-        logger.info("=== ANP智能爬虫演示结束 ===")
+        logger.debug("=== ANP智能爬虫演示结束 ===")
 
 
 if __name__ == "__main__":

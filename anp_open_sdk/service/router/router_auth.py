@@ -19,7 +19,8 @@ import sys
 import os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..","..")))
-import logging
+from utils.log_base import logger
+
 from typing import Dict, Optional
 from fastapi import APIRouter, Request, Header, HTTPException, Depends
 
@@ -58,10 +59,10 @@ async def test_endpoint(request: Request) -> Dict:
                 user = auth_dict.get("req_did")
 
     except Exception as e:
-        logging.warning(f"解析认证数据时出错: {e}")
+        logger.warning(f"解析认证数据时出错: {e}")
         user = None
     
-    #logging.info(f"请求方{user}通过认证中间件认证，认证方返回token和自身认证头")
+    #logger.debug(f"请求方{user}通过认证中间件认证，认证方返回token和自身认证头")
 
     if not user:
         return {
@@ -90,7 +91,7 @@ def parse_auth_str_to_dict(auth_str: str) -> dict:
                 k, v = kv.split("=", 1)
                 result[k.strip()] = v.strip('"')
     except Exception as e:
-        logging.warning(f"解析认证字符串为字典时出错: {e}")
+        logger.warning(f"解析认证字符串为字典时出错: {e}")
     return result
     
     

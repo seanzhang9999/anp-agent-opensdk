@@ -1,6 +1,6 @@
 import threading
 import time
-from loguru import logger
+from utils.log_base import  logging as logger
 from anp_open_sdk.anp_sdk import ANPSDK
 
 
@@ -13,13 +13,13 @@ class DemoSDKManager:
 
     def initialize_sdk(self) -> ANPSDK:
         """初始化SDK"""
-        logger.info("初始化ANPSDK...")
+        logger.debug("初始化ANPSDK...")
         self.sdk = ANPSDK()
         return self.sdk
 
     def start_server(self, sdk: ANPSDK):
         """启动服务器"""
-        logger.info("启动服务器...")
+        logger.debug("启动服务器...")
         
         def start_server_thread():
             try:
@@ -33,11 +33,11 @@ class DemoSDKManager:
         
         # 等待服务器启动
         time.sleep(0.5)
-        logger.info("服务器启动完成")
+        logger.debug("服务器启动完成")
         return self.server_thread
 
     def stop_server(self, sdk: ANPSDK):
         """停止服务器"""
         if sdk:
-            logger.info("停止服务器...")
+            logger.debug("停止服务器...")
             sdk.stop_server()

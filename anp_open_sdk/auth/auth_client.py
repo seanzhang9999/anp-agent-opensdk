@@ -1,5 +1,6 @@
 import json
-import logging
+from utils.log_base import logger
+
 import string
 from typing import Optional, Dict, Tuple, Any
 
@@ -11,7 +12,7 @@ from ..anp_sdk_agent import LocalAgent
 from ..anp_sdk_user_data import LocalUserDataManager
 from ..auth.schemas import DIDCredentials, AuthenticationContext
 from ..auth.did_auth_base import BaseDIDAuthenticator
-from loguru import logger
+from utils.log_base import  logging as logger
 
 
 def create_authenticator(auth_method: str = "wba") -> BaseDIDAuthenticator:
@@ -215,8 +216,8 @@ async def agent_token_request(target_url: str, token: str, sender_did: str, targ
                     response_data = await response.json() if status == 200 else {}
                     return status, response_data
             else:
-                logging.error(f"Unsupported HTTP method: {method}")
+                logger.debug(f"Unsupported HTTP method: {method}")
                 return 400, {"error": "Unsupported HTTP method"}
     except Exception as e:
-        logging.error(f"Error sending request with token: {e}")
+        logger.debug(f"Error sending request with token: {e}")
         return 500, {"error": str(e)}

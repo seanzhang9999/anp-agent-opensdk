@@ -5,7 +5,7 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..
 sys.path.append(project_root)
 
 from colorama import init, Fore, Style
-from loguru import logger
+from utils.log_base import  logging as logger
 from anp_open_sdk.config.legacy.dynamic_config import dynamic_config
 
 init()  # 初始化colorama

@@ -36,7 +36,10 @@ class ColoredFormatter(logging.Formatter):
         return color + message + self.COLORS["RESET"]
 
 
-def setup_logging(level=logging.INFO):
+def setup_logging(level=logging.debug):
+    # Get root logger
+    logger = logging.getLogger()
+    logger.setLevel(level)
     # Get project name
     project_name = os.path.basename(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -58,7 +61,7 @@ def setup_logging(level=logging.INFO):
             )
         os.makedirs(log_dir, exist_ok=True)
     except Exception as e:
-        print(f"Error setting up log directory: {e}")
+        logger.debug(f"Error setting up log directory: {e}")
         # If failed, use backup log directory
         log_dir = os.path.join(
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "logs"
@@ -70,11 +73,9 @@ def setup_logging(level=logging.INFO):
         log_dir, f"{project_name}_{datetime.now().strftime('%Y%m%d')}.log"
     )
 
-    print("Log file: ", log_file)
+    logger.debug(f"Log file:  {log_file}")
 
-    # Get root logger
-    logger = logging.getLogger()
-    logger.setLevel(level)
+
 
     # Clear existing handlers
     logger.handlers.clear()
@@ -111,3 +112,8 @@ def setup_logging(level=logging.INFO):
 # To maintain backward compatibility, keep set_log_color_level function, but make it call setup_logging
 def set_log_color_level(level):
     return setup_logging(level)
+
+from anp_open_sdk.config import config
+log_level_str = config.logger.log_level.upper()
+log_level = getattr(logging, log_level_str, logging.INFO)  # 转换为 int，默认INFO
+logger = setup_logging(log_level)

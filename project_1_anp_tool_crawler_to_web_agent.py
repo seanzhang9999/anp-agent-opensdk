@@ -10,7 +10,7 @@ import json
 from json import JSONEncoder
 from typing import Dict, Any, List
 from dotenv import load_dotenv
-from loguru import logger
+from utils.log_base import  logging as logger
 
 # 加载环境变量
 load_dotenv()
@@ -52,7 +52,7 @@ class ANPToolCrawler:
             if user_data:
                 agent_anptool = LocalAgent.from_did(user_data.did)
                 self.sdk.register_agent(agent_anptool)
-                logger.info(f"使用托管智能体: {agent_anptool.name}")
+                logger.debug(f"使用托管智能体: {agent_anptool.name}")
             else:
                 logger.error("未找到托管智能体，停止")
                 return
@@ -159,14 +159,14 @@ class ANPToolCrawler:
                 - task_type: 任务类型
                 - messages: 与大模型的对话历史（可选）
         """
-        logger.info(f"启动{agent_name}智能爬取: {initial_url}")
+        logger.debug(f"启动{agent_name}智能爬取: {initial_url}")
 
         # 初始化变量
         visited_urls = set()
         crawled_documents = []
 
         # 初始化ANPTool
-        logger.info("初始化ANP工具...")
+        logger.debug("初始化ANP工具...")
         anp_tool = ANPTool(
             did_document_path=did_document_path,
             private_key_path=private_key_path
@@ -174,7 +174,7 @@ class ANPToolCrawler:
 
         # 获取初始URL内容
         try:
-            logger.info(f"开始获取初始URL: {initial_url}")
+            logger.debug(f"开始获取初始URL: {initial_url}")
             initial_content = await anp_tool.execute_with_two_way_auth(
             url=initial_url, method = 'GET', headers ={}, params ={}, body ={},
             anpsdk = anpsdk, caller_agent = caller_agent,
@@ -184,7 +184,7 @@ class ANPToolCrawler:
             crawled_documents.append(
                 {"url": initial_url, "method": "GET", "content": initial_content}
             )
-            logger.info(f"成功获取初始URL: {initial_url}")
+            logger.debug(f"成功获取初始URL: {initial_url}")
         except Exception as e:
             logger.error(f"获取初始URL {initial_url} 失败: {str(e)}")
             return {
@@ -245,18 +245,18 @@ class ANPToolCrawler:
 
         while current_iteration < max_documents:
             current_iteration += 1
-            logger.info(f"开始爬取迭代 {current_iteration}/{max_documents}")
+            logger.debug(f"开始爬取迭代 {current_iteration}/{max_documents}")
 
             # 检查是否已达到最大爬取文档数
             if len(crawled_documents) >= max_documents:
-                logger.info(f"已达到最大爬取文档数 {max_documents}，停止爬取")
+                logger.debug(f"已达到最大爬取文档数 {max_documents}，停止爬取")
                 messages.append({
                     "role": "system",
                     "content": f"你已爬取 {len(crawled_documents)} 个文档，达到最大爬取限制 {max_documents}。请根据获取的信息做出最终总结。",
                 })
 
             # 获取模型响应
-            logger.info(f"迭代 {current_iteration}: 请求模型分析和决策")
+            logger.debug(f"迭代 {current_iteration}: 请求模型分析和决策")
 
             try:
                 completion = await client.chat.completions.create(
@@ -275,16 +275,16 @@ class ANPToolCrawler:
 
                 # 显示模型分析
                 if response_message.content:
-                    logger.info(f"模型分析:\n{response_message.content}")
+                    logger.debug(f"模型分析:\n{response_message.content}")
 
                 # 检查对话是否应该结束
                 if not response_message.tool_calls:
-                    logger.info("模型没有请求任何工具调用，结束爬取")
+                    logger.debug("模型没有请求任何工具调用，结束爬取")
                     break
 
                 # 处理工具调用
-                logger.info(f"迭代 {current_iteration}: 执行工具调用")
-                logger.info(f"执行 {len(response_message.tool_calls)} 个工具调用")
+                logger.debug(f"迭代 {current_iteration}: 执行工具调用")
+                logger.debug(f"执行 {len(response_message.tool_calls)} 个工具调用")
 
                 for tool_call in response_message.tool_calls:
                     if use_two_way_auth:
@@ -304,7 +304,7 @@ class ANPToolCrawler:
 
                 # 如果已达到最大爬取文档数，做出最终总结
                 if (len(crawled_documents) >= max_documents and current_iteration < max_documents):
-                    logger.info(f"已达到最大爬取文档数 {max_documents}，做出最终总结")
+                    logger.debug(f"已达到最大爬取文档数 {max_documents}，做出最终总结")
                     continue
 
             except Exception as e:
@@ -348,14 +348,14 @@ class ANPToolCrawler:
         }
 
         # 显示结果
-        logger.info(f"\n=== {agent_name}响应 ===")
-        logger.info(result["content"])
+        logger.debug(f"\n=== {agent_name}响应 ===")
+        logger.debug(result["content"])
 
-        logger.info("\n=== 访问过的URL ===")
+        logger.debug("\n=== 访问过的URL ===")
         for url in result.get("visited_urls", []):
-            logger.info(url)
+            logger.debug(url)
 
-        logger.info(f"\n=== 总共爬取了 {len(result.get('crawled_documents', []))} 个文档 ===")
+        logger.debug(f"\n=== 总共爬取了 {len(result.get('crawled_documents', []))} 个文档 ===")
 
         return result
 
@@ -407,7 +407,7 @@ class ANPToolCrawler:
                     result = await anp_tool.execute(
                         url=url, method=method, headers=headers, params=params, body=body
                     )
-                logger.info(f"ANPTool 响应 [url: {url}]")
+                logger.debug(f"ANPTool 响应 [url: {url}]")
 
                 # 记录访问过的 URL 和获取的内容
                 visited_urls.add(url)
@@ -481,7 +481,7 @@ async def main():
         with open(output_file, 'w', encoding='utf-8') as f:
             serializable_result = ensure_serializable_keys(result)
             json.dump(serializable_result, f, ensure_ascii=False, indent=2, cls=CustomJSONEncoder)
-        logger.info(f"爬取结果已保存到 {output_file}")
+        logger.debug(f"爬取结果已保存到 {output_file}")
 
     except Exception as e:
         logger.error(f"演示过程中发生错误: {e}")

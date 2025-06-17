@@ -11,7 +11,7 @@ import json
 import base64
 from typing import Optional, Dict, Any, Tuple
 import re
-from loguru import logger
+from utils.log_base import  logging as logger
 
 from agent_connect.authentication.did_wba import extract_auth_header_parts
 
@@ -142,7 +142,8 @@ class WBADIDAuthenticator(BaseDIDAuthenticator):
     async def authenticate_request(self, context: AuthenticationContext, credentials: DIDCredentials) -> Tuple[bool, str, Dict[str, Any]]:
         """执行WBA认证请求"""
         import aiohttp
-        import logging
+        from utils.log_base import logger
+
         """执行WBA认证请求"""
         try:
             # 构建认证头
@@ -185,10 +186,10 @@ class WBADIDAuthenticator(BaseDIDAuthenticator):
                                 response_data = {"text": response_text}
                         return status, response.headers, response_data
                 else:
-                    logging.error(f"Unsupported HTTP method: {method}")
+                    logger.debug(f"Unsupported HTTP method: {method}")
                     return False, "",{"error": "Unsupported HTTP method"}
         except Exception as e:
-            logging.error(f"Error in authenticate_request: {e}", exc_info=True)
+            logger.debug(f"Error in authenticate_request: {e}", exc_info=True)
             return False, "", {"error": str(e)}
 
 
@@ -200,7 +201,8 @@ class WBADIDAuthenticator(BaseDIDAuthenticator):
             )
             from anp_open_sdk.auth.did_auth_wba_custom_did_resolver import resolve_local_did_document
             from anp_open_sdk.config.legacy.dynamic_config import dynamic_config
-            import logging
+            from utils.log_base import logger
+
 
             # 1. 尝试解析为两路认证
             try:
@@ -237,10 +239,10 @@ class WBADIDAuthenticator(BaseDIDAuthenticator):
             # Verify nonce validity
             from .auth_server import is_valid_server_nonce
             if not is_valid_server_nonce(nonce):
-                logging.error(f"Invalid or expired nonce: {nonce}")
+                logger.debug(f"Invalid or expired nonce: {nonce}")
                 return False, f"Invalid nonce: {e}"
             else:
-                logger.info(f"nonce通过防重放验证{nonce}")
+                logger.debug(f"nonce通过防重放验证{nonce}")
 
             # 3. 解析DID文档
             did_document = await resolve_local_did_document(did)
@@ -335,7 +337,7 @@ def get_response_DIDAuthHeader_Token(response_header: Dict) -> Tuple[Optional[st
         auth_value = response_header["Authorization"]
         if isinstance(auth_value, str) and auth_value.startswith('Bearer '):
                 token = auth_value[7:]  # Extract token after 'Bearer '
-                logger.info("获得单向认证令牌，兼容无双向认证的服务")
+                logger.debug("获得单向认证令牌，兼容无双向认证的服务")
                 return "单向认证", token
         # If Authorization is a dict, execute existing logic
         else:
@@ -345,7 +347,7 @@ def get_response_DIDAuthHeader_Token(response_header: Dict) -> Tuple[Optional[st
                 token = auth_value[0].get("access_token")
                 did_auth_header =auth_value[0].get("resp_did_auth_header", {}).get("Authorization")
                 if did_auth_header and token:
-                    logger.info("令牌包含双向认证信息，进行双向校验")
+                    logger.debug("令牌包含双向认证信息，进行双向校验")
                     return "双向认证", token
                 else:
                     logger.error("[错误] 解析失败，缺少必要字段" + str(auth_value))
@@ -354,7 +356,7 @@ def get_response_DIDAuthHeader_Token(response_header: Dict) -> Tuple[Optional[st
                 logger.error("[错误] 处理 Authorization 字典时出错: " + str(e))
                 return None, None
     else:
-        logger.info("response_header不包含'Authorization',无需处理令牌")
+        logger.debug("response_header不包含'Authorization',无需处理令牌")
         return None, None
 
 async def check_response_DIDAtuhHeader(auth_value: str) -> bool:
@@ -378,7 +380,7 @@ async def check_response_DIDAtuhHeader(auth_value: str) -> bool:
         return False
 
     did, nonce, timestamp, resp_did, keyid, signature = header_parts
-    logger.info(f"用 {did}的{keyid}检验")
+    logger.debug(f"用 {did}的{keyid}检验")
 
     if not verify_timestamp(timestamp):
         logger.error("Timestamp expired or invalid")
@@ -411,7 +413,7 @@ async def check_response_DIDAtuhHeader(auth_value: str) -> bool:
             service_domain=target_url
         )
 
-        logger.info(f"签名验证结果: {is_valid}, 消息: {message}")
+        logger.debug(f"签名验证结果: {is_valid}, 消息: {message}")
         return is_valid
 
     except Exception as e:

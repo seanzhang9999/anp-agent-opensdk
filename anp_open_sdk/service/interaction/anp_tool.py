@@ -5,8 +5,11 @@ import aiohttp
 import os
 from pathlib import Path
 from typing import Dict, Any, Optional
-import logging
+from utils.log_base import logger
+
 from agent_connect.authentication import DIDWbaAuthHeader
+from anp_open_sdk.auth.auth_client import agent_auth_request
+
 
 
 class ANPTool:
@@ -87,7 +90,7 @@ class ANPTool:
                     base_dir / "use_did_test_public/key-1_private.pem"
                 )
 
-        logging.info(
+        logger.debug(
             f"ANPTool 初始化 - DID 路径: {did_document_path}, 私钥路径: {private_key_path}"
         )
 
@@ -122,7 +125,7 @@ class ANPTool:
         if params is None:
             params = {}
 
-        logging.info(f"ANP 请求: {method} {url}")
+        logger.debug(f"ANP 请求: {method} {url}")
 
         # 添加基本请求头
         if "Content-Type" not in headers and method in ["POST", "PUT", "PATCH"]:
@@ -134,7 +137,7 @@ class ANPTool:
                 auth_headers = self.auth_client.get_auth_header(url)
                 headers.update(auth_headers)
             except Exception as e:
-                logging.error(f"获取认证头失败: {str(e)}")
+                logger.debug(f"获取认证头失败: {str(e)}")
 
         async with aiohttp.ClientSession() as session:
             # 准备请求参数
@@ -153,7 +156,7 @@ class ANPTool:
 
             try:
                 async with http_method(**request_kwargs) as response:
-                    logging.info(f"ANP 响应: 状态码 {response.status}")
+                    logger.debug(f"ANP 响应: 状态码 {response.status}")
 
                     # 检查响应状态
                     if (
@@ -161,7 +164,7 @@ class ANPTool:
                         and "Authorization" in headers
                         and self.auth_client
                     ):
-                        logging.warning(
+                        logger.warning(
                             "认证失败 (401)，尝试重新获取认证"
                         )
                         # 如果认证失败且使用了 token，清除 token 并重试
@@ -173,14 +176,14 @@ class ANPTool:
                         # 重新执行请求
                         request_kwargs["headers"] = headers
                         async with http_method(**request_kwargs) as retry_response:
-                            logging.info(
+                            logger.debug(
                                 f"ANP 重试响应: 状态码 {retry_response.status}"
                             )
                             return await self._process_response(retry_response, url)
 
                     return await self._process_response(response, url)
             except aiohttp.ClientError as e:
-                logging.error(f"HTTP 请求失败: {str(e)}")
+                logger.debug(f"HTTP 请求失败: {str(e)}")
                 return {"error": f"HTTP 请求失败: {str(e)}", "status_code": 500}
 
     async def _process_response(self, response, url):
@@ -190,7 +193,7 @@ class ANPTool:
             try:
                 self.auth_client.update_token(url, dict(response.headers))
             except Exception as e:
-                logging.error(f"更新 token 失败: {str(e)}")
+                logger.debug(f"更新 token 失败: {str(e)}")
 
         # 获取响应内容类型
         content_type = response.headers.get("Content-Type", "").lower()
@@ -203,9 +206,9 @@ class ANPTool:
             # 处理 JSON 响应
             try:
                 result = json.loads(text)
-                logging.info("成功解析 JSON 响应")
+                logger.debug("成功解析 JSON 响应")
             except json.JSONDecodeError:
-                logging.warning(
+                logger.warning(
                     "Content-Type 声明为 JSON 但解析失败，返回原始文本"
                 )
                 result = {"text": text, "format": "text", "content_type": content_type}
@@ -213,14 +216,14 @@ class ANPTool:
             # 处理 YAML 响应
             try:
                 result = yaml.safe_load(text)
-                logging.info("成功解析 YAML 响应")
+                logger.debug("成功解析 YAML 响应")
                 result = {
                     "data": result,
                     "format": "yaml",
                     "content_type": content_type,
                 }
             except yaml.YAMLError:
-                logging.warning(
+                logger.warning(
                     "Content-Type 声明为 YAML 但解析失败，返回原始文本"
                 )
                 result = {"text": text, "format": "text", "content_type": content_type}
@@ -275,7 +278,7 @@ class ANPTool:
         if params is None:
             params = {}
 
-        logging.info(f"ANP 双向认证请求: {method} {url}")
+        logger.debug(f"ANP 双向认证请求: {method} {url}")
 
         try:
             # 1. 准备完整的 URL（包含查询参数）
@@ -307,7 +310,7 @@ class ANPTool:
 
             # 3. 调用 agent_auth_two_way（需要传入必要的参数）
             # 注意：这里暂时使用占位符，后续需要根据实际情况调整
-            from ..auth.auth_client import agent_auth_request
+
             status, response, info, is_auth_pass = await agent_auth_request(
                 caller_agent=caller_agent,  # 需要传入调用方智能体ID
                 target_agent=target_agent,  # 需要传入目标方智能体ID，如果对方没有ID，可以随便写，因为对方不会响应这个信息
@@ -318,7 +321,7 @@ class ANPTool:
                 use_two_way_auth= use_two_way_auth
             )
 
-            logging.info(f"ANP 双向认证响应: 状态码 {status}")
+            logger.debug(f"ANP 双向认证响应: 状态码 {status}")
 
             # 4. 处理响应，保持与原 execute 方法相同的响应格式
             result = await self._process_two_way_response(response, final_url, status, info, is_auth_pass)
@@ -326,7 +329,7 @@ class ANPTool:
             return result
 
         except Exception as e:
-            logging.error(f"双向认证请求失败: {str(e)}")
+            logger.debug(f"双向认证请求失败: {str(e)}")
             return {
                 "error": f"双向认证请求失败: {str(e)}",
                 "status_code": 500,
@@ -343,7 +346,7 @@ class ANPTool:
             # 尝试解析为 JSON
             try:
                 result = json.loads(response)
-                logging.info("成功解析 JSON 响应")
+                logger.debug("成功解析 JSON 响应")
             except json.JSONDecodeError:
                 # 如果不是 JSON，作为文本处理
                 result = {

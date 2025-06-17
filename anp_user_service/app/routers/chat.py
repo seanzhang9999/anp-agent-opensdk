@@ -1,4 +1,4 @@
-import logging
+from utils.log_base import logger
 
 from fastapi import APIRouter, HTTPException, status
 from anp_user_service.app.models.schemas import ChatAgentRequest, ChatResponse, LLMConfig
@@ -17,7 +17,7 @@ async def chat_with_personal_agent(request: ChatAgentRequest):
     if not personal_data_path or not personal_data_path.exists():
         # Fallback to a non-RAG response or inform the user
         # For now, let's try to proceed but context will be minimal
-        print(f"Warning: Personal data path not found for user. RAG context will be limited. Path: {personal_data_path}")
+        logger.debug(f"Warning: Personal data path not found for user. RAG context will be limited. Path: {personal_data_path}")
         # Or, return an error if personal_data is essential:
         # raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Personal data for user not found.")
 
@@ -53,7 +53,7 @@ async def chat_with_personal_agent(request: ChatAgentRequest):
 
     if error:
         # You might want to log the error server-side
-        print(f"Error in agent chat: {error}")
+        logger.debug(f"Error in agent chat: {error}")
         # Return a more generic error to the client for some cases
         return ChatResponse(success=False, message="Error processing your request with the agent.", error=error)
     

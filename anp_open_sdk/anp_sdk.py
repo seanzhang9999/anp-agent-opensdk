@@ -23,6 +23,7 @@ from datetime import datetime
 from typing import Dict, Any, Optional, List
 from fastapi.middleware.cors import CORSMiddleware
 
+
 # 安全中间件
 from anp_open_sdk.auth.auth_server import auth_middleware
 
@@ -36,8 +37,8 @@ from fastapi import Request, WebSocket, WebSocketDisconnect, FastAPI
 from fastapi.responses import StreamingResponse
 
 # 配置日志
-from loguru import logger
 
+from utils.log_base import  logging as logger
 from anp_open_sdk.anp_sdk_agent import LocalAgent
 
 # Group SDK
@@ -156,7 +157,7 @@ class ANPSDK:
         
         try:
             use_local = get_config_value('USE_LOCAL_MAIL', False)
-            logger.info(f"管理邮箱检查前初始化，使用本地文件邮件后端参数设置:{use_local}")
+            logger.debug(f"管理邮箱检查前初始化，使用本地文件邮件后端参数设置:{use_local}")
             mail_manager = EnhancedMailManager(use_local_backend=use_local)
             did_manager = DIDManager()
             
@@ -211,7 +212,7 @@ class ANPSDK:
     def register_agent(self, agent: LocalAgent):
         """注册智能体到路由器"""
         self.router.register_agent(agent)
-        self.logger.info(f"已注册智能体到SDK: {agent.id}")
+        self.logger.debug(f"已注册智能体到SDK: {agent.id}")
         self._register_default_routes()
         @self.app.on_event("startup")
         async def generate_openapi_yaml():
@@ -613,7 +614,7 @@ class ANPSDK:
                     response = await self._handle_message(data)
                     await websocket.send_json(response)
             except WebSocketDisconnect:
-                self.logger.info(f"WebSocket客户端断开连接: {client_id}")
+                self.logger.debug(f"WebSocket客户端断开连接: {client_id}")
                 if client_id in self.ws_connections:
                     del self.ws_connections[client_id]
             except Exception as e:
@@ -622,7 +623,7 @@ class ANPSDK:
                     del self.ws_connections[client_id]
 
     async def _handle_message(self, message: Dict[str, Any]):
-        logger.info(f"准备处理接收到的消息内容: {message}")
+        logger.debug(f"准备处理接收到的消息内容: {message}")
         if "message" in message:
             message = message["message"]
         message_type = message.get("type", "*")
@@ -644,7 +645,7 @@ class ANPSDK:
             self.logger.warning("服务器已经在运行")
             return True
         if os.name == 'posix' and 'darwin' in os.uname().sysname.lower():
-            self.logger.info("检测到Mac环境，使用特殊启动方式")
+            self.logger.debug("检测到Mac环境，使用特殊启动方式")
         for route_path, route_info in self.api_routes.items():
             func = route_info['func']
             methods = route_info['methods']
@@ -665,7 +666,7 @@ class ANPSDK:
         self.server_thread.daemon = True
         self.server_thread.start()
         self.server_running = True
-        self.logger.info(f"服务器已在端口 {self.port} 启动")
+        self.logger.debug(f"服务器已在端口 {self.port} 启动")
         return True
 
     def stop_server(self):
@@ -677,9 +678,9 @@ class ANPSDK:
         self.sse_clients.clear()
         if hasattr(self, 'uvicorn_server'):
             self.uvicorn_server.should_exit = True
-            self.logger.info("已发送服务器关闭信号")
+            self.logger.debug("已发送服务器关闭信号")
         self.server_running = False
-        self.logger.info("服务器已停止")
+        self.logger.debug("服务器已停止")
         return True
 
     def __del__(self):
@@ -753,7 +754,7 @@ class ANPSDK:
             }
             success = target_agent.receive_message(message_data)
             if success:
-                self.logger.info(f"消息已发送到 {target_did}: {message[:50]}...")
+                self.logger.debug(f"消息已发送到 {target_did}: {message[:50]}...")
             else:
                 self.logger.error(f"消息发送失败到 {target_did}")
             return success
@@ -768,7 +769,7 @@ class ANPSDK:
                 await ws.send_json(message)
             except Exception as e:
                 self.logger.error(f"WebSocket广播失败: {e}")
-        self.logger.info(f"向{len(self.sse_clients)}个SSE客户端广播消息")
+        self.logger.debug(f"向{len(self.sse_clients)}个SSE客户端广播消息")
 
     def __enter__(self):
         self.start_server()
@@ -815,7 +816,7 @@ class ANPSDK:
                         if port is not int:
                             port = 80
             except Exception as e:
-                print(f"解析did失败: {did}, 错误: {e}")
+                logger.debug(f"解析did失败: {did}, 错误: {e}")
         if not host or not port:
             return "localhost", 9527
         return host, int(port)
@@ -851,11 +852,11 @@ class ANPSDK:
                     runner.remove_member(agent_id)
 
             # Log the successful removal
-            self.logger.info(f"Successfully unregistered agent: {agent_id}")
+            self.logger.debug(f"Successfully unregistered agent: {agent_id}")
 
             # If this was the last agent, consider stopping the server
             if not self.router.local_agents:
-                self.logger.info(f"No agents remaining in the router")
+                self.logger.debug(f"No agents remaining in the router")
 
             return True
 

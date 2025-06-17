@@ -5,7 +5,7 @@ import asyncio
 from datetime import datetime
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.openapi.utils import status_code_ranges
-from loguru import logger
+from utils.log_base import  logging as logger
 
 from fastapi import Request
 import aiofiles
@@ -62,17 +62,17 @@ class DemoAgentRegistry:
 
         @agent1.register_message_handler("text")
         async def handle_text1(msg):
-            logger.info(f"{agent1.name}收到text消息: {msg}")
+            logger.debug(f"{agent1.name}收到text消息: {msg}")
             return {"reply": f"{agent1.name}回复:确认收到text消息:{msg.get('content')}"}
 
         async def handle_text2(msg):
-            logger.info(f"{agent2.name}收到text消息: {msg}")
+            logger.debug(f"{agent2.name}收到text消息: {msg}")
             return {"reply": f"{agent2.name}回复:确认收到text消息:{msg.get('content')}"}
         agent2.register_message_handler("text", handle_text2)
 
         @agent3.register_message_handler("*")
         async def handle_any(msg):
-            logger.info(f"{agent3.name}收到*类型消息: {msg}")
+            logger.debug(f"{agent3.name}收到*类型消息: {msg}")
             return {
                 "reply": f"{agent3.name}回复:确认收到{msg.get('type')}类型"
                          f"{msg.get('message_type')}格式的消息:{msg.get('content')}"
@@ -83,7 +83,7 @@ class DemoAgentRegistry:
         """注册群组事件处理器"""
         for agent in agents:
             async def group_event_handler(group_id, event_type, event_data):
-                logger.info(f"{agent.name}收到群{group_id}的{event_type}事件，内容：{event_data}")
+                logger.debug(f"{agent.name}收到群{group_id}的{event_type}事件，内容：{event_data}")
                 await DemoAgentRegistry._save_group_message_to_file(agent, event_data)
             
             agent.register_group_event_handler(group_event_handler)

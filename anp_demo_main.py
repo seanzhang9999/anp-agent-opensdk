@@ -9,17 +9,15 @@ import argparse
 import asyncio
 import time
 import traceback
-from loguru import logger
+from utils.log_base import  logging as logger
 
-# 配置日志
-logger.remove()  # 移除默认处理器
-logger.add(sys.stderr, level="INFO", format="{time} | {level} | {message}")
 
-print("启动 ANP Demo...")
-print(f"Python版本: {sys.version}")
-print(f"工作目录: {sys.path[0]}")
+
+logger.debug("启动 ANP Demo...")
+logger.debug(f"Python版本: {sys.version}")
+logger.debug(f"工作目录: {sys.path[0]}")
 try:
-    print("导入模块...")
+    logger.debug("导入模块...")
     from anp_sdk_demo.demo_modules.step_helper import DemoStepHelper
     from anp_sdk_demo.demo_modules.agent_loader import DemoAgentLoader
     from anp_sdk_demo.demo_modules.agent_registry import DemoAgentRegistry
@@ -27,9 +25,9 @@ try:
     from anp_sdk_demo.services.dns_service import DemoDNSService
     from anp_sdk_demo.services.sdk_manager import DemoSDKManager
 
-    print("✓ 所有模块导入成功")
+    logger.debug("✓ 所有模块导入成功")
 except ImportError as e:
-    print(f"✗ 模块导入失败: {e}")
+    logger.debug(f"✗ 模块导入失败: {e}")
     traceback.print_exc()
     sys.exit(1)
         
@@ -38,7 +36,7 @@ class ANPDemoApplication:
     """ANP SDK 演示应用程序主类"""
 
     def __init__(self, args):
-        print("初始化 ANPDemoApplication...")
+        logger.debug("初始化 ANPDemoApplication...")
         self.args = args
 
         try:
@@ -57,16 +55,16 @@ class ANPDemoApplication:
             self.agents = []
             self.sdk = None
 
-            print("✓ ANPDemoApplication 初始化成功")
+            logger.debug("✓ ANPDemoApplication 初始化成功")
         except Exception as e:
-            print(f"✗ ANPDemoApplication 初始化失败: {e}")
+            logger.debug(f"✗ ANPDemoApplication 初始化失败: {e}")
             traceback.print_exc()
             raise
 
     def run(self):
         """主运行方法"""
         try:
-            print("开始运行演示...")
+            logger.debug("开始运行演示...")
             self.step_helper.pause("ANP SDK 演示程序启动")
 
             # 初始化SDK和agents
@@ -84,7 +82,7 @@ class ANPDemoApplication:
                 self._run_development_mode()
 
         except KeyboardInterrupt:
-            logger.info("用户中断演示")
+            logger.debug("用户中断演示")
         except Exception as e:
             logger.error(f"Demo运行错误: {e}")
             traceback.print_exc()
@@ -94,7 +92,7 @@ class ANPDemoApplication:
     def _initialize_components(self):
         """初始化所有组件"""
         try:
-            print("初始化组件...")
+            logger.debug("初始化组件...")
             self.step_helper.pause("初始化SDK")
 
             # 初始化SDK
@@ -106,9 +104,9 @@ class ANPDemoApplication:
 
             if len(self.agents) < 3:
                 logger.error("智能体不足3个，无法完成全部演示")
-                print(f"当前找到 {len(self.agents)} 个智能体")
+                logger.debug(f"当前找到 {len(self.agents)} 个智能体")
                 for i, agent in enumerate(self.agents):
-                    print(f"  {i+1}. {agent.name} ({agent.id})")
+                    logger.debug(f"  {i+1}. {agent.name} ({agent.id})")
                 return
 
             # 注册API和消息处理器
@@ -127,9 +125,9 @@ class ANPDemoApplication:
             self.sdk_manager.start_server(self.sdk)
 
             if not self.args.f:  # 快速模式不显示提示
-                logger.info("服务器已启动，查看'/'了解状态,'/docs'了解基础api")
+                logger.debug("服务器已启动，查看'/'了解状态,'/docs'了解基础api")
 
-            print("✓ 组件初始化完成")
+            logger.debug("✓ 组件初始化完成")
 
         except Exception as e:
             logger.error(f"组件初始化失败: {e}")
@@ -138,7 +136,7 @@ class ANPDemoApplication:
 
     def _run_development_mode(self):
         """开发模式"""
-        logger.info("启动开发模式演示")
+        logger.debug("启动开发模式演示")
 
         task_runner = DemoTaskRunner(
             sdk=self.sdk,
@@ -151,7 +149,7 @@ class ANPDemoApplication:
 
     def _run_step_mode(self):
         """分步执行模式"""
-        logger.info("启动分步执行模式演示")
+        logger.debug("启动分步执行模式演示")
 
         task_runner = DemoTaskRunner(
             sdk=self.sdk,
@@ -164,7 +162,7 @@ class ANPDemoApplication:
 
     def _run_fast_mode(self):
         """快速执行模式"""
-        logger.info("启动快速执行模式演示")
+        logger.debug("启动快速执行模式演示")
 
         task_runner = DemoTaskRunner(
             sdk=self.sdk,
@@ -177,20 +175,20 @@ class ANPDemoApplication:
 
     def _cleanup(self):
         """清理资源"""
-        logger.info("开始清理资源...")
+        logger.debug("开始清理资源...")
         try:
             if self.sdk:
                 self.sdk_manager.stop_server(self.sdk)
             if self.dns_service:
                 self.dns_service.stop()
-            logger.info("资源清理完成")
+            logger.debug("资源清理完成")
         except Exception as e:
             logger.error(f"清理资源时出错: {e}")
 
 
 def main():
     try:
-        print("解析命令行参数...")
+        logger.debug("解析命令行参数...")
         parser = argparse.ArgumentParser(description='ANP SDK 综合演示程序')
         parser.add_argument('-d', action='store_true', help='开发测试模式')
         parser.add_argument('-s', action='store_true', help='步骤执行模式')
@@ -203,13 +201,13 @@ def main():
         if not (args.d or args.s or args.f):
             args.d = True
     
-        print(f"运行模式: {'开发模式' if args.d else '步骤模式' if args.s else '快速模式'}")
+        logger.debug(f"运行模式: {'开发模式' if args.d else '步骤模式' if args.s else '快速模式'}")
 
         demo_app = ANPDemoApplication(args)
         demo_app.run()
 
     except Exception as e:
-        print(f"程序执行失败: {e}")
+        logger.debug(f"程序执行失败: {e}")
         traceback.print_exc()
         sys.exit(1)
 

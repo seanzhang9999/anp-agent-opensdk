@@ -17,7 +17,8 @@
 """
 import os
 import json
-import logging
+from utils.log_base import logger
+
 import aiohttp
 from pathlib import Path
 from typing import Dict, Optional
@@ -34,12 +35,12 @@ async def resolve_local_did_document(did: str) -> Optional[Dict]:
         Optional[Dict]: 解析出的DID文档，如果解析失败则返回None
     """
     try:
-        # logging.info(f"解析本地DID文档: {did}")
+        # logger.debug(f"解析本地DID文档: {did}")
         
         # 解析DID标识符
         parts = did.split(':')
         if len(parts) < 5 or parts[0] != 'did' or parts[1] != 'wba':
-            logging.error(f"无效的DID格式: {did}")
+            logger.debug(f"无效的DID格式: {did}")
             return None
         
         # 提取主机名、端口和用户ID
@@ -52,14 +53,14 @@ async def resolve_local_did_document(did: str) -> Optional[Dict]:
         user_id = path_segments[-1]
         user_dir = path_segments[-2]
         
-        # logging.info(f"DID 解析结果 - 主机名: {hostname}, 用户ID: {user_id}")
+        # logger.debug(f"DID 解析结果 - 主机名: {hostname}, 用户ID: {user_id}")
         
         # 查找本地文件系统中的DID文档
         current_dir = Path(__file__).parent.parent.absolute()
         did_path = current_dir / 'did_keys' / f"user_{user_id}" / "did.json"
         
         if did_path.exists():
-            # logging.info(f"找到本地DID文档: {did_path}")
+            # logger.debug(f"找到本地DID文档: {did_path}")
             with open(did_path, 'r', encoding='utf-8') as f:
                 did_document = json.load(f)
             return did_document
@@ -73,12 +74,12 @@ async def resolve_local_did_document(did: str) -> Optional[Dict]:
             async with session.get(http_url, ssl=False) as response:
                 if response.status == 200:
                     did_document = await response.json()
-                    logging.info(f"通过DID标识解析的{http_url}获取{did}的DID文档")
+                    logger.debug(f"通过DID标识解析的{http_url}获取{did}的DID文档")
                     return did_document
                 else:
-                    logging.error(f"did本地解析器地址{http_url}获取失败，状态码: {response.status}")
+                    logger.debug(f"did本地解析器地址{http_url}获取失败，状态码: {response.status}")
                     return None
     
     except Exception as e:
-        logging.error(f"解析DID文档时出错: {e}")
+        logger.debug(f"解析DID文档时出错: {e}")
         return None

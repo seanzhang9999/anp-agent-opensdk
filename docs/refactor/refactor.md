@@ -372,9 +372,9 @@ async def agent_to_agent_communication():
 
     if result.is_success:
         task_id = result.response_data.get("task_id")
-        print(f"任务提交成功，ID: {task_id}")
+        logger.debug(f"任务提交成功，ID: {task_id}")
     else:
-        print(f"任务提交失败: {result.error_message}")
+        logger.debug(f"任务提交失败: {result.error_message}")
 5.2 场景2：Web应用访问托管服务
 Python
 
@@ -439,7 +439,7 @@ async def smart_routing_request(target_url: str, caller_did: str = None,
         body={"action": "query", "data": "test"}
     )
 
-    print(f"使用认证类型: {result.auth_type.value}")
+    logger.debug(f"使用认证类型: {result.auth_type.value}")
     return result
 6. 中间件集成
 6.1 FastAPI中间件集成

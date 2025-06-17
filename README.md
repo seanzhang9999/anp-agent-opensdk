@@ -258,7 +258,7 @@ from anp_open_sdk.anp_sdk_user_data import did_create_user
    ```python
        @agent.register_message_handler("*")
        def handle_message(msg):
-           print(f"收到消息: {msg}")
+           logger.debug(f"收到消息: {msg}")
            return {"reply": "消息已收到"}
    ```
 4. 注册 API 端点及响应函数
@@ -280,13 +280,13 @@ from anp_open_sdk.anp_sdk_user_data import did_create_user
        resp = await agent_api_call_post(
            sdk, agent1.id, agent2.id, "/info", {"from": agent1.name}
        )
-       print(f"{agent1.name}POST调用{agent2.name}的/info接口响应: {resp}")
+       logger.debug(f"{agent1.name}POST调用{agent2.name}的/info接口响应: {resp}")
 
        # GET请求调用其他agent的API
        resp = await agent_api_call_get(
            sdk, agent1.id, agent2.id, "/info", {"from": agent1.name}
        )
-       print(f"{agent1.name}GET调用{agent2.name}的/info接口响应: {resp}")
+       logger.debug(f"{agent1.name}GET调用{agent2.name}的/info接口响应: {resp}")
    ```
 7. 发送点对点消息，实现智能体间直接通信
 
@@ -295,13 +295,13 @@ from anp_open_sdk.anp_sdk_user_data import did_create_user
        resp = await agent_msg_post(
            sdk, agent2.id, agent3.id, f"你好，我是{agent2.name}"
        )
-       print(f"{agent2.name}向{agent3.name}发送消息响应: {resp}")
+       logger.debug(f"{agent2.name}向{agent3.name}发送消息响应: {resp}")
 
        # 发送更复杂的消息内容
        resp = await agent_msg_post(
            sdk, temp_agent.id, agent2.id, f"你好，我是{temp_agent.name}"
        )
-       print(f"[{temp_agent.name}] 已发送消息给 {agent2.name},响应: {resp}")
+       logger.debug(f"[{temp_agent.name}] 已发送消息给 {agent2.name},响应: {resp}")
    ```
 8. 使用 ANP Tool 智能爬虫，自动发现和调用其他智能体服务
 
@@ -340,7 +340,7 @@ from anp_open_sdk.anp_sdk_user_data import did_create_user
             max_documents=10,
             agent_name="搜索智能体"
         )
-        print(f"智能爬虫结果: {result}")
+        logger.debug(f"智能爬虫结果: {result}")
    ```
 
 ## 🏗️ 架构说明

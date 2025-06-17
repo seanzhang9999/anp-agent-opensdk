@@ -20,7 +20,8 @@
 
 import os
 import json
-import logging
+from utils.log_base import logger
+
 import base64
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timezone, timedelta

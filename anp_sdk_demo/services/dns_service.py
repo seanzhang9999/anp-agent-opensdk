@@ -1,6 +1,6 @@
 import threading
 from typing import Dict
-from loguru import logger
+from utils.log_base import  logging as logger
 
 
 class DemoDNSService:
@@ -16,7 +16,7 @@ class DemoDNSService:
         """注册子域名"""
         full_domain = f"{subdomain}.{self.base_domain}"
         self.domains[full_domain] = port
-        logger.info(f"注册域名: {full_domain} -> {port}")
+        logger.debug(f"注册域名: {full_domain} -> {port}")
 
     def resolve(self, domain: str) -> str:
         """解析域名"""
@@ -26,7 +26,7 @@ class DemoDNSService:
 
     def start(self):
         """启动DNS服务"""
-        logger.info("启动DNS服务...")
+        logger.debug("启动DNS服务...")
         self._running = True
         
         def dns_server_thread():
@@ -40,7 +40,7 @@ class DemoDNSService:
 
     def stop(self):
         """停止DNS服务"""
-        logger.info("停止DNS服务...")
+        logger.debug("停止DNS服务...")
         self._running = False
         if self._dns_thread:
             self._dns_thread.join(timeout=1)

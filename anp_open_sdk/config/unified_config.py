@@ -12,15 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""统一配置管理模块（基于 meta_config.yaml 自动生成配置节点）
+"""统一配置管理模块（基于 unified_config_meta_config.yaml 自动生成配置节点）
 此模块提供统一的配置管理功能，支持：
-- 基于 meta_config.yaml 的 schema 自动生成属性
+- 基于 unified_config_meta_config.yaml 的 schema 自动生成属性
 - YAML 配置文件管理
 - 属性访问和代码提示
 """
 
 import os
-import logging
+
+
 from pathlib import Path
 from typing import Any, Dict, Optional, TYPE_CHECKING
 import yaml
@@ -110,8 +111,9 @@ class SecretsConfig:
 
 class UnifiedConfig:
     """自动化配置管理器，基于meta.yaml"""
-    def __init__(self, meta_file="meta_config.yaml", config_file=None):
-        self.logger = logging.getLogger(__name__)
+    def __init__(self, meta_file="unified_config_meta_config.yaml", config_file="unified_config.yaml"):
+        from utils.log_base import logging as logger
+        self.logger = logger
         self._meta_file = Path(meta_file)
         self._config_file = Path(config_file) if config_file else None
 
@@ -153,7 +155,7 @@ class UnifiedConfig:
             else:
                 values = self._config_data.get(top_key, {})
                 setattr(self, top_key, DynamicConfigNode(top_schema, values, top_key))
-        self.logger.info("配置已重新加载")
+        self.logger.debug("配置已重新加载")
 
     def resolve_path(self, path: str) -> Path:
         """解析路径中的 {APP_ROOT} 占位符"""
@@ -179,7 +181,7 @@ class UnifiedConfig:
         data.pop("secrets", None)
         with open(self._config_file, "w", encoding="utf-8") as f:
             yaml.safe_dump(data, f, allow_unicode=True, sort_keys=False)
-        self.logger.info(f"已保存配置到 {self._config_file}")
+        self.logger.debug(f"已保存配置到 {self._config_file}")
 
     def add_to_path(self, new_path: str):
         """动态添加路径到 PATH"""

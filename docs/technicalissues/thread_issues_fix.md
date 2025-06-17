@@ -18,7 +18,7 @@ def start_server(self):
     self.server_thread.start()
     
     self.server_running = True
-    self.logger.info(f"服务器已在端口 {self.port} 启动")
+    self.logger.debug(f"服务器已在端口 {self.port} 启动")
     
     return True
 
@@ -28,7 +28,7 @@ def stop_server(self):
     # 线程会在主程序退出时自动终止（因为是daemon线程）
     
     self.server_running = False
-    self.logger.info("服务器已停止")
+    self.logger.debug("服务器已停止")
     
     return True
 ```
@@ -49,7 +49,7 @@ def start_server(self):
     self.server_thread.start()
     
     self.server_running = True
-    self.logger.info(f"服务器已在端口 {self.port} 启动")
+    self.logger.debug(f"服务器已在端口 {self.port} 启动")
     
     return True
 
@@ -68,10 +68,10 @@ def stop_server(self):
     # 优雅关闭uvicorn服务器
     if hasattr(self, 'uvicorn_server'):
         self.uvicorn_server.should_exit = True
-        self.logger.info("已发送服务器关闭信号")
+        self.logger.debug("已发送服务器关闭信号")
     
     self.server_running = False
-    self.logger.info("服务器已停止")
+    self.logger.debug("服务器已停止")
     
     return True
 
@@ -138,7 +138,7 @@ thread.start()
 try:
     thread.join()  # 等待线程完成
 except KeyboardInterrupt:
-    logger.info("用户中断演示")
+    logger.debug("用户中断演示")
     # 这里可以添加清理代码
 ```
 
@@ -185,13 +185,13 @@ def get(self, key: str, default: Any = None) -> Any:
 ```python
 # 修改前
 except asyncio.CancelledError:
-    logger.info(f"{caller_agent} 的群聊监听已停止")
+    logger.debug(f"{caller_agent} 的群聊监听已停止")
 ```
 
 ```python
 # 修改后
 except asyncio.CancelledError:
-    logger.info(f"{caller_agent} 的群聊监听已停止")
+    logger.debug(f"{caller_agent} 的群聊监听已停止")
     # 添加资源清理代码
     try:
         # 清理会话资源
@@ -221,12 +221,12 @@ task.cancel()
 try:
     await task
 except asyncio.CancelledError:
-    logger.info("群聊监听任务已取消")
+    logger.debug("群聊监听任务已取消")
 except Exception as e:
     logger.error(f"取消群聊监听任务时出错: {e}")
 finally:
     # 确保任何资源都被清理
-    logger.info("群聊监听资源已清理")
+    logger.debug("群聊监听资源已清理")
 ```
 
 ## 5. LocalAgent 类中添加资源清理

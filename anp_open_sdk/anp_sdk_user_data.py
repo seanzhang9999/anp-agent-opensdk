@@ -35,7 +35,7 @@ import argparse
 from datetime import datetime
 
 from Crypto.PublicKey import RSA
-from loguru import logger
+from utils.log_base import  logging as logger
 from typing import Dict, List, Optional, Any
 
 from anp_open_sdk.config.path_resolver import path_resolver
@@ -53,14 +53,14 @@ def create_user(args):
     }
     did_document = did_create_user(params)
     if did_document:
-        print(f"用户 {name} 创建成功，DID: {did_document['id']}")
+        logger.debug(f"用户 {name} 创建成功，DID: {did_document['id']}")
     else:
         logger.error(f"用户 {name} 创建失败")
 
 def list_users():
     user_list, name_to_dir = get_user_cfg_list()
     if not user_list:
-        print("未找到任何用户")
+        logger.debug("未找到任何用户")
         return
     
     users_info = []
@@ -101,20 +101,20 @@ def list_users():
             'created_date': datetime.fromtimestamp(created_time).strftime('%Y-%m-%d %H:%M:%S')
         })
     users_info.sort(key=lambda x: x['created_time'], reverse=True)
-    print(f"找到 {len(users_info)} 个用户，按创建时间从新到旧排序：")
+    logger.debug(f"找到 {len(users_info)} 个用户，按创建时间从新到旧排序：")
     for i, user in enumerate(users_info, 1):
-        print(f"[{i}] 用户名: {user['name']}")
-        print(f"    DID: {user['did']}")
-        print(f"    类型: {user['type']}")
-        print(f"    服务器: {user['host']}:{user['port']}")
-        print(f"    创建时间: {user['created_date']}")
-        print(f"    目录: {user['dir']}")
-        print("---")
+        logger.debug(f"[{i}] 用户名: {user['name']}")
+        logger.debug(f"    DID: {user['did']}")
+        logger.debug(f"    类型: {user['type']}")
+        logger.debug(f"    服务器: {user['host']}:{user['port']}")
+        logger.debug(f"    创建时间: {user['created_date']}")
+        logger.debug(f"    目录: {user['dir']}")
+        logger.debug("---")
 
 def sort_users_by_server():
     user_list, name_to_dir = get_user_cfg_list()
     if not user_list:
-        print("未找到任何用户")
+        logger.debug("未找到任何用户")
         return
     
     users_info = []
@@ -152,14 +152,14 @@ def sort_users_by_server():
             'port': port
         })
     users_info.sort(key=lambda x: (x['host'], x['port'], x['type']))
-    print(f"找到 {len(users_info)} 个用户，按服务器信息排序：")
+    logger.debug(f"找到 {len(users_info)} 个用户，按服务器信息排序：")
     for i, user in enumerate(users_info, 1):
-        print(f"[{i}] 服务器: {user['host']}:{user['port']}")
-        print(f"    用户名: {user['name']}")
-        print(f"    DID: {user['did']}")
-        print(f"    类型: {user['type']}")
-        print(f"    目录: {user['dir']}")
-        print("---")
+        logger.debug(f"[{i}] 服务器: {user['host']}:{user['port']}")
+        logger.debug(f"    用户名: {user['name']}")
+        logger.debug(f"    DID: {user['did']}")
+        logger.debug(f"    类型: {user['type']}")
+        logger.debug(f"    目录: {user['dir']}")
+        logger.debug("---")
 
 def main():
     parser = argparse.ArgumentParser(description='ANP用户工具')
@@ -314,7 +314,7 @@ class LocalUserDataManager(BaseUserDataManager):
             else:
                 logger.warning(f"不合格的文件或文件夹: {entry.name}")
 
-        logger.info(f"加载用户数据共 {len(self.users)} 个用户")
+        logger.debug(f"加载用户数据共 {len(self.users)} 个用户")
 
     def get_user_data(self, did: str) -> Optional[BaseUserData]:
         return self.users.get(did)
@@ -342,7 +342,7 @@ def get_user_cfg_list():
                         user_list.append(cfg['name'])
                         name_to_dir[cfg['name']] = user_dir
             except Exception as e:
-                print(f"读取配置文件 {cfg_path} 出错: {e}")
+                logger.debug(f"读取配置文件 {cfg_path} 出错: {e}")
     return user_list, name_to_dir
 
 def get_user_dir_did_doc_by_did(did):
@@ -354,7 +354,7 @@ def get_user_dir_did_doc_by_did(did):
                 with open(did_path, 'r', encoding='utf-8') as f:
                     did_dict = json.load(f)
                     if did_dict.get('id') == did:
-                        logger.info(f"已加载用户 {user_dir} 的 DID 文档")
+                        logger.debug(f"已加载用户 {user_dir} 的 DID 文档")
                         return True, did_dict, user_dir
             except Exception as e:
                 logger.error(f"读取DID文档 {did_path} 出错: {e}")
@@ -408,7 +408,7 @@ def did_create_user(user_iput: dict, *, did_hex: bool = True, did_check_unique: 
             next_number = max(numbers + [0]) + 1
             new_name = f"{new_name}_{next_number}"
         user_iput['name'] = new_name
-        logger.info(f"用户名 {base_name} 已存在，使用新名称：{new_name}")
+        logger.debug(f"用户名 {base_name} 已存在，使用新名称：{new_name}")
 
     userdid_hostname = user_iput['host']
     userdid_port = int(user_iput['port'])
@@ -489,16 +489,16 @@ def did_create_user(user_iput: dict, *, did_hex: bool = True, did_check_unique: 
         with open(f"{userdid_filepath}/public_key.pem", "wb") as f:
             f.write(public_key)
 
-    logger.info(f"DID创建成功: {did_document['id']}")
-    logger.info(f"DID文档已保存到: {userdid_filepath}")
-    logger.info(f"密钥已保存到: {userdid_filepath}")
-    logger.info(f"用户文件已保存到: {userdid_filepath}")
-    logger.info(f"jwt密钥已保存到: {userdid_filepath}")
+    logger.debug(f"DID创建成功: {did_document['id']}")
+    logger.debug(f"DID文档已保存到: {userdid_filepath}")
+    logger.debug(f"密钥已保存到: {userdid_filepath}")
+    logger.debug(f"用户文件已保存到: {userdid_filepath}")
+    logger.debug(f"jwt密钥已保存到: {userdid_filepath}")
 
     if user_iput['type'] == "agent":
         agent_dir = os.path.join(userdid_filepath, "agent")
         os.makedirs(agent_dir, exist_ok=True)
-        logger.info(f"为agent创建目录: {agent_dir}")
+        logger.debug(f"为agent创建目录: {agent_dir}")
     return did_document
 
 def create_jwt(content: dict, private_key: str) -> str:

@@ -24,55 +24,55 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 def test_basic_config_loading():
     """测试基本配置加载"""
-    print("\n=== 测试1: 基本配置加载 ===")
+    logger.debug("\n=== 测试1: 基本配置加载 ===")
     
     try:
         from anp_open_sdk.config import config
         
         # 测试配置加载
-        print(f"✅ 配置文件路径: {config._config_file}")
-        print(f"✅ 项目根目录: {config.get_app_root()}")
+        logger.debug(f"✅ 配置文件路径: {config._config_file}")
+        logger.debug(f"✅ 项目根目录: {config.get_app_root()}")
         
         # 测试基本配置访问
-        print(f"✅ ANP SDK端口: {config.anp_sdk.port}")
-        print(f"✅ ANP SDK主机: {config.anp_sdk.host}")
-        print(f"✅ 调试模式: {config.anp_sdk.debug_mode}")
+        logger.debug(f"✅ ANP SDK端口: {config.anp_sdk.port}")
+        logger.debug(f"✅ ANP SDK主机: {config.anp_sdk.host}")
+        logger.debug(f"✅ 调试模式: {config.anp_sdk.debug_mode}")
         
         return True
     except Exception as e:
-        print(f"❌ 基本配置加载失败: {e}")
+        logger.debug(f"❌ 基本配置加载失败: {e}")
         return False
 
 def test_attribute_access():
     """测试属性访问"""
-    print("\n=== 测试2: 属性访问 ===")
+    logger.debug("\n=== 测试2: 属性访问 ===")
     
     try:
         from anp_open_sdk.config import config
         
         # 测试多级属性访问
-        print(f"✅ LLM模型: {config.llm.default_model}")
-        print(f"✅ LLM最大Token: {config.llm.max_tokens}")
-        print(f"✅ 邮件SMTP端口: {config.mail.smtp_port}")
+        logger.debug(f"✅ LLM模型: {config.llm.default_model}")
+        logger.debug(f"✅ LLM最大Token: {config.llm.max_tokens}")
+        logger.debug(f"✅ 邮件SMTP端口: {config.mail.smtp_port}")
         
         # 测试智能体配置
-        print(f"✅ 演示智能体1: {config.anp_sdk.agent.demo_agent1}")
-        print(f"✅ 演示智能体2: {config.anp_sdk.agent.demo_agent2}")
+        logger.debug(f"✅ 演示智能体1: {config.anp_sdk.agent.demo_agent1}")
+        logger.debug(f"✅ 演示智能体2: {config.anp_sdk.agent.demo_agent2}")
         
         # 测试配置修改
         original_port = config.anp_sdk.port
         config.anp_sdk.port = 8080
-        print(f"✅ 修改端口: {original_port} -> {config.anp_sdk.port}")
+        logger.debug(f"✅ 修改端口: {original_port} -> {config.anp_sdk.port}")
         config.anp_sdk.port = original_port  # 恢复
         
         return True
     except Exception as e:
-        print(f"❌ 属性访问测试失败: {e}")
+        logger.debug(f"❌ 属性访问测试失败: {e}")
         return False
 
 def test_environment_variables():
     """测试环境变量"""
-    print("\n=== 测试3: 环境变量映射 ===")
+    logger.debug("\n=== 测试3: 环境变量映射 ===")
     
     try:
         from anp_open_sdk.config import config
@@ -86,30 +86,30 @@ def test_environment_variables():
         config.env.reload()
         
         # 测试预定义环境变量
-        print(f"✅ 调试模式 (ANP_DEBUG): {config.env.debug_mode}")
-        print(f"✅ 端口 (ANP_PORT): {config.env.port}")
-        print(f"✅ 端口类型: {type(config.env.port)}")
+        logger.debug(f"✅ 调试模式 (ANP_DEBUG): {config.env.debug_mode}")
+        logger.debug(f"✅ 端口 (ANP_PORT): {config.env.port}")
+        logger.debug(f"✅ 端口类型: {type(config.env.port)}")
         
         # 测试动态环境变量
-        print(f"✅ 测试变量 (TEST_VAR): {config.env.test_var}")
+        logger.debug(f"✅ 测试变量 (TEST_VAR): {config.env.test_var}")
         
         # 测试系统环境变量
         if config.env.system_path:
-            print(f"✅ PATH路径数量: {len(config.env.system_path)}")
-            print(f"✅ 第一个PATH: {config.env.system_path[0]}")
+            logger.debug(f"✅ PATH路径数量: {len(config.env.system_path)}")
+            logger.debug(f"✅ 第一个PATH: {config.env.system_path[0]}")
         
         if config.env.home_dir:
-            print(f"✅ 用户主目录: {config.env.home_dir}")
-            print(f"✅ 主目录类型: {type(config.env.home_dir)}")
+            logger.debug(f"✅ 用户主目录: {config.env.home_dir}")
+            logger.debug(f"✅ 主目录类型: {type(config.env.home_dir)}")
         
         return True
     except Exception as e:
-        print(f"❌ 环境变量测试失败: {e}")
+        logger.debug(f"❌ 环境变量测试失败: {e}")
         return False
 
 def test_path_resolution():
     """测试路径解析"""
-    print("\n=== 测试4: 路径解析 ===")
+    logger.debug("\n=== 测试4: 路径解析 ===")
     
     try:
         from anp_open_sdk.config import config
@@ -117,26 +117,26 @@ def test_path_resolution():
         # 测试占位符解析
         user_path = config.anp_sdk.user_did_path
         resolved_path = config.resolve_path(user_path)
-        print(f"✅ 原始路径: {user_path}")
-        print(f"✅ 解析后路径: {resolved_path}")
-        print(f"✅ 是否为绝对路径: {resolved_path.is_absolute()}")
+        logger.debug(f"✅ 原始路径: {user_path}")
+        logger.debug(f"✅ 解析后路径: {resolved_path}")
+        logger.debug(f"✅ 是否为绝对路径: {resolved_path.is_absolute()}")
         
         # 测试相对路径解析
         relative_path = config.resolve_path("test/data.json")
-        print(f"✅ 相对路径解析: {relative_path}")
+        logger.debug(f"✅ 相对路径解析: {relative_path}")
         
         # 测试手动占位符
         manual_path = config.resolve_path("{APP_ROOT}/logs/test.log")
-        print(f"✅ 手动占位符: {manual_path}")
+        logger.debug(f"✅ 手动占位符: {manual_path}")
         
         return True
     except Exception as e:
-        print(f"❌ 路径解析测试失败: {e}")
+        logger.debug(f"❌ 路径解析测试失败: {e}")
         return False
 
 def test_secrets():
     """测试敏感信息"""
-    print("\n=== 测试5: 敏感信息保护 ===")
+    logger.debug("\n=== 测试5: 敏感信息保护 ===")
     
     try:
         from anp_open_sdk.config import config
@@ -149,43 +149,43 @@ def test_secrets():
         api_key = config.secrets.openai_api_key
         mail_pwd = config.secrets.mail_password
         
-        print(f"✅ API密钥存在: {api_key is not None}")
-        print(f"✅ 邮件密码存在: {mail_pwd is not None}")
-        print(f"✅ API密钥前缀: {api_key[:10] if api_key else 'None'}...")
+        logger.debug(f"✅ API密钥存在: {api_key is not None}")
+        logger.debug(f"✅ 邮件密码存在: {mail_pwd is not None}")
+        logger.debug(f"✅ API密钥前缀: {api_key[:10] if api_key else 'None'}...")
         
         # 测试敏感信息不在普通配置中
         secrets_dict = config.secrets.to_dict()
-        print(f"✅ 敏感信息字典: {secrets_dict}")
+        logger.debug(f"✅ 敏感信息字典: {secrets_dict}")
         
         return True
     except Exception as e:
-        print(f"❌ 敏感信息测试失败: {e}")
+        logger.debug(f"❌ 敏感信息测试失败: {e}")
         return False
 
 def test_path_tools():
     """测试路径工具"""
-    print("\n=== 测试6: 路径工具 ===")
+    logger.debug("\n=== 测试6: 路径工具 ===")
     
     try:
         # 先检查原始 PATH 环境变量
         raw_path = os.environ.get('PATH', '')
-        print(f"✅ 原始PATH长度: {len(raw_path)}")
+        logger.debug(f"✅ 原始PATH长度: {len(raw_path)}")
 
         # 测试在PATH中查找文件
         # 分别测试每个功能，避免一个错误影响全部
         try:
             python_paths = config.find_in_path("python3")
             if python_paths:
-                print(f"✅ 找到Python3: {python_paths[0]}")
+                logger.debug(f"✅ 找到Python3: {python_paths[0]}")
             else:
-                print("⚠️  未找到Python3")
+                logger.debug("⚠️  未找到Python3")
         except Exception as e:
-            print(f"⚠️  查找Python3时出错: {e}")
+            logger.debug(f"⚠️  查找Python3时出错: {e}")
 
         
         # 测试路径信息
         path_info = config.get_path_info()
-        print(f"✅ 路径信息: {path_info}")
+        logger.debug(f"✅ 路径信息: {path_info}")
         
         # 测试添加路径到PATH（谨慎测试）
         test_path = "/tmp/test_path"
@@ -196,19 +196,19 @@ def test_path_tools():
         config.add_to_path(test_path)
         new_path = os.environ.get('PATH', '')
         
-        print(f"✅ 路径已添加: {test_path in new_path}")
+        logger.debug(f"✅ 路径已添加: {test_path in new_path}")
         
         # 恢复原始PATH
         os.environ['PATH'] = original_path
         
         return True
     except Exception as e:
-        print(f"❌ 路径工具测试失败: {e}")
+        logger.debug(f"❌ 路径工具测试失败: {e}")
         return False
 
 def test_backward_compatibility():
     """测试向后兼容性"""
-    print("\n=== 测试7: 向后兼容性 ===")
+    logger.debug("\n=== 测试7: 向后兼容性 ===")
     
     try:
         # 测试旧接口仍然可用
@@ -216,23 +216,23 @@ def test_backward_compatibility():
         from anp_open_sdk.config.path_resolver import path_resolver
         from anp_open_sdk.config import legacy_get_config_value
         
-        print("✅ 旧的dynamic_config可用")
-        print("✅ 旧的path_resolver可用") 
-        print("✅ 旧的get_config_value函数可用")
+        logger.debug("✅ 旧的dynamic_config可用")
+        logger.debug("✅ 旧的path_resolver可用") 
+        logger.debug("✅ 旧的get_config_value函数可用")
         
         # 测试新的便捷函数
         from anp_open_sdk.config import get_config_value
         port = get_config_value('anp_sdk.port')
-        print(f"✅ 新的get_config_value: {port}")
+        logger.debug(f"✅ 新的get_config_value: {port}")
         
         return True
     except Exception as e:
-        print(f"❌ 向后兼容性测试失败: {e}")
+        logger.debug(f"❌ 向后兼容性测试失败: {e}")
         return False
 
 def test_config_persistence():
     """测试配置持久化"""
-    print("\n=== 测试8: 配置持久化 ===")
+    logger.debug("\n=== 测试8: 配置持久化 ===")
     
     try:
         from anp_open_sdk.config import config
@@ -252,29 +252,29 @@ llm:
         from anp_open_sdk.config.unified_config import UnifiedConfig
         temp_config = UnifiedConfig(temp_config_path)
         
-        print(f"✅ 临时配置端口: {temp_config.anp_sdk.port}")
-        print(f"✅ 临时配置主机: {temp_config.anp_sdk.host}")
+        logger.debug(f"✅ 临时配置端口: {temp_config.anp_sdk.port}")
+        logger.debug(f"✅ 临时配置主机: {temp_config.anp_sdk.host}")
         
         # 修改并保存
         temp_config.anp_sdk.port = 7777
         success = temp_config.save()
-        print(f"✅ 配置保存成功: {success}")
+        logger.debug(f"✅ 配置保存成功: {success}")
         
         # 重新加载验证
         temp_config.reload()
-        print(f"✅ 重新加载后端口: {temp_config.anp_sdk.port}")
+        logger.debug(f"✅ 重新加载后端口: {temp_config.anp_sdk.port}")
         
         # 清理
         os.unlink(temp_config_path)
         
         return True
     except Exception as e:
-        print(f"❌ 配置持久化测试失败: {e}")
+        logger.debug(f"❌ 配置持久化测试失败: {e}")
         return False
 
 def test_type_conversion():
     """测试类型转换"""
-    print("\n=== 测试9: 类型转换 ===")
+    logger.debug("\n=== 测试9: 类型转换 ===")
     
     try:
         from anp_open_sdk.config import config
@@ -320,24 +320,24 @@ env_types:
         
         temp_config = UnifiedConfig(temp_config_path)
         
-        print(f"✅ 布尔值(true): {temp_config.env.test_bool_true} ({type(temp_config.env.test_bool_true)})")
-        print(f"✅ 布尔值(false): {temp_config.env.test_bool_false} ({type(temp_config.env.test_bool_false)})")
-        print(f"✅ 整数: {temp_config.env.test_int} ({type(temp_config.env.test_int)})")
-        print(f"✅ 浮点数: {temp_config.env.test_float} ({type(temp_config.env.test_float)})")
-        print(f"✅ 列表: {temp_config.env.test_list} ({type(temp_config.env.test_list)})")
-        print(f"✅ 路径: {temp_config.env.test_path} ({type(temp_config.env.test_path)})")
+        logger.debug(f"✅ 布尔值(true): {temp_config.env.test_bool_true} ({type(temp_config.env.test_bool_true)})")
+        logger.debug(f"✅ 布尔值(false): {temp_config.env.test_bool_false} ({type(temp_config.env.test_bool_false)})")
+        logger.debug(f"✅ 整数: {temp_config.env.test_int} ({type(temp_config.env.test_int)})")
+        logger.debug(f"✅ 浮点数: {temp_config.env.test_float} ({type(temp_config.env.test_float)})")
+        logger.debug(f"✅ 列表: {temp_config.env.test_list} ({type(temp_config.env.test_list)})")
+        logger.debug(f"✅ 路径: {temp_config.env.test_path} ({type(temp_config.env.test_path)})")
         
         # 清理
         os.unlink(temp_config_path)
         
         return True
     except Exception as e:
-        print(f"❌ 类型转换测试失败: {e}")
+        logger.debug(f"❌ 类型转换测试失败: {e}")
         return False
 
 def test_error_handling():
     """测试错误处理"""
-    print("\n=== 测试10: 错误处理 ===")
+    logger.debug("\n=== 测试10: 错误处理 ===")
     
     try:
         from anp_open_sdk.config import config
@@ -345,32 +345,32 @@ def test_error_handling():
         # 测试访问不存在的配置项
         try:
             nonexistent = config.nonexistent_section.nonexistent_item
-            print("❌ 应该抛出AttributeError")
+            logger.debug("❌ 应该抛出AttributeError")
             return False
         except AttributeError as e:
-            print(f"✅ 正确处理不存在的配置项: {e}")
+            logger.debug(f"✅ 正确处理不存在的配置项: {e}")
         
         # 测试访问不存在的环境变量
         nonexistent_env = config.env.nonexistent_env_var
-        print(f"✅ 不存在的环境变量返回: {nonexistent_env}")
+        logger.debug(f"✅ 不存在的环境变量返回: {nonexistent_env}")
         
         # 测试访问不存在的敏感信息
         try:
             nonexistent_secret = config.secrets.nonexistent_secret
-            print("❌ 应该抛出AttributeError")
+            logger.debug("❌ 应该抛出AttributeError")
             return False
         except AttributeError as e:
-            print(f"✅ 正确处理不存在的敏感信息: {e}")
+            logger.debug(f"✅ 正确处理不存在的敏感信息: {e}")
         
         return True
     except Exception as e:
-        print(f"❌ 错误处理测试失败: {e}")
+        logger.debug(f"❌ 错误处理测试失败: {e}")
         return False
 
 def run_all_tests():
     """运行所有测试"""
-    print("🚀 开始统一配置系统测试")
-    print("=" * 50)
+    logger.debug("🚀 开始统一配置系统测试")
+    logger.debug("=" * 50)
     
     tests = [
         test_basic_config_loading,
@@ -392,21 +392,21 @@ def run_all_tests():
         try:
             if test():
                 passed += 1
-                print("✅ 通过")
+                logger.debug("✅ 通过")
             else:
                 failed += 1
-                print("❌ 失败")
+                logger.debug("❌ 失败")
         except Exception as e:
             failed += 1
-            print(f"❌ 异常: {e}")
+            logger.debug(f"❌ 异常: {e}")
     
-    print("\n" + "=" * 50)
-    print(f"📊 测试结果: {passed} 通过, {failed} 失败")
+    logger.debug("\n" + "=" * 50)
+    logger.debug(f"📊 测试结果: {passed} 通过, {failed} 失败")
     
     if failed == 0:
-        print("🎉 所有测试通过！统一配置系统工作正常。")
+        logger.debug("🎉 所有测试通过！统一配置系统工作正常。")
     else:
-        print("⚠️  部分测试失败，请检查配置。")
+        logger.debug("⚠️  部分测试失败，请检查配置。")
     
     return failed == 0
 

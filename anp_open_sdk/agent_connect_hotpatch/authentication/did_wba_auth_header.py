@@ -21,8 +21,7 @@
 
 import os
 import json
-import logging
-import asyncio
+from utils.log_base import logger
 import aiohttp
 from pathlib import Path
 from typing import Dict, Optional
@@ -57,7 +56,7 @@ class DIDWbaAuthHeader:
         self.auth_headers = {}  # Store DID authentication headers by domain
         self.tokens = {}  # Store tokens by domain
         
-        # logging.info("DIDWbaAuthHeader initialized")
+        # logger.debug("DIDWbaAuthHeader initialized")
     
     def _get_domain(self, server_url: str) -> str:
         """从URL中提取域名，兼容FastAPI/Starlette的Request对象"""
@@ -88,10 +87,10 @@ class DIDWbaAuthHeader:
                 did_document = json.load(f)
             
             self.did_document = did_document
-            # logging.info(f"Loaded DID document: {did_path}")
+            # logger.debug(f"Loaded DID document: {did_path}")
             return did_document
         except Exception as e:
-            logging.error(f"Error loading DID document: {e}")
+            logger.debug(f"Error loading DID document: {e}")
             raise
     
     def _load_private_key(self) -> ec.EllipticCurvePrivateKey:
@@ -108,10 +107,10 @@ class DIDWbaAuthHeader:
                 password=None
             )
             
-            logging.debug(f"Loaded private key: {key_path}")
+            logger.debug(f"Loaded private key: {key_path}")
             return private_key
         except Exception as e:
-            logging.error(f"Error loading private key: {e}")
+            logger.debug(f"Error loading private key: {e}")
             raise
     
     def _sign_callback(self, content: bytes, method_fragment: str) -> bytes:
@@ -123,10 +122,10 @@ class DIDWbaAuthHeader:
                 ec.ECDSA(hashes.SHA256())
             )
             
-            logging.debug(f"Signed content with method fragment: {method_fragment}")
+            logger.debug(f"Signed content with method fragment: {method_fragment}")
             return signature
         except Exception as e:
-            logging.error(f"Error signing content: {e}")
+            logger.debug(f"Error signing content: {e}")
             raise
     
     def _generate_auth_header_two_way(self, domain: str, resp_did:str) -> str:
@@ -134,7 +133,7 @@ class DIDWbaAuthHeader:
         try:
             did_document = self._load_did_document()
         
-            # logging.info("尝试添加DID认证头自")
+            # logger.debug("尝试添加DID认证头自")
             
 
             auth_header = generate_auth_header_two_way(
@@ -147,10 +146,10 @@ class DIDWbaAuthHeader:
             
 
 
-            # logging.info(f"Generated authentication header for domain {domain}: {auth_header[:30]}...")
+            # logger.debug(f"Generated authentication header for domain {domain}: {auth_header[:30]}...")
             return auth_header
         except Exception as e:
-            logging.error(f"Error generating authentication header: {e}")
+            logger.debug(f"Error generating authentication header: {e}")
             raise
     
     def get_auth_header_two_way(self, server_url: str, resp_did: str, force_new: bool = False) -> Dict[str, str]:
@@ -163,14 +162,14 @@ class DIDWbaAuthHeader:
         # If there is a token and not forcing a new authentication header, return the token
         if domain in self.tokens and not force_new:
             token = self.tokens[domain]
-            # logging.info(f"Using existing token for domain {domain}")
+            # logger.debug(f"Using existing token for domain {domain}")
             return {"Authorization": f"Bearer {token}"}
         
         # Otherwise, generate or use existing DID authentication header
         if domain not in self.auth_headers or force_new:
             self.auth_headers[domain] = self._generate_auth_header_two_way(domain, resp_did)
         
-        # logging.info(f"Using DID authentication header for domain {domain}")
+        # logger.debug(f"Using DID authentication header for domain {domain}")
         return {"Authorization": self.auth_headers[domain]}
     
     def update_token(self, server_url: str, headers: Dict[str, str]) -> Optional[str]:
@@ -189,12 +188,12 @@ class DIDWbaAuthHeader:
         domain = self._get_domain(server_url)
         auth_data = headers.get("Authorization")
         if not auth_data:
-            logging.debug(f"响应头中没有 Authorization 字段，跳过 token 更新。URL: {server_url}")
+            logger.debug(f"响应头中没有 Authorization 字段，跳过 token 更新。URL: {server_url}")
             return None
 
         if auth_data.startswith('Bearer '):
             token_value = auth_data[7:]  # 移除 "Bearer " 前缀
-            logging.info(f"解析到bearer token: {token_value}")
+            logger.debug(f"解析到bearer token: {token_value}")
             return token_value
 
         try:
@@ -206,7 +205,7 @@ class DIDWbaAuthHeader:
             else:
                 return None
         except json.JSONDecodeError:
-            logging.debug(f"No valid token found in response headers for  {server_url}")
+            logger.debug(f"No valid token found in response headers for  {server_url}")
             return None
     
     def clear_token(self, server_url: str) -> None:
@@ -219,14 +218,14 @@ class DIDWbaAuthHeader:
         domain = self._get_domain(server_url)
         if domain in self.tokens:
             del self.tokens[domain]
-            # logging.info(f"Cleared token for domain {domain}")
+            # logger.debug(f"Cleared token for domain {domain}")
         else:
-            logging.debug(f"No stored token for domain {domain}")
+            logger.debug(f"No stored token for domain {domain}")
     
     def clear_all_tokens(self) -> None:
         """Clear all tokens for all domains"""
         self.tokens.clear()
-        # logging.info("Cleared all tokens for all domains")
+        # logger.debug("Cleared all tokens for all domains")
 
 # # Example usage
 # async def example_usage():
@@ -253,34 +252,34 @@ class DIDWbaAuthHeader:
 #             headers=headers
 #         ) as response:
 #             # Check response
-#             print(f"Status code: {response.status}")
+#             logger.debug(f"Status code: {response.status}")
             
 #             # If authentication is successful, update token
 #             if response.status == 200:
 #                 token = client.update_token(server_url, dict(response.headers))
 #                 if token:
-#                     print(f"Received token: {token[:30]}...")
+#                     logger.debug(f"Received token: {token[:30]}...")
 #                 else:
-#                     print("No token received in response headers")
+#                     logger.debug("No token received in response headers")
             
 #             # If authentication fails and a token was used, clear the token and retry
 #             elif response.status == 401:
-#                 print("Invalid token, clearing and using DID authentication")
+#                 logger.debug("Invalid token, clearing and using DID authentication")
 #                 client.clear_token(server_url)
 #                 # Retry request here
     
 #     # Get authentication header again (if a token was obtained in the previous step, this will return a token authentication header)
 #     headers = client.get_auth_header(server_url)
-#     print(f"Header for second request: {headers}")
+#     logger.debug(f"Header for second request: {headers}")
     
 #     # Force use of DID authentication header
 #     headers = client.get_auth_header(server_url, force_new=True)
-#     print(f"Forced use of DID authentication header: {headers}")
+#     logger.debug(f"Forced use of DID authentication header: {headers}")
     
 #     # Test different domain
 #     another_server_url = "http://api.example.com"
 #     headers = client.get_auth_header(another_server_url)
-#     print(f"Header for another domain: {headers}")
+#     logger.debug(f"Header for another domain: {headers}")
 
 # if __name__ == "__main__":
 #     asyncio.run(example_usage())
