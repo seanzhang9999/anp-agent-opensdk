@@ -776,7 +776,7 @@ async def run_crawler_demo_with_different_agent(crawler: ANPToolCrawler,
     )
     
     # 保存结果到文件
-    output_file = "anp_sdk_demo/demo_data/agent1_crawler_result.json"
+    output_file = "demo_data/agent1_crawler_result.json"
     with open(output_file, 'w', encoding='utf-8') as f:
         json.dump(result, f, ensure_ascii=False, indent=2, cls=CustomJSONEncoder)
     logger.debug(f"爬取结果已保存到 {output_file}")
@@ -800,7 +800,7 @@ async def run_web_agent_crawler_demo(crawler: ANPToolCrawler,
     )
     
     # 保存结果到文件
-    output_file = "anp_sdk_demo/demo_data/project2_web_agent_crawler_result.json"
+    output_file = "demo_data/project2_web_agent_crawler_result.json"
     with open(output_file, 'w', encoding='utf-8') as f:
         json.dump(result, f, ensure_ascii=False, indent=2, cls=CustomJSONEncoder)
     logger.debug(f"Web智能体爬取结果已保存到 {output_file}")
@@ -973,7 +973,7 @@ async def main():
             crawler, 
             python_agent, 
             "写个冒泡法排序代码",
-            "anp_sdk_demo/demo_data/agent_anptool_crawler_result.json"
+            "demo_data/agent_anptool_crawler_result.json"
         )
         
         # 演示2: 使用不同智能体身份 - 生成随机数代码

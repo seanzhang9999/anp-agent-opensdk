@@ -477,7 +477,7 @@ async def main():
             else:
                 return obj
         # 保存结果到文件（可选）
-        output_file = "anp_sdk_demo/demo_data/crawler_result.json"
+        output_file = "demo_data/crawler_result.json"
         with open(output_file, 'w', encoding='utf-8') as f:
             serializable_result = ensure_serializable_keys(result)
             json.dump(serializable_result, f, ensure_ascii=False, indent=2, cls=CustomJSONEncoder)

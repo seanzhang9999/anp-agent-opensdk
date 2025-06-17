@@ -21,7 +21,7 @@ anp agent opensdk是基于ANP核心协议栈agent_connect开发的一个anp快�
 
 通过sdk，可以快速上手，在自己的开发环境上实现anp的四个场景，当前进度：1和2已完成
 
-[1 演示代码](project_1_anp_tool_crawler_to_web_agent.py)
+[1 演示代码](anp_sdk_demo/project_1_anp_tool_crawler_to_web_agent.py)
 
 [2 演示代码](project_2_anp_tool_crawler_to_local_agent.py)
 
