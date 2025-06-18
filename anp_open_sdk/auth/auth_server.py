@@ -89,6 +89,19 @@ class AgentAuthServer:
         auth_header = request.headers.get("Authorization")
         if not auth_header:
             raise HTTPException(status_code=401, detail="Missing Authorization header")
+
+        if auth_header and auth_header.startswith("Bearer "):
+            req_did =  request.headers.get("req_did")
+            target_did =request.headers.get("resp_did")
+            token = auth_header[len("Bearer "):]
+            try:
+                result = await handle_bearer_auth(token, req_did, target_did)
+                return True, "Bearer token verified", result
+            except Exception as e:
+                logger.debug(f"Bearer认证失败: {e}")
+                return False, str(e), {}
+
+
         req_did, target_did = self.authenticator.base_auth.extract_did_from_auth_header(auth_header)
         context = AuthenticationContext(
             caller_did=req_did,
@@ -156,7 +169,7 @@ async def auth_middleware(request: Request, call_next: Callable, sdk, auth_metho
         )
 
 
-async def handle_bearer_auth(token: str, req_did, resp_did, sdk= None) -> Dict:
+async def handle_bearer_auth(token: str, req_did, resp_did) -> Dict:
     """
     Handle Bearer token authentication.
 
@@ -234,9 +247,22 @@ async def handle_bearer_auth(token: str, req_did, resp_did, sdk= None) -> Dict:
                 algorithms=[jwt_algorithm]
             )
 
-            # Check if token contains required fields
-            if "req_did" not in payload:
-                raise HTTPException(status_code=401, detail="Invalid token payload")
+            # Check if token contains required fields and values
+            required_fields = ["req_did", "resp_did", "exp"]
+            for field in required_fields:
+                if field not in payload:
+                    raise HTTPException(status_code=401, detail=f"Token missing required field: {field}")
+
+            # 可选：进一步校验 req_did、resp_did 的值
+            if payload["req_did"] != req_did:
+                raise HTTPException(status_code=401, detail="req_did mismatch")
+            if payload["resp_did"] != resp_did:
+                raise HTTPException(status_code=401, detail="resp_did mismatch")
+
+            # 校验 exp 是否过期
+            now = datetime.now(timezone.utc).timestamp()
+            if payload["exp"] < now:
+                raise HTTPException(status_code=401, detail="Token expired")
 
             logger.debug(f"LocalAgent存储中未找到{req_did}提交的token,公钥验证通过")
         return {

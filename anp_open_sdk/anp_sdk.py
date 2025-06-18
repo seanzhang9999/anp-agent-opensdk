@@ -111,7 +111,7 @@ class ANPSDK:
             for agent in self.agents:
                 self.register_agent(agent)
             self._register_default_routes()
-        elif mode == SdkMode.DID_HOST_SERVER:
+        elif mode == SdkMode.DID_REG_PUB_SERVER:
             self._register_default_routes()
         elif mode == SdkMode.SDK_WS_PROXY_SERVER:
             self._register_default_routes()

@@ -1,18 +1,14 @@
-import glob
-import yaml
-import importlib
-import os
-import sys
 from anp_open_sdk.anp_sdk import ANPSDK
 from anp_open_sdk.anp_sdk_agent import LocalAgent
 from anp_open_sdk.sdk_mode import SdkMode
+import importlib
+import glob
+import yaml
+import os
+import sys
 
-def load_agent_from_yaml(yaml_path):
-    with open(yaml_path, "r", encoding="utf-8") as f:
-        cfg = yaml.safe_load(f)
-    agent = LocalAgent.from_did(cfg["did"])
-    agent.name = cfg["name"]
-def load_agent_from_yaml(yaml_path):
+
+def load_agent_ablilty(yaml_path):
     with open(yaml_path, "r", encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
     agent = LocalAgent.from_did(cfg["did"])
@@ -26,9 +22,9 @@ def load_agent_from_yaml(yaml_path):
         reg_module = importlib.import_module(module_name)
         reg_module.register(agent)
     else:
-        # 2. 没有自定义注册脚本时，自动 expose_api
+        # 2. 没有自定义注册脚本时，自动 expose_api（你的 for api in ... 逻辑）
         yaml_dir = os.path.dirname(yaml_path)
-        handler_module_path = os.path.join(yaml_dir, "agent_001_handlers.py")
+        handler_module_path = os.path.join(yaml_dir, "agent_handlers.py")
         rel_path = os.path.relpath(handler_module_path, start=os.getcwd())
         module_name = rel_path.replace(os.sep, ".").replace(".py", "")
         sys.path.append(os.getcwd())
@@ -44,14 +40,19 @@ def load_agent_from_yaml(yaml_path):
                 except Exception:
                     pass
             if not handler:
-            async def handler(request_data, request):
-                return {"msg": f"default handler for {api['path']}"}
-        agent.expose_api(api["path"], handler, methods=[api["method"]])
+                async def handler(request_data, request):
+                    return {"msg": f"default handler for {api['path']}"}
+            agent.expose_api(api["path"], handler, methods=[api["method"]])
     return agent
 
+
 if __name__ == "__main__":
-    # 自动扫描 agents_config 目录下所有 agent yaml
-    agent_files = glob.glob("anp_open_sdk/agents_config/agent*/agent_*.yaml")
-    agents = [load_agent_from_yaml(f) for f in agent_files]
+    agent_files = glob.glob("anp_open_sdk/agents_config/agent*/agent_mappings.yaml")
+    agents = [load_agent_ablilty(f) for f in agent_files]
     sdk = ANPSDK(mode=SdkMode.MULTI_AGENT_ROUTER, agents=agents)
-    sdk.start_server()
+    import threading
+    def start_sdk_server():
+        sdk.start_server()
+
+    server_thread = threading.Thread(target=start_sdk_server)
+    server_thread.start()
