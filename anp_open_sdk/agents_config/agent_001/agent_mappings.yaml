@@ -7,3 +7,6 @@ api:
   - path: "/info"
     method: "POST"
     handler: "info_handler"
+  - path: "/llm/chat"
+    method: "POST"
+    handler: "chat_completion"
