@@ -17,13 +17,13 @@ Publisher API router for hosted DID documents, agent descriptions, and API forwa
 """
 import json
 import yaml
-import logging
+from utils.log_base import logger
 from typing import Dict
 from pathlib import Path
 from fastapi import APIRouter, Request, HTTPException
 from anp_open_sdk.config.legacy.dynamic_config import dynamic_config
 from anp_open_sdk.config.path_resolver import path_resolver
-from loguru import logger
+from utils.log_base import  logging as logger
 
 router = APIRouter(tags=["publisher"])
 
@@ -31,7 +31,7 @@ router = APIRouter(tags=["publisher"])
 @router.get("/wba/hostuser/{user_id}/did.json", summary="Get Hosted DID document")
 async def get_hosted_did_document(user_id: str) -> Dict:
     """
-    Retrieve a DID document by user ID from anp_user_hosted.
+    Retrieve a DID document by user ID from anp_users_hosted.
     """
     did_path = Path(dynamic_config.get('anp_sdk.user_hosted_path', 'anp_users_hosted'))
     did_path = did_path.joinpath(f"user_{user_id}", "did_document.json")
@@ -43,7 +43,7 @@ async def get_hosted_did_document(user_id: str) -> Dict:
             did_document = json.load(f)
         return did_document
     except Exception as e:
-        logging.error(f"Error loading hosted DID document: {e}")
+        logger.debug(f"Error loading hosted DID document: {e}")
         raise HTTPException(status_code=500, detail="Error loading hosted DID document")
 
 

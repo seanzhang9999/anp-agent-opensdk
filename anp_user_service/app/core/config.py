@@ -17,7 +17,7 @@ try:
     ANP_USER_DID_PATH_KEY = 'anp_user_service.user_did_path' # The key used in your ANP SDK's config
     # Example: ANP_USER_BASE_PATH = Path(dynamic_config.get(ANP_USER_DID_PATH_KEY))
 except ImportError:
-    print("Warning: ANP SDK dynamic_config could not be imported. Paths may not be resolved correctly.")
+    logger.debug("Warning: ANP SDK dynamic_config could not be imported. Paths may not be resolved correctly.")
     dynamic_config = None
     # ANP_USER_BASE_PATH = BACKEND_BASE_DIR.parent / "wba" / "user" # Fallback or example
 
@@ -27,7 +27,7 @@ def get_anp_user_base_path() -> Path:
         path_str = dynamic_config.get(ANP_USER_DID_PATH_KEY)
         if path_str:
             return Path(path_str)
-    print(f"Warning: Could not get '{ANP_USER_DID_PATH_KEY}' from dynamic_config. Using fallback.")
+    logger.debug(f"Warning: Could not get '{ANP_USER_DID_PATH_KEY}' from dynamic_config. Using fallback.")
     return BACKEND_BASE_DIR / "anp_users"
 
 

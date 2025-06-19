@@ -6,7 +6,7 @@ from datetime import datetime
 from anp_open_sdk.service.interaction.anp_sdk_group_member import GroupMemberSDK
 from anp_open_sdk.service.interaction.anp_sdk_group_runner import Message, MessageType
 from anp_open_sdk.config.path_resolver import path_resolver
-
+from utils.log_base import logging as logger
 
 class GroupMemberWithStorage(GroupMemberSDK):
     """带存储功能的 GroupMemberSDK"""
@@ -21,7 +21,7 @@ class GroupMemberWithStorage(GroupMemberSDK):
         if self.enable_storage:
             self.storage_dir = path_resolver.resolve_path(storage_dir)
             os.makedirs(self.storage_dir, exist_ok=True)
-            print(f"🗂️ 存储目录已创建: {self.storage_dir}")  # 添加调试信息
+            logger.debug(f"🗂️ 存储目录已创建: {self.storage_dir}")  # 添加调试信息
 
     async def save_received_message(self, group_id: str, message: Message):
         """保存接收到的消息"""
@@ -30,7 +30,7 @@ class GroupMemberWithStorage(GroupMemberSDK):
 
         agent_name = self.agent_id.split(":")[-1] if ":" in self.agent_id else self.agent_id
         message_file = os.path.join(self.storage_dir, f"{agent_name}_group_messages.json")
-        print(f"📝 正在保存消息到 {message_file}")  # 添加调试信息
+        logger.debug(f"📝 正在保存消息到 {message_file}")  # 添加调试信息
 
         message_data = {
             "type": message.type.value,
@@ -100,7 +100,7 @@ class GroupMemberWithStorage(GroupMemberSDK):
                 "name": name or self.agent_id,
                 "metadata": metadata or {}
             })
-            print(f"📝 {self.agent_id.split(':')[-1]} joined group {group_id} (logged)")
+            logger.debug(f"📝 {self.agent_id.split(':')[-1]} joined group {group_id} (logged)")
 
         return result
 
@@ -110,7 +110,7 @@ class GroupMemberWithStorage(GroupMemberSDK):
 
         if result and self.enable_storage:
             await self.save_group_event("leave", group_id)
-            print(f"📝 {self.agent_id.split(':')[-1]} left group {group_id} (logged)")
+            logger.debug(f"📝 {self.agent_id.split(':')[-1]} left group {group_id} (logged)")
 
         return result
 
@@ -239,7 +239,7 @@ class GroupMemberWithStats(GroupMemberSDK):
 
         if result:
             self.message_stats["groups_joined"].add(group_id)
-            print(f"📊 {self.agent_id.split(':')[-1]} joined group {group_id} (stats updated)")
+            logger.debug(f"📊 {self.agent_id.split(':')[-1]} joined group {group_id} (stats updated)")
 
         return result
 

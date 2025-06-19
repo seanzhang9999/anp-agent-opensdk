@@ -41,7 +41,7 @@ async def login_for_access(form_data: UserCredentials):
         
     personal_data_dir = get_user_personal_data_path(did=did)
     if not personal_data_dir or not personal_data_dir.exists():
-        print(f"Warning: Personal data directory not found for user {form_data.username} (DID: {did}) at {personal_data_dir}")
+        logger.debug(f"Warning: Personal data directory not found for user {form_data.username} (DID: {did}) at {personal_data_dir}")
     return LoginResponse(
         success=True,
         message="Login successful",

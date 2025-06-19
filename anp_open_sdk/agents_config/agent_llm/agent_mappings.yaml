@@ -1,0 +1,6 @@
+name: Large Language Model Agent
+did: "did:anp:llm_agent"
+api:
+  - path: "/llm/chat"
+    method: "POST"
+    handler: "chat_completion"

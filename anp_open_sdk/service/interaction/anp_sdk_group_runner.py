@@ -13,7 +13,7 @@ from enum import Enum
 import asyncio
 import time
 import json
-from loguru import logger
+from utils.log_base import  logging as logger
 
 class MessageType(Enum):
     """消息类型枚举"""
@@ -152,20 +152,20 @@ class GroupRunner(ABC):
     def register_listener(self, agent_id: str, queue: asyncio.Queue):
         """注册消息监听器"""
         self.listeners[agent_id] = queue
-        logger.info(f"Registered listener for {agent_id} in group {self.group_id}")
+        logger.debug(f"Registered listener for {agent_id} in group {self.group_id}")
 
     def unregister_listener(self, agent_id: str):
         """注销消息监听器"""
         if agent_id in self.listeners:
             del self.listeners[agent_id]
-            logger.info(f"Unregistered listener for {agent_id} in group {self.group_id}")
+            logger.debug(f"Unregistered listener for {agent_id} in group {self.group_id}")
 
 
 
     async def start(self):
         """启动 GroupRunner"""
         self._running = True
-        logger.info(f"GroupRunner for {self.group_id} started")
+        logger.debug(f"GroupRunner for {self.group_id} started")
 
     async def stop(self):
         """停止 GroupRunner"""
@@ -179,7 +179,7 @@ class GroupRunner(ABC):
             timestamp=time.time()
         )
         await self.broadcast(shutdown_msg)
-        logger.info(f"GroupRunner for {self.group_id} stopped")
+        logger.debug(f"GroupRunner for {self.group_id} stopped")
 
 class GroupManager:
     """群组管理器 - 管理所有 GroupRunner"""
@@ -202,7 +202,7 @@ class GroupManager:
         if url_pattern:
             self.custom_routes[group_id] = url_pattern
 
-        logger.info(f"Registered GroupRunner for group {group_id}")
+        logger.debug(f"Registered GroupRunner for group {group_id}")
 
         # 启动 runner
         asyncio.create_task(runner.start())
@@ -215,7 +215,7 @@ class GroupManager:
             del self.runners[group_id]
             if group_id in self.custom_routes:
                 del self.custom_routes[group_id]
-            logger.info(f"Unregistered GroupRunner for group {group_id}")
+            logger.debug(f"Unregistered GroupRunner for group {group_id}")
 
     def get_runner(self, group_id: str) -> Optional[GroupRunner]:
         """获取群组的 runner"""

@@ -9,7 +9,7 @@ from urllib.parse import quote
 
 import requests
 import aiofiles
-from loguru import logger
+from utils.log_base import  logging as logger
 
 from anp_open_sdk.anp_sdk import ANPSDK, LocalAgent
 from anp_open_sdk.config.path_resolver import path_resolver
@@ -54,14 +54,10 @@ class DemoTaskRunner:
         agent1, agent2, agent3 = self.agents[0], self.agents[1], self.agents[2]
 
         try:
-            # await self.run_anp_tool_crawler_agent_search_ai_ad_jason(agent1, agent2)
-            
-            
-            
+            await self.run_anp_tool_crawler_agent_search_ai_ad_jason(agent1, agent2)
             await self.run_api_demo(agent1, agent2)
             await self.run_message_demo(agent2, agent3, agent1)
             await self.run_agent_lifecycle_demo(agent1,agent2,agent3)
-
             await self.run_hosted_did_demo(agent1)  # 添加托管 DID 演示
             await self.run_group_chat_demo(agent1, agent2,agent3)
             self.step_helper.pause("所有演示完成")
@@ -81,20 +77,20 @@ class DemoTaskRunner:
         resp = await agent_api_call_get(
              agent2.id, agent1.id, "/hello", {"from": agent2.name}
         )
-        logger.info(f"{agent2.name}GET调用{agent1.name}的/hello接口响应: {resp}")
+        logger.debug(f"{agent2.name}GET调用{agent1.name}的/hello接口响应: {resp}")
         # POST请求演示
         self.step_helper.pause("演示POST请求到/info接口")
         resp = await agent_api_call_post(
             agent1.id, agent2.id, "/info", {"from": agent1.name}
         )
-        logger.info(f"{agent1.name}POST调用{agent2.name}的/info接口响应: {resp}")
+        logger.debug(f"{agent1.name}POST调用{agent2.name}的/info接口响应: {resp}")
 
         # GET请求演示
         self.step_helper.pause("演示GET请求到/info接口")
         resp = await agent_api_call_get(
             agent1.id, agent2.id, "/info", {"from": agent1.name}
         )
-        logger.info(f"{agent1.name}GET调用{agent2.name}的/info接口响应: {resp}")
+        logger.debug(f"{agent1.name}GET调用{agent2.name}的/info接口响应: {resp}")
 
     async def run_agent_lifecycle_demo(self, agent1,agent2,agent3):
         # 导入必要的模块
@@ -108,10 +104,10 @@ class DemoTaskRunner:
         temp_user_dir = None
 
         try:
-            logger.info("=== 开始消息演示（包含临时用户创建） ===")
+            logger.debug("=== 开始消息演示（包含临时用户创建） ===")
 
             # 1. 创建临时用户
-            logger.info("步骤1: 创建临时用户")
+            logger.debug("步骤1: 创建临时用户")
             temp_user_params = {
                 'name': '智能体创建删除示范用户',
                 'host': 'localhost',
@@ -125,23 +121,23 @@ class DemoTaskRunner:
                 logger.error("临时用户创建失败")
                 return
 
-            logger.info(f"临时用户创建成功，DID: {did_document['id']}")
+            logger.debug(f"临时用户创建成功，DID: {did_document['id']}")
 
             # 创建LocalAgent实例
             temp_agent = LocalAgent.from_did(did_document['id'])
 
             # 注册到SDK
             self.sdk.register_agent(temp_agent)
-            logger.info(f"临时智能体 {temp_agent.name} 注册成功")
+            logger.debug(f"临时智能体 {temp_agent.name} 注册成功")
 
             # 3. 为临时智能体注册消息监听函数
-            logger.info("步骤3: 注册消息监听函数")
+            logger.debug("步骤3: 注册消息监听函数")
 
 
             @temp_agent.register_message_handler("*")
             async def handle_temp_message(msg):
                 """临时智能体的消息处理函数"""
-                logger.info(f"[{temp_agent.name}] 收到消息: {msg}")
+                logger.debug(f"[{temp_agent.name}] 收到消息: {msg}")
 
                 # 自动回复消息
                 reply_content = f"这是来自临时智能体 {temp_agent.name} 的自动回复,确认收到消息{msg.get('content')}"
@@ -150,36 +146,36 @@ class DemoTaskRunner:
                 }
                 return  reply_message
 
-            logger.info(f"临时智能体 {temp_agent.name} 消息监听函数注册完成")
+            logger.debug(f"临时智能体 {temp_agent.name} 消息监听函数注册完成")
 
             # 4. 与其他智能体进行消息交互
-            logger.info("步骤4: 开始消息交互演示")
+            logger.debug("步骤4: 开始消息交互演示")
 
             # 临时智能体向agent2发送消息
-            logger.info(f"=== {temp_agent.name} -> {agent2.name} ===")
+            logger.debug(f"=== {temp_agent.name} -> {agent2.name} ===")
             resp = await agent_msg_post(self.sdk, temp_agent.id, agent2.id, f"你好，我是{temp_agent.name}")
-            logger.info(f"[{temp_agent.name}] 已发送消息给 {agent2.name},响应: {resp}")
+            logger.debug(f"[{temp_agent.name}] 已发送消息给 {agent2.name},响应: {resp}")
 
 
             # 临时智能体向agent3发送消息
-            logger.info(f"=== {temp_agent.name} -> {agent3.name} ===")
+            logger.debug(f"=== {temp_agent.name} -> {agent3.name} ===")
             resp = await agent_msg_post(self.sdk, temp_agent.id, agent3.id, f"你好，我是{temp_agent.name}")
-            logger.info(f"[{temp_agent.name}] 已发送消息给 {agent3.name},响应: {resp}")
+            logger.debug(f"[{temp_agent.name}] 已发送消息给 {agent3.name},响应: {resp}")
 
 
             # agent1向临时智能体发送消息
-            logger.info(f"=== {agent1.name} -> {temp_agent.name} ===")
+            logger.debug(f"=== {agent1.name} -> {temp_agent.name} ===")
             resp = await agent_msg_post(self.sdk, agent1.id, temp_agent.id, f"你好，我是{agent1.name}")
-            logger.info(f"[{agent1.name}] 已发送消息给 {temp_agent.name},响应: {resp}")
+            logger.debug(f"[{agent1.name}] 已发送消息给 {temp_agent.name},响应: {resp}")
 
 
 
             # 显示消息交互总结
-            logger.info("=== 消息交互总结 ===")
-            logger.info(f"临时智能体 {temp_agent.name} 成功与以下智能体进行了消息交互:")
-            logger.info(f"  - 发送消息给: {agent2.name}, {agent3.name}")
-            logger.info(f"  - 接收消息来自: {agent1.name}")
-            logger.info("所有消息都已正确处理和回复")
+            logger.debug("=== 消息交互总结 ===")
+            logger.debug(f"临时智能体 {temp_agent.name} 成功与以下智能体进行了消息交互:")
+            logger.debug(f"  - 发送消息给: {agent2.name}, {agent3.name}")
+            logger.debug(f"  - 接收消息来自: {agent1.name}")
+            logger.debug("所有消息都已正确处理和回复")
 
         except Exception as e:
             logger.error(f"消息演示过程中发生错误: {e}")
@@ -188,7 +184,7 @@ class DemoTaskRunner:
 
         finally:
             # 5. 清理：删除临时用户
-            logger.info("步骤5: 清理临时用户")
+            logger.debug("步骤5: 清理临时用户")
 
             try:
 
@@ -201,7 +197,7 @@ class DemoTaskRunner:
                 if temp_agent:
                     # 从SDK中注销
                     self.sdk.unregister_agent(temp_agent.id)
-                    logger.info(f"临时智能体 {temp_agent.name} 已从SDK注销")
+                    logger.debug(f"临时智能体 {temp_agent.name} 已从SDK注销")
 
                 if temp_user_dir:
                     # 删除用户目录
@@ -210,11 +206,11 @@ class DemoTaskRunner:
 
                     if os.path.exists(user_full_path):
                         shutil.rmtree(user_full_path)
-                        logger.info(f"临时用户目录已删除: {user_full_path}")
+                        logger.debug(f"临时用户目录已删除: {user_full_path}")
                     else:
                         logger.warning(f"临时用户目录不存在: {user_full_path}")
 
-                logger.info("临时智能体清理完成")
+                logger.debug("临时智能体清理完成")
 
             except Exception as e:
                 logger.error(f"清理临时用户时发生错误: {e}")
@@ -225,30 +221,30 @@ class DemoTaskRunner:
         
         try:
             # Part 1: 申请托管 DID
-            logger.info("=== Part 1: 申请托管 DID ===")
+            logger.debug("=== Part 1: 申请托管 DID ===")
             self.step_helper.pause("准备申请 hosted_did")
             
             result = await agent1.register_hosted_did(self.sdk)
             if result:
-                logger.info(f"✓ {agent1.name} 申请托管 DID 发送成功")
+                logger.debug(f"✓ {agent1.name} 申请托管 DID 发送成功")
             else:
-                logger.info(f"✗ {agent1.name} 申请托管 DID 发送失败")
+                logger.debug(f"✗ {agent1.name} 申请托管 DID 发送失败")
                 return
             
             await asyncio.sleep(0.5)
             
             # 服务器查询托管申请状态
-            logger.info("服务器查询托管 DID 申请状态...")
+            logger.debug("服务器查询托管 DID 申请状态...")
             server_result = await self.sdk.check_did_host_request()
             await asyncio.sleep(2)
-            logger.info(f"服务器处理托管情况: {server_result}")
+            logger.debug(f"服务器处理托管情况: {server_result}")
             
             # 智能体查询自己的托管状态
             agent_result = await agent1.check_hosted_did()
-            logger.info(f"{agent1.name} 托管申请查询结果: {agent_result}")
+            logger.debug(f"{agent1.name} 托管申请查询结果: {agent_result}")
             
             # Part 2: 托管智能体消息交互演示
-            logger.info("\n=== Part 2: 托管智能体消息交互演示 ===")
+            logger.debug("\n=== Part 2: 托管智能体消息交互演示 ===")
             self.step_helper.pause("开始托管智能体消息交互")
             
             # 加载用户数据
@@ -268,7 +264,7 @@ class DemoTaskRunner:
 
             @hosted_agent.register_message_handler("*")
             async def handle_hosted_message(msg):
-                logger.info(f"[{hosted_agent.name}] 收到消息: {msg}")
+                logger.debug(f"[{hosted_agent.name}] 收到消息: {msg}")
                 reply_content = f"这是来自托管智能体 {hosted_agent.name} 的自动回复，已收到消息: {msg.get('content')}"
                 reply_message = {
                     "reply": reply_content,
@@ -282,7 +278,7 @@ class DemoTaskRunner:
             if public_hosted_data:
                 public_hosted_agent = LocalAgent.from_did(public_hosted_data.did)
                 self.sdk.register_agent(public_hosted_agent)
-                logger.info(f"注册公共托管智能体: {public_hosted_agent.name}")
+                logger.debug(f"注册公共托管智能体: {public_hosted_agent.name}")
                 
                 # 托管智能体之间的消息交互
                 self.step_helper.pause("托管智能体消息交互演示")
@@ -294,7 +290,7 @@ class DemoTaskRunner:
                     hosted_agent.id, 
                     f"你好，我是{public_hosted_agent.name}"
                 )
-                logger.info(f"{public_hosted_agent.name} -> {hosted_agent.name}: {resp}")
+                logger.debug(f"{public_hosted_agent.name} -> {hosted_agent.name}: {resp}")
                 
                 await asyncio.sleep(1)
                 
@@ -305,7 +301,7 @@ class DemoTaskRunner:
                     agent1.id,
                     f"你好，我是托管智能体 {hosted_agent.name}"
                 )
-                logger.info(f"{hosted_agent.name} -> {agent1.name}: {resp}")
+                logger.debug(f"{hosted_agent.name} -> {agent1.name}: {resp}")
                 
                 await asyncio.sleep(1)
                 
@@ -316,19 +312,19 @@ class DemoTaskRunner:
                     hosted_agent.id,
                     f"你好托管智能体，我是 {agent1.name}"
                 )
-                logger.info(f"{agent1.name} -> {hosted_agent.name}: {resp}")
+                logger.debug(f"{agent1.name} -> {hosted_agent.name}: {resp}")
                 
                 # 显示托管状态总结
-                logger.info("\n=== 托管 DID 演示总结 ===")
-                logger.info(f"1. {agent1.name} 成功申请了托管 DID")
-                logger.info(f"2. 托管智能体 {hosted_agent.name} 已注册并可以正常通信")
-                logger.info("3. 托管智能体可以与普通智能体和其他托管智能体进行消息交互")
+                logger.debug("\n=== 托管 DID 演示总结 ===")
+                logger.debug(f"1. {agent1.name} 成功申请了托管 DID")
+                logger.debug(f"2. 托管智能体 {hosted_agent.name} 已注册并可以正常通信")
+                logger.debug("3. 托管智能体可以与普通智能体和其他托管智能体进行消息交互")
                 
                 # 清理：注销托管智能体
                 self.sdk.unregister_agent(hosted_agent.id)
                 if public_hosted_data:
                     self.sdk.unregister_agent(public_hosted_agent.id)
-                logger.info("托管智能体已注销")
+                logger.debug("托管智能体已注销")
                 
             else:
                 logger.warning("未找到公共托管智能体，跳过部分演示")
@@ -345,29 +341,29 @@ class DemoTaskRunner:
         """消息发送演示"""
         self.step_helper.pause("步骤2: 演示消息发送")
 
-        logger.info(f"演示：{agent2.name}向{agent3.name}发送消息")
+        logger.debug(f"演示：{agent2.name}向{agent3.name}发送消息")
         resp = await agent_msg_post(self.sdk, agent2.id, agent3.id, f"你好，我是{agent2.name}")
-        logger.info(f"{agent2.name}向{agent3.name}发送消息响应: {resp}")
+        logger.debug(f"{agent2.name}向{agent3.name}发送消息响应: {resp}")
 
         self.step_helper.pause("消息发送完成，观察回复")
 
-        logger.info(f"演示：{agent3.name}向{agent1.name}发送消息")
+        logger.debug(f"演示：{agent3.name}向{agent1.name}发送消息")
         resp = await agent_msg_post(self.sdk, agent3.id, agent1.id, f"你好，我是{agent3.name}")
-        logger.info(f"{agent3.name}向{agent1.name}发送消息响应: {resp}")
+        logger.debug(f"{agent3.name}向{agent1.name}发送消息响应: {resp}")
     
     async def run_anp_tool_crawler_agent_search_ai_ad_jason(self, agent1: LocalAgent, agent2: LocalAgent):
         """ANP工具爬虫演示 - 使用ANP协议进行智能体信息爬取"""
         self.step_helper.pause("步骤3: 演示ANP工具爬虫功能")
 
         # 引入必要的依赖
-        logger.info("成功导入ANPTool")
+        logger.debug("成功导入ANPTool")
         
         
         user_data_manager = self.sdk.user_data_manager
         user_data_manager.load_users()
    
         user_data = user_data_manager.get_user_data_by_name("托管智能体_did:wba:agent-did.com:test:public")
-        agent_anptool = LocalAgent(self.sdk,user_data.did)
+        agent_anptool = LocalAgent.from_did(user_data.did)
         self.sdk.register_agent(agent_anptool)    
             
 
@@ -452,12 +448,12 @@ class DemoTaskRunner:
                 resp = requests.get(url)
                 data = resp.json() if resp.status_code == 200 else resp.text
 
-                logger.info(f"{agent.name}的ad.json信息:")
+                logger.debug(f"{agent.name}的ad.json信息:")
                 if isinstance(data, dict):
-                    logger.info(f"name: {data.get('name')}")
-                    logger.info(f"ad:endpoints: {data.get('ad:endpoints')}")
+                    logger.debug(f"name: {data.get('name')}")
+                    logger.debug(f"ad:endpoints: {data.get('ad:endpoints')}")
                 else:
-                    logger.info(f"响应: {data}")
+                    logger.debug(f"响应: {data}")
             except Exception as e:
                 logger.error(f"获取{agent.name}信息失败: {e}")
 
@@ -504,7 +500,7 @@ class DemoTaskRunner:
         crawled_documents = []
         
         # 初始化ANPTool
-        logger.info("初始化ANP工具...")
+        logger.debug("初始化ANP工具...")
         anp_tool = ANPTool(
             did_document_path=did_document_path, 
             private_key_path=private_key_path
@@ -512,13 +508,13 @@ class DemoTaskRunner:
         
         # 获取初始URL内容
         try:
-            logger.info(f"开始获取初始URL: {initial_url}")
+            logger.debug(f"开始获取初始URL: {initial_url}")
             initial_content = await anp_tool.execute(url=initial_url)
             visited_urls.add(initial_url)
             crawled_documents.append(
                 {"url": initial_url, "method": "GET", "content": initial_content}
             )
-            logger.info(f"成功获取初始URL: {initial_url}")
+            logger.debug(f"成功获取初始URL: {initial_url}")
         except Exception as e:
             logger.error(f"获取初始URL {initial_url} 失败: {str(e)}")
             return {
@@ -546,23 +542,18 @@ class DemoTaskRunner:
         # 创建客户端
         try:
             # 尝试使用环境变量创建合适的客户端
-
-
-            model_provider = os.environ.get("MODEL_PROVIDER", "azure").lower()
-            model_name = os.environ.get("AZURE_OPENAI_MODEL_NAME", "gpt-4")
-            
-            if model_provider == "azure":
-                # Azure OpenAI
-                from openai import AsyncAzureOpenAI
-                client = AsyncAzureOpenAI(
-                    api_key=os.environ.get("AZURE_OPENAI_API_KEY"),
-                    api_version=os.environ.get("AZURE_OPENAI_API_VERSION", "2023-05-15"),
-                    azure_endpoint=os.environ.get("AZURE_OPENAI_ENDPOINT"),
-                    azure_deployment=os.environ.get("AZURE_OPENAI_DEPLOYMENT"),
+            from anp_open_sdk.config import config
+            config.reload()
+            api_key = config.secrets.openai_api_key
+            base_url = config.llm.api_url
+            model_name = os.environ.get("OPENAI_MODEL_NAME", "gpt-4o")
+            model_provider = os.environ.get("MODEL_PROVIDER", "openai").lower()
+            if model_provider == "openai":
+                from openai import AsyncOpenAI
+                client = AsyncOpenAI(
+                    api_key=api_key,
+                    base_url=base_url
                 )
-            else:
-                logger.error(f"创建LLM客户端失败: 需要 azure配置")
-
         except Exception as e:
             logger.error(f"创建LLM客户端失败: {e}")
             return {
@@ -578,11 +569,11 @@ class DemoTaskRunner:
         
         while current_iteration < max_documents:
             current_iteration += 1
-            logger.info(f"开始爬取迭代 {current_iteration}/{max_documents}")
+            logger.debug(f"开始爬取迭代 {current_iteration}/{max_documents}")
             
             # 检查是否已达到最大爬取文档数
             if len(crawled_documents) >= max_documents:
-                logger.info(f"已达到最大爬取文档数 {max_documents}，停止爬取")
+                logger.debug(f"已达到最大爬取文档数 {max_documents}，停止爬取")
                 # 添加消息通知模型已达到最大爬取限制
                 messages.append({
                     "role": "system",
@@ -609,16 +600,16 @@ class DemoTaskRunner:
                 
                 # 显示模型分析
                 if response_message.content:
-                    logger.info(f"模型分析:\n{response_message.content}")
+                    logger.debug(f"模型分析:\n{response_message.content}")
                 
                 # 检查对话是否应该结束
                 if not response_message.tool_calls:
-                    logger.info("模型没有请求任何工具调用，结束爬取")
+                    logger.debug("模型没有请求任何工具调用，结束爬取")
                     break
                     
                 # 处理工具调用
                 self.step_helper.pause(f"迭代 {current_iteration}: 执行工具调用")
-                logger.info(f"执行 {len(response_message.tool_calls)} 个工具调用")
+                logger.debug(f"执行 {len(response_message.tool_calls)} 个工具调用")
                 
                 for tool_call in response_message.tool_calls:
 
@@ -637,7 +628,7 @@ class DemoTaskRunner:
                         
                 # 如果已达到最大爬取文档数，做出最终总结
                 if (len(crawled_documents) >= max_documents and current_iteration < max_documents):
-                    logger.info(f"已达到最大爬取文档数 {max_documents}，做出最终总结")
+                    logger.debug(f"已达到最大爬取文档数 {max_documents}，做出最终总结")
                     continue
                     
             except Exception as e:
@@ -683,14 +674,14 @@ class DemoTaskRunner:
 
         # 显示结果
         self.step_helper.pause(f"{agent_name}智能爬取完成，显示结果")
-        logger.info(f"\n=== {agent_name}响应 ===")
-        logger.info(result["content"])
+        logger.debug(f"\n=== {agent_name}响应 ===")
+        logger.debug(result["content"])
 
-        logger.info("\n=== 访问过的URL ===")
+        logger.debug("\n=== 访问过的URL ===")
         for url in result.get("visited_urls", []):
-            logger.info(url)
+            logger.debug(url)
 
-        logger.info(f"\n=== 总共爬取了 {len(result.get('crawled_documents', []))} 个文档 ===")
+        logger.debug(f"\n=== 总共爬取了 {len(result.get('crawled_documents', []))} 个文档 ===")
 
         return result
 
@@ -744,7 +735,7 @@ class DemoTaskRunner:
                     result = await anp_tool.execute(
                         url=url, method=method, headers=headers, params=params, body=body
                     )
-                logger.info(f"ANPTool 响应 [url: {url}]")
+                logger.debug(f"ANPTool 响应 [url: {url}]")
 
                 # 记录访问过的 URL 和获取的内容
                 visited_urls.add(url)
@@ -776,17 +767,17 @@ class DemoTaskRunner:
     
     async def run_group_chat_demo(self, agent1: LocalAgent, agent2: LocalAgent, agent3: LocalAgent):
         """使用新的 GroupRunner SDK 运行群聊演示"""
-        print("\n" + "=" * 60)
-        print("🚀 运行增强群聊演示 (使用增强的 GroupMember 与 GroupRunner)")
-        print("=" * 60)
+        logger.debug("\n" + "=" * 60)
+        logger.debug("🚀 运行增强群聊演示 (使用增强的 GroupMember 与 GroupRunner)")
+        logger.debug("=" * 60)
         try:
             # 注册 GroupRunner
-            print("📋 注册 GroupRunner...")
+            logger.debug("📋 注册 GroupRunner...")
             self.sdk.register_group_runner("sample_group", ChatRoomRunnerWithLogging)
             self.sdk.register_group_runner("moderated_group", ModeratedChatRunnerWithLogging)
 
             # 创建 GroupMember 客户端（使用不同的扩展类）
-            print("👥 创建群组成员客户端...")
+            logger.debug("👥 创建群组成员客户端...")
             host1, port1 = ANPSDK.get_did_host_port_from_did(agent1.id)
             host2, port2 = ANPSDK.get_did_host_port_from_did(agent2.id)
             host3, port3 = ANPSDK.get_did_host_port_from_did(agent3.id)
@@ -803,20 +794,20 @@ class DemoTaskRunner:
 
             # 定义消息处理器
             async def member1_handler(message):
-                print(f"[{agent1.name}] 📨 {message.sender_id}: {message.content}")
+                logger.debug(f"[{agent1.name}] 📨 {message.sender_id}: {message.content}")
 
             async def member2_handler(message):
-                print(f"[{agent2.name}] 📨 {message.sender_id}: {message.content}")
+                logger.debug(f"[{agent2.name}] 📨 {message.sender_id}: {message.content}")
 
             async def member3_handler(message):
-                print(f"[{agent3.name}] 📨 {message.sender_id}: {message.content}")
+                logger.debug(f"[{agent3.name}] 📨 {message.sender_id}: {message.content}")
 
             # 演示1: 普通群聊
-            print("\n📋 演示1: 普通群聊")
-            print("-" * 40)
+            logger.debug("\n📋 演示1: 普通群聊")
+            logger.debug("-" * 40)
 
             # 加入群组
-            print("👥 加入普通群聊...")
+            logger.debug("👥 加入普通群聊...")
             await member1.join_group("sample_group", name=agent1.name)
             await member2.join_group("sample_group", name=agent2.name)
             await member3.join_group("sample_group", name=agent3.name)
@@ -829,7 +820,7 @@ class DemoTaskRunner:
             await asyncio.sleep(1)  # 等待监听器启动
 
             # 发送消息
-            print("\n💬 发送普通群聊消息...")
+            logger.debug("\n💬 发送普通群聊消息...")
             await member1.send_message("sample_group", f"Hello from {agent1.name}!")
             await asyncio.sleep(0.5)
             await member2.send_message("sample_group", f"Hi everyone, this is {agent2.name}")
@@ -838,11 +829,11 @@ class DemoTaskRunner:
             await asyncio.sleep(1)
 
             # 演示2: 审核群聊
-            print("\n🛡️ 演示2: 审核群聊")
-            print("-" * 40)
+            logger.debug("\n🛡️ 演示2: 审核群聊")
+            logger.debug("-" * 40)
 
             # 加入审核群组
-            print("👥 加入审核群聊...")
+            logger.debug("👥 加入审核群聊...")
             await member1.join_group("moderated_group", name=agent1.name)
             await member2.join_group("moderated_group", name=agent2.name)
 
@@ -852,12 +843,12 @@ class DemoTaskRunner:
             await asyncio.sleep(1)
 
             # 发送正常消息
-            print("\n💬 发送正常消息...")
+            logger.debug("\n💬 发送正常消息...")
             await member1.send_message("moderated_group", "This is a normal message")
             await asyncio.sleep(0.5)
 
             # 发送违规消息
-            print("\n🚫 发送违规消息...")
+            logger.debug("\n🚫 发送违规消息...")
             await member2.send_message("moderated_group", "This message contains spam content")
             await asyncio.sleep(0.5)
 
@@ -866,24 +857,24 @@ class DemoTaskRunner:
             await asyncio.sleep(2)
 
             # 显示扩展信息
-            print("\n📊 扩展功能信息:")
-            print("-" * 40)
-            print("存储功能 (member1):")
+            logger.debug("\n📊 扩展功能信息:")
+            logger.debug("-" * 40)
+            logger.debug("存储功能 (member1):")
             storage_stats = member1.get_storage_stats()
-            print(json.dumps(storage_stats, indent=2))
+            logger.debug(json.dumps(storage_stats, indent=2))
 
-            print("\n统计功能 (member2):")
+            logger.debug("\n统计功能 (member2):")
             stats = member2.get_stats()
-            print(json.dumps(stats, indent=2))
+            logger.debug(json.dumps(stats, indent=2))
 
             if isinstance(member3, GroupMemberComplete):
-                print("\n完整功能 (member3):")
+                logger.debug("\n完整功能 (member3):")
                 complete_info = member3.get_complete_info()
-                print(json.dumps(complete_info, indent=2))
+                logger.debug(json.dumps(complete_info, indent=2))
                 
             # 显示群组日志
-            print("\n📋 显示群组运行日志:")
-            print("-" * 40)
+            logger.debug("\n📋 显示群组运行日志:")
+            logger.debug("-" * 40)
             group_log_files = [
                 path_resolver.resolve_path("anp_sdk_demo/demo_data/group_logs/sample_group_messages.json"),
                 path_resolver.resolve_path("anp_sdk_demo/demo_data/group_logs/moderated_group_messages.json")
@@ -895,8 +886,8 @@ class DemoTaskRunner:
 
 
             # 显示接收到的消息
-            print("\n📁 显示接收到的群组消息:")
-            print("-" * 40)
+            logger.debug("\n📁 显示接收到的群组消息:")
+            logger.debug("-" * 40)
 
             # 获取简化的 agent ID 作为文件名前缀
             agent1_prefix = agent1.id.split(":")[-1] if ":" in agent1.id else agent1.id
@@ -912,7 +903,7 @@ class DemoTaskRunner:
                     message_file = path_resolver.resolve_path(f"anp_sdk_demo/demo_data/member_messages/{agent_prefix}_group_messages.json")
                     await self._show_received_group_messages(agent.name, message_file)
                 else:
-                    print(f"\n📨 {agent.name}: 使用的是 {agent_type} 类，不具备存储功能")
+                    logger.debug(f"\n📨 {agent.name}: 使用的是 {agent_type} 类，不具备存储功能")
 
             # 清空所有文件
             await self.clean_demo_data()
@@ -922,7 +913,7 @@ class DemoTaskRunner:
 
 
             # 清理
-            print("\n🧹 清理群聊连接...")
+            logger.debug("\n🧹 清理群聊连接...")
             member1.stop_listening("sample_group")
             member2.stop_listening("sample_group")
             member3.stop_listening("sample_group")
@@ -935,10 +926,10 @@ class DemoTaskRunner:
             await member1.leave_group("moderated_group")
             await member2.leave_group("moderated_group")
 
-            print("✅ 增强群聊演示完成")
+            logger.debug("✅ 增强群聊演示完成")
 
         except Exception as e:
-            print(f"❌ 增强群聊演示过程中出错: {e}")
+            logger.debug(f"❌ 增强群聊演示过程中出错: {e}")
             import traceback
             traceback.print_exc()
             
@@ -954,7 +945,7 @@ class DemoTaskRunner:
                 return
             
             count_removed = 0
-            logger.info(f"正在清空目录: {demo_data_path}")
+            logger.debug(f"正在清空目录: {demo_data_path}")
             
             # 遍历目录及其子目录
             for root, dirs, files in os.walk(demo_data_path):
@@ -966,11 +957,11 @@ class DemoTaskRunner:
                         with open(file_path, 'w', encoding='utf-8') as f:
                             f.write("")
                         count_removed += 1
-                        logger.info(f"已清空文件: {file_path}")
+                        logger.debug(f"已清空文件: {file_path}")
                     except Exception as e:
                         logger.error(f"清空文件失败 {file_path}: {e}")
             
-            logger.info(f"清空完成，共处理了 {count_removed} 个文件")
+            logger.debug(f"清空完成，共处理了 {count_removed} 个文件")
         except Exception as e:
             logger.error(f"清空demo_data时发生错误: {e}")
             import traceback
@@ -980,7 +971,7 @@ class DemoTaskRunner:
 
     async def _show_received_messages(self, agent_name: str, message_file: str):
         """显示接收到的消息"""
-        logger.info(f"\n{agent_name}接收到的群聊消息:")
+        logger.debug(f"\n{agent_name}接收到的群聊消息:")
         try:
             messages = []
             async with aiofiles.open(message_file, 'r', encoding='utf-8') as f:
@@ -989,9 +980,9 @@ class DemoTaskRunner:
                         messages.append(json.loads(line))
 
             if messages:
-                logger.info(f"批量收到消息:\n{json.dumps(messages, ensure_ascii=False, indent=2)}")
+                logger.debug(f"批量收到消息:\n{json.dumps(messages, ensure_ascii=False, indent=2)}")
             else:
-                logger.info("未收到任何消息")
+                logger.debug("未收到任何消息")
         except Exception as e:
             logger.error(f"读取消息文件失败: {e}")
 
@@ -1002,7 +993,7 @@ class DemoTaskRunner:
             if os.path.exists(message_file):
                 with open(message_file, 'r', encoding='utf-8') as f:
                     messages = json.load(f)
-                print(f"\n📨 {agent_name} 接收到的消息 ({len(messages)} 条):")
+                logger.debug(f"\n📨 {agent_name} 接收到的消息 ({len(messages)} 条):")
                 for msg in messages:
                     msg_type = msg.get('type', 'unknown')
                     sender = msg.get('sender', 'unknown')
@@ -1010,11 +1001,11 @@ class DemoTaskRunner:
                     timestamp = msg.get('timestamp', '')
                     group_id = msg.get('group_id', '')
                     icon = "🔔" if msg_type == "system" else "💬"
-                    print(f"  {icon} [{timestamp}] [{group_id}] {sender}: {content}")
+                    logger.debug(f"  {icon} [{timestamp}] [{group_id}] {sender}: {content}")
             else:
-                print(f"\n📨 {agent_name}: 没有找到消息文件")
+                logger.debug(f"\n📨 {agent_name}: 没有找到消息文件")
         except Exception as e:
-            print(f"❌ 读取 {agent_name} 的消息文件时出错: {e}")
+            logger.debug(f"❌ 读取 {agent_name} 的消息文件时出错: {e}")
 
     async def _show_group_logs(self, group_name: str, log_file: str):
         """显示群组运行日志"""
@@ -1022,7 +1013,7 @@ class DemoTaskRunner:
             if os.path.exists(log_file):
                 with open(log_file, 'r', encoding='utf-8') as f:
                     logs = json.load(f)
-                print(f"\n📋 {group_name} 运行日志 ({len(logs)} 条):")
+                logger.debug(f"\n📋 {group_name} 运行日志 ({len(logs)} 条):")
                 for log in logs:
                     log_type = log.get('type', 'unknown')
                     timestamp = log.get('timestamp', '')
@@ -1038,11 +1029,11 @@ class DemoTaskRunner:
                         content += f" (原因: {log.get('reason', 'unknown')})"
                     else:
                         icon = "📝"
-                    print(f"  {icon} [{timestamp}] {content}")
+                    logger.debug(f"  {icon} [{timestamp}] {content}")
             else:
-                print(f"\n📋 {group_name}: 没有找到日志文件")
+                logger.debug(f"\n📋 {group_name}: 没有找到日志文件")
         except Exception as e:
-            print(f"❌ 读取 {group_name} 日志文件时出错: {e}")
+            logger.debug(f"❌ 读取 {group_name} 日志文件时出错: {e}")
 
 
 
@@ -1051,9 +1042,9 @@ def find_and_register_hosted_agent(sdk, user_datas):
         for user_data in user_datas:
             agent = LocalAgent.from_did(user_data.did)
             if agent.is_hosted_did:
-                logger.info(f"hosted_did: {agent.id}")
-                logger.info(f"parent_did: {agent.parent_did}")
-                logger.info(f"hosted_info: {agent.hosted_info}")
+                logger.debug(f"hosted_did: {agent.id}")
+                logger.debug(f"parent_did: {agent.parent_did}")
+                logger.debug(f"hosted_info: {agent.hosted_info}")
                 hosted_agents.append(agent)
 
         # Return the first hosted agent if any were found, otherwise None

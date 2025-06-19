@@ -151,7 +151,7 @@ sdk.register_agent(agent)
 ```python
 @agent.register_message_handler("*")
 def handle_message(msg):
-    print(f"Received message: {msg}")
+    logger.debug(f"Received message: {msg}")
     return {"reply": "Message received"}
 ```
 

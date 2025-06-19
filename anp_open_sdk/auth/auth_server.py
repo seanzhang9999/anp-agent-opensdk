@@ -16,7 +16,7 @@
 Authentication middleware module.
 """
 
-import logging
+from utils.log_base import logger
 import os
 from datetime import timezone
 from pathlib import Path
@@ -89,6 +89,19 @@ class AgentAuthServer:
         auth_header = request.headers.get("Authorization")
         if not auth_header:
             raise HTTPException(status_code=401, detail="Missing Authorization header")
+
+        if auth_header and auth_header.startswith("Bearer "):
+            req_did =  request.headers.get("req_did")
+            target_did =request.headers.get("resp_did")
+            token = auth_header[len("Bearer "):]
+            try:
+                result = await handle_bearer_auth(token, req_did, target_did)
+                return True, "Bearer token verified", result
+            except Exception as e:
+                logger.debug(f"Bearer认证失败: {e}")
+                return False, str(e), {}
+
+
         req_did, target_did = self.authenticator.base_auth.extract_did_from_auth_header(auth_header)
         context = AuthenticationContext(
             caller_did=req_did,
@@ -103,12 +116,12 @@ class AgentAuthServer:
             success, msg = await self.authenticator.verify_response(auth_header, context )
             return success, msg
         except Exception as e:
-                logging.error(f"服务端认证验证失败: {e}")
+                logger.debug(f"服务端认证验证失败: {e}")
                 return False, str(e), {}
 
 async def authenticate_request(request: Request, auth_server: AgentAuthServer) -> Optional[dict]:
     if request.url.path == "/wba/auth":
-        logging.info(f"安全中间件拦截/wba/auth进行认证")
+        logger.debug(f"安全中间件拦截/wba/auth进行认证")
         success, msg = await auth_server.verify_request(request)
         if not success:
             raise HTTPException(status_code=401, detail=f"认证失败: {msg}")
@@ -121,7 +134,7 @@ async def authenticate_request(request: Request, auth_server: AgentAuthServer) -
                 return None
             elif is_exempt(request.url.path):
                 return None
-    logging.info(f"安全中间件拦截检查url:\n{request.url}")
+    logger.debug(f"安全中间件拦截检查url:\n{request.url}")
     success, msg = await auth_server.verify_request(request)
     if not success:
         raise HTTPException(status_code=401, detail=f"认证失败: {msg}")
@@ -143,20 +156,20 @@ async def auth_middleware(request: Request, call_next: Callable, sdk, auth_metho
             return await call_next(request)
 
     except HTTPException as exc:
-        logging.error(f"Authentication error: {exc.detail}")
+        logger.debug(f"Authentication error: {exc.detail}")
         return JSONResponse(
             status_code=exc.status_code,
             content={"detail": exc.detail}
         )
     except Exception as e:
-        logging.error(f"Unexpected error in auth middleware: {e}")
+        logger.debug(f"Unexpected error in auth middleware: {e}")
         return JSONResponse(
             status_code=500,
             content={"detail": "Internal server error"}
         )
 
 
-async def handle_bearer_auth(token: str, req_did, resp_did, sdk= None) -> Dict:
+async def handle_bearer_auth(token: str, req_did, resp_did) -> Dict:
     """
     Handle Bearer token authentication.
 
@@ -194,35 +207,35 @@ async def handle_bearer_auth(token: str, req_did, resp_did, sdk= None) -> Dict:
                     expires_at_dt = token_info["expires_at"]  # Assuming it's already a datetime object from
                 # Ensure the datetime is timezone-aware (assume UTC if naive)
                 if expires_at_dt.tzinfo is None:
-                    logging.warning(f"Stored expires_at for {req_did} is timezone-naive. Assuming UTC.")
+                    logger.warning(f"Stored expires_at for {req_did} is timezone-naive. Assuming UTC.")
                     expires_at_dt = expires_at_dt.replace(tzinfo=timezone.utc)
                 token_info["expires_at"] = expires_at_dt
             except ValueError as e:
-                 logging.error(f"Failed to parse expires_at string '{token_info['expires_at']}': {e}")
+                 logger.debug(f"Failed to parse expires_at string '{token_info['expires_at']}': {e}")
                  raise HTTPException(status_code=401, detail="Invalid token expiration format")
 
             # 检查token是否被撤销
             if token_info["is_revoked"]:
-                logging.error(f"Token for {req_did} has been revoked")
+                logger.debug(f"Token for {req_did} has been revoked")
                 raise HTTPException(status_code=401, detail="Token has been revoked")
 
             # 检查token是否过期（使用存储的过期时间，而不是token中的时间）
             if datetime.now(timezone.utc) > token_info["expires_at"]:
-                logging.error(f"Token for {req_did} has expired")
+                logger.debug(f"Token for {req_did} has expired")
                 raise HTTPException(status_code=401, detail="Token has expired")
 
             # 验证token是否匹配
             if token_body != token_info["token"]:
-                logging.error(f"Token mismatch for {req_did}")
+                logger.debug(f"Token mismatch for {req_did}")
                 raise HTTPException(status_code=401, detail="Invalid token")
 
-            logging.info(f" {req_did}提交的token在LocalAgent存储中未过期,快速通过!")
+            logger.debug(f" {req_did}提交的token在LocalAgent存储中未过期,快速通过!")
         else:
             # 如果LocalAgent中没有存储token信息，则使用公钥验证
 
             public_key = get_jwt_public_key(resp_did_agent.jwt_public_key_path)
             if not public_key:
-                logging.error("Failed to load JWT public key")
+                logger.debug("Failed to load JWT public key")
                 raise HTTPException(status_code=500, detail="Internal server error during token verification")
 
             jwt_algorithm = dynamic_config.get("anp_sdk.jwt_algorithm")
@@ -234,11 +247,24 @@ async def handle_bearer_auth(token: str, req_did, resp_did, sdk= None) -> Dict:
                 algorithms=[jwt_algorithm]
             )
 
-            # Check if token contains required fields
-            if "req_did" not in payload:
-                raise HTTPException(status_code=401, detail="Invalid token payload")
+            # Check if token contains required fields and values
+            required_fields = ["req_did", "resp_did", "exp"]
+            for field in required_fields:
+                if field not in payload:
+                    raise HTTPException(status_code=401, detail=f"Token missing required field: {field}")
 
-            logging.info(f"LocalAgent存储中未找到{req_did}提交的token,公钥验证通过")
+            # 可选：进一步校验 req_did、resp_did 的值
+            if payload["req_did"] != req_did:
+                raise HTTPException(status_code=401, detail="req_did mismatch")
+            if payload["resp_did"] != resp_did:
+                raise HTTPException(status_code=401, detail="resp_did mismatch")
+
+            # 校验 exp 是否过期
+            now = datetime.now(timezone.utc).timestamp()
+            if payload["exp"] < now:
+                raise HTTPException(status_code=401, detail="Token expired")
+
+            logger.debug(f"LocalAgent存储中未找到{req_did}提交的token,公钥验证通过")
         return {
             "access_token": token,
             "token_type": "bearer",
@@ -247,10 +273,10 @@ async def handle_bearer_auth(token: str, req_did, resp_did, sdk= None) -> Dict:
         }
 
     except jwt.PyJWTError as e:
-        logging.error(f"JWT verification error: {e}")
+        logger.debug(f"JWT verification error: {e}")
         raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}")
     except Exception as e:
-        logging.error(f"Token verification error: {e}")
+        logger.debug(f"Token verification error: {e}")
         raise HTTPException(status_code=401, detail=f"Token verification failed: {str(e)}")
 
 
@@ -268,7 +294,7 @@ async def generate_auth_response(did, is_two_way_auth, resp_did):
         expires_delta=expiration_time
     )
     resp_did_agent.contact_manager.store_token_to_remote(did, access_token, expiration_time)
-    # logging.info(f"认证成功，已生成访问令牌")
+    # logger.debug(f"认证成功，已生成访问令牌")
     # 如果resp_did存在，加载resp_did的DID文档并组装DID认证头
     resp_did_auth_header = None
     if resp_did and resp_did != "没收到":
@@ -292,13 +318,13 @@ async def generate_auth_response(did, is_two_way_auth, resp_did):
                 resp_did_auth_header = resp_auth_client.get_auth_header_two_way(target_url, did)
 
                 # 打印认证头
-            # logging.info(f"Generated resp_did_auth_header: {resp_did_auth_header}")
+            # logger.debug(f"Generated resp_did_auth_header: {resp_did_auth_header}")
 
-            # logging.info(f"成功加载resp_did的DID文档并生成认证头")
+            # logger.debug(f"成功加载resp_did的DID文档并生成认证头")
             else:
-                logging.warning(f"resp_did的DID文档或私钥不存在: {did_document_path} or {private_key_path}")
+                logger.warning(f"resp_did的DID文档或私钥不存在: {did_document_path} or {private_key_path}")
         except Exception as e:
-            logging.error(f"加载resp_did的DID文档时出错: {e}")
+            logger.debug(f"加载resp_did的DID文档时出错: {e}")
             resp_did_auth_header = None
     if is_two_way_auth:
         return [
@@ -324,7 +350,8 @@ def is_valid_server_nonce(nonce: str) -> bool:
         bool: Whether the nonce is valid
     """
     from datetime import datetime, timezone, timedelta
-    import logging
+    from utils.log_base import logger
+
     try:
         from anp_open_sdk.config.legacy.dynamic_config import dynamic_config
         nonce_expire_minutes = dynamic_config.get('anp_sdk.nonce_expire_minutes', 5)
@@ -341,9 +368,9 @@ def is_valid_server_nonce(nonce: str) -> bool:
         del VALID_SERVER_NONCES[n]
     # If nonce was already used, reject it
     if nonce in VALID_SERVER_NONCES:
-        logging.warning(f"Nonce already used: {nonce}")
+        logger.warning(f"Nonce already used: {nonce}")
         return False
     # Mark nonce as used
     VALID_SERVER_NONCES[nonce] = current_time
-    logging.info(f"Nonce accepted and marked as used: {nonce}")
+    logger.debug(f"Nonce accepted and marked as used: {nonce}")
     return True

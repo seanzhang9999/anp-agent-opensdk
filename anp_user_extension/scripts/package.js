@@ -5,7 +5,7 @@ const archiver = require('archiver');
 async function packageExtension() {
   console.log('📦 Packaging extension...');
   
-  const output = fs.createWriteStream('mcp-chat-extension.zip');
+  const output = fs.createWriteStream('anp-user-extension.zip');
   const archive = archiver('zip', { zlib: { level: 9 } });
   
   output.on('close', () => {

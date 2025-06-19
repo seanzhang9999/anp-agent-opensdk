@@ -1,5 +1,6 @@
 import json
-import logging
+from utils.log_base import logger
+
 import string
 from typing import Optional, Dict, Tuple, Any
 
@@ -11,7 +12,7 @@ from ..anp_sdk_agent import LocalAgent
 from ..anp_sdk_user_data import LocalUserDataManager
 from ..auth.schemas import DIDCredentials, AuthenticationContext
 from ..auth.did_auth_base import BaseDIDAuthenticator
-from loguru import logger
+from utils.log_base import  logging as logger
 
 
 def create_authenticator(auth_method: str = "wba") -> BaseDIDAuthenticator:
@@ -131,6 +132,8 @@ async def agent_auth_request(
     )
     authenticator = create_authenticator(auth_method=auth_method)
     auth_manager = AgentAuthManager(authenticator)
+    """
+    暂时屏蔽token分支 token方案需要升级保证安全
     caller_agent_obj = LocalAgent.from_did(caller_credentials.did_document.did)
     token_info = caller_agent_obj.contact_manager.get_token_to_remote(target_agent)
     from datetime import datetime, timezone
@@ -150,7 +153,7 @@ async def agent_auth_request(
                     caller_agent_obj.contact_manager.revoke_token_from_remote(target_agent)
             else:
                 return status, response_data, "token认证请求", status == 200
-
+    """
     return await auth_manager.agent_auth_two_way_v2(
         caller_credentials=caller_credentials,
         target_did=target_agent,
@@ -190,6 +193,8 @@ async def handle_response(response: Any) -> Dict:
 async def agent_token_request(target_url: str, token: str, sender_did: str, targeter_did: string, method: str = "GET",
                               json_data: Optional[Dict] = None) -> Tuple[int, Dict[str, Any]]:
     try:
+
+        #当前方案需要后续改进，当前并不安全
         headers = {
             "Authorization": f"Bearer {token}",
             "req_did": f"{sender_did}",
@@ -215,8 +220,8 @@ async def agent_token_request(target_url: str, token: str, sender_did: str, targ
                     response_data = await response.json() if status == 200 else {}
                     return status, response_data
             else:
-                logging.error(f"Unsupported HTTP method: {method}")
+                logger.debug(f"Unsupported HTTP method: {method}")
                 return 400, {"error": "Unsupported HTTP method"}
     except Exception as e:
-        logging.error(f"Error sending request with token: {e}")
+        logger.debug(f"Error sending request with token: {e}")
         return 500, {"error": str(e)}

@@ -3,14 +3,14 @@
     "event_type": "leave",
     "agent_id": "did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1",
     "group_id": "sample_group",
-    "timestamp": "2025-06-02 12:49:45",
+    "timestamp": "2025-06-19 11:11:13",
     "extra_data": {}
   },
   {
     "event_type": "leave",
     "agent_id": "did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1",
     "group_id": "moderated_group",
-    "timestamp": "2025-06-02 12:49:45",
+    "timestamp": "2025-06-19 11:11:13",
     "extra_data": {}
   }
 ]

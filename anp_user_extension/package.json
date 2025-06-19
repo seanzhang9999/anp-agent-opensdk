@@ -1,7 +1,7 @@
 {
-  "name": "mcp-chat-extension",
+  "name": "anp-user-extension",
   "version": "1.0.0",
-  "description": "Browser extension for MCP (Model Context Protocol) chat client",
+  "description": "Browser extension for ANP user",
   "main": "src/background.js",
   "scripts": {
     "build": "node scripts/build.js",
@@ -9,7 +9,7 @@
     "package": "npm run build && node scripts/package.js",
     "clean": "rimraf dist"
   },
-  "keywords": ["mcp", "chat", "browser-extension", "did", "authentication"],
+  "keywords": ["anp", "user", "browser-extension", "did", "authentication"],
   "author": "Your Name",
   "license": "MIT",
   "devDependencies": {

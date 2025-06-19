@@ -29,7 +29,7 @@ from urllib.parse import quote
 import yaml
 from anyio import Path
 from dotenv import load_dotenv
-from loguru import logger
+from utils.log_base import  logging as logger
 
 # 加载环境变量
 load_dotenv()
@@ -71,14 +71,14 @@ class ExistingPythonAgent:
         
     async def generate_code(self, task: str) -> str:
         """现有智能体的核心功能 - 代码生成"""
-        logger.info(f"[{self.name}] 正在生成代码: {task}")
+        logger.debug(f"[{self.name}] 正在生成代码: {task}")
         
         # 这里是开发者原有的智能体逻辑
         # 实际场景中，这里可能调用不同的AI模型或使用不同的代码生成算法
         try:
             # 调用现有智能体的代码生成逻辑
             code_result = await self._call_existing_llm_service(task)
-            logger.info(f"[{self.name}] 代码生成完成")
+            logger.debug(f"[{self.name}] 代码生成完成")
             return code_result
         except Exception as e:
             logger.error(f"[{self.name}] 代码生成失败: {e}")
@@ -86,7 +86,7 @@ class ExistingPythonAgent:
     
     async def process_message(self, message: str) -> str:
         """现有智能体的消息处理功能"""
-        logger.info(f"[{self.name}] 处理消息: {message}")
+        logger.debug(f"[{self.name}] 处理消息: {message}")
         
         # 根据消息内容判断处理方式
         if any(keyword in message.lower() for keyword in ["代码", "code", "生成", "写"]):
@@ -158,12 +158,12 @@ class ANPAgentWrapper:
         self.capability_mapping = {}
         self._default_capabilities_setup = False  # 防止重复设置
         
-        logger.info(f"创建ANP包装器: {existing_agent.name}")
+        logger.debug(f"创建ANP包装器: {existing_agent.name}")
 
     async def assemble_to_anp_network(self) -> bool:
         """将现有智能体组装到ANP网络"""
         try:
-            logger.info(f"开始将智能体 {self.existing_agent.name} 组装到ANP网络")
+            logger.debug(f"开始将智能体 {self.existing_agent.name} 组装到ANP网络")
             
             # 1. 分配/发现ANP身份
             self.agent_identity = await self._discover_or_create_identity()
@@ -182,8 +182,8 @@ class ANPAgentWrapper:
             if self.sdk:
                 self.sdk.register_agent(self.anp_agent)
             
-            logger.info(f"✅ 智能体 {self.existing_agent.name} 已组装到ANP网络")
-            logger.info(f"   ANP身份: {self.agent_identity}")
+            logger.debug(f"✅ 智能体 {self.existing_agent.name} 已组装到ANP网络")
+            logger.debug(f"   ANP身份: {self.agent_identity}")
             
             return True
             
@@ -197,7 +197,7 @@ class ANPAgentWrapper:
             logger.debug("默认能力已设置，跳过")
             return
         
-        logger.info("设置默认通信能力")
+        logger.debug("设置默认通信能力")
         
         # 1. 自动发现并包装现有智能体的主要方法
         default_mappings = [
@@ -208,7 +208,7 @@ class ANPAgentWrapper:
         for method_name, endpoint, capability_name in default_mappings:
             if hasattr(self.existing_agent, method_name):
                 self.wrap_capability(capability_name, endpoint, method_name)
-                logger.info(f"✅ 自动包装能力: {capability_name}")
+                logger.debug(f"✅ 自动包装能力: {capability_name}")
         
         # 2. 注册通用消息处理器（只注册一次）
         self._register_universal_message_handler()
@@ -308,7 +308,7 @@ class ANPAgentWrapper:
         if self.anp_agent:
             return self._register_single_capability(capability_info)
         else:
-            logger.info(f"📦 包装能力: {capability_name} -> {anp_endpoint} (待注册)")
+            logger.debug(f"📦 包装能力: {capability_name} -> {anp_endpoint} (待注册)")
             return True
 
     def _register_single_capability(self, capability_info: dict) -> bool:
@@ -323,7 +323,7 @@ class ANPAgentWrapper:
             # 使用 LocalAgent 的 expose_api 方法注册
             self.anp_agent.expose_api(endpoint, wrapped_handler, methods=methods)
 
-            logger.info(f"✅ 注册能力: {capability_info['name']} -> {endpoint}")
+            logger.debug(f"✅ 注册能力: {capability_info['name']} -> {endpoint}")
             return True
 
         except Exception as e:
@@ -341,7 +341,7 @@ class ANPAgentWrapper:
             if self._register_single_capability(capability_info):
                 success_count += 1
 
-        logger.info(f"✅ 批量注册能力完成: {success_count}/{len(self.anp_capabilities)}")
+        logger.debug(f"✅ 批量注册能力完成: {success_count}/{len(self.anp_capabilities)}")
         return success_count
 
     def set_anp_agent(self, anp_agent):
@@ -371,7 +371,7 @@ class ANPAgentWrapper:
             current_agent = LocalAgent.from_name(self.existing_agent.name)
         finally:
             if current_agent is not None:
-                logger.info(f"发现现有ANP身份: {current_agent.id}")
+                logger.debug(f"发现现有ANP身份: {current_agent.id}")
                 return current_agent.id
             else:
                 # 2. 创建新身份
@@ -387,7 +387,7 @@ class ANPAgentWrapper:
 
                 did_document = did_create_user(temp_user_params)
                 if did_document:
-                    logger.info(f"创建新ANP身份: {did_document['id']}")
+                    logger.debug(f"创建新ANP身份: {did_document['id']}")
                     return did_document['id']
         return None
 
@@ -398,7 +398,7 @@ class ANPAgentWrapper:
             method_name = capability_info["method_name"]
             response_key = capability_info.get("response_key")
 
-            logger.info(f"处理包装能力请求: {capability_name}")
+            logger.debug(f"处理包装能力请求: {capability_name}")
 
             # 提取消息
             message = await self._extract_message_from_request(request_data, request)
@@ -422,7 +422,7 @@ class ANPAgentWrapper:
                 "endpoint": capability_info["endpoint"]
             }
 
-            logger.info(f"✅ 包装能力执行成功: {capability_name}")
+            logger.debug(f"✅ 包装能力执行成功: {capability_name}")
             return response
 
         except Exception as e:
@@ -560,7 +560,7 @@ class ANPAgentWrapper:
         """清理资源"""
         if self.sdk and self.anp_agent:
             self.sdk.unregister_agent(self.anp_agent.id)
-            logger.info(f"智能体 {self.existing_agent.name} 已从ANP网络注销")
+            logger.debug(f"智能体 {self.existing_agent.name} 已从ANP网络注销")
 
 
 # ============================================================================
@@ -622,7 +622,7 @@ class ANPToolCrawler:
             if user_data:
                 agent = LocalAgent.from_did(user_data.did)
                 self.sdk.register_agent(agent)
-                logger.info(f"使用托管身份智能体进行爬取: {agent.name}")
+                logger.debug(f"使用托管身份智能体进行爬取: {agent.name}")
                 return agent
             else:
                 logger.error("未找到托管智能体")
@@ -697,7 +697,7 @@ class ANPToolCrawler:
                                  use_two_way_auth: bool = True, task_type: str = "general",
                                  max_documents: int = 10, agent_name: str = "智能爬虫"):
         """通用智能爬虫功能"""
-        logger.info(f"启动{agent_name}智能爬取: {initial_url}")
+        logger.debug(f"启动{agent_name}智能爬取: {initial_url}")
 
         # 初始化变量
         visited_urls = set()
@@ -720,7 +720,7 @@ class ANPToolCrawler:
             crawled_documents.append(
                 {"url": initial_url, "method": "GET", "content": initial_content}
             )
-            logger.info(f"成功获取初始URL: {initial_url}")
+            logger.debug(f"成功获取初始URL: {initial_url}")
         except Exception as e:
             logger.error(f"获取初始URL失败: {str(e)}")
             return self._create_error_result(str(e), visited_urls, crawled_documents, task_type)
@@ -809,10 +809,10 @@ class ANPToolCrawler:
 
         while current_iteration < max_documents:
             current_iteration += 1
-            logger.info(f"开始爬取迭代 {current_iteration}/{max_documents}")
+            logger.debug(f"开始爬取迭代 {current_iteration}/{max_documents}")
 
             if len(crawled_documents) >= max_documents:
-                logger.info(f"已达到最大爬取文档数 {max_documents}，停止爬取")
+                logger.debug(f"已达到最大爬取文档数 {max_documents}，停止爬取")
                 messages.append({
                     "role": "system",
                     "content": f"你已爬取 {len(crawled_documents)} 个文档，达到最大爬取限制 {max_documents}。请根据获取的信息做出最终总结。",
@@ -833,12 +833,12 @@ class ANPToolCrawler:
                     "tool_calls": response_message.tool_calls,
                 })
 
-                logger.info(f"\n模型思考:\n{response_message.content}")
+                logger.debug(f"\n模型思考:\n{response_message.content}")
                 if response_message.tool_calls:
-                    logger.info(f"\n模型调用:\n{response_message.tool_calls}")
+                    logger.debug(f"\n模型调用:\n{response_message.tool_calls}")
 
                 if not response_message.tool_calls:
-                    logger.info("模型没有请求任何工具调用，结束爬取")
+                    logger.debug("模型没有请求任何工具调用，结束爬取")
                     break
 
                 # 处理工具调用
@@ -910,7 +910,7 @@ class ANPToolCrawler:
         if len(body) == 0:
             message_value = self._find_message_in_args(function_args)
             if message_value is not None:
-                logger.info(f"模型发出调用消息：{message_value}")
+                logger.debug(f"模型发出调用消息：{message_value}")
                 body = {"message": message_value}
 
         try:
@@ -925,7 +925,7 @@ class ANPToolCrawler:
                     url=url, method=method, headers=headers, params=params, body=body
                 )
             
-            logger.info(f"ANPTool 响应 [url: {url}]\n{result}")
+            logger.debug(f"ANPTool 响应 [url: {url}]\n{result}")
             
             visited_urls.add(url)
             crawled_documents.append({"url": url, "method": method, "content": result})
@@ -969,21 +969,21 @@ class ANPToolCrawler:
 
 async def discover_existing_agent() -> ExistingPythonAgent:
     """步骤1: 发现现有智能体"""
-    logger.info("步骤1: 发现现有智能体")
+    logger.debug("步骤1: 发现现有智能体")
     
     # 模拟发现开发者已有的智能体
     existing_agent = ExistingPythonAgent("MyPythonCodeAgent")
     
-    logger.info(f"发现现有智能体: {existing_agent.name}")
-    logger.info(f"智能体能力: {existing_agent.capabilities}")
-    logger.info(f"智能体描述: {existing_agent.description}")
+    logger.debug(f"发现现有智能体: {existing_agent.name}")
+    logger.debug(f"智能体能力: {existing_agent.capabilities}")
+    logger.debug(f"智能体描述: {existing_agent.description}")
     
     return existing_agent
 
 
 async def assemble_existing_agent(sdk: ANPSDK) -> ANPAgentWrapper:
     """步骤2: 使用优化后的ANPAgentWrapper组装现有智能体"""
-    logger.info("步骤2: 使用优化后的ANPAgentWrapper组装现有智能体")
+    logger.debug("步骤2: 使用优化后的ANPAgentWrapper组装现有智能体")
     
     # 1. 发现现有智能体
     existing_agent = await discover_existing_agent()
@@ -1011,21 +1011,21 @@ async def assemble_existing_agent(sdk: ANPSDK) -> ANPAgentWrapper:
     
     # 5. 显示组装信息
     info = wrapper.get_capabilities_info()
-    logger.info(f"📋 组装完成:")
-    logger.info(f"  - 智能体: {info['agent_name']}")
-    logger.info(f"  - ANP身份: {info['agent_identity']}")
-    logger.info(f"  - 默认能力设置: {info['default_capabilities_setup']}")
-    logger.info(f"  - 包装能力: {info['total_wrapped']} 个")
+    logger.debug(f"📋 组装完成:")
+    logger.debug(f"  - 智能体: {info['agent_name']}")
+    logger.debug(f"  - ANP身份: {info['agent_identity']}")
+    logger.debug(f"  - 默认能力设置: {info['default_capabilities_setup']}")
+    logger.debug(f"  - 包装能力: {info['total_wrapped']} 个")
     
     for cap in info['anp_capabilities']:
-        logger.info(f"    - {cap['name']}: {cap['endpoint']} ({', '.join(cap['methods'])})")
+        logger.debug(f"    - {cap['name']}: {cap['endpoint']} ({', '.join(cap['methods'])})")
     
     return wrapper
 
 
 async def configure_agent_interfaces(anp_agent: LocalAgent):
     """步骤3: 配置智能体ANP通讯接口"""
-    logger.info("步骤3: 配置智能体ANP通讯接口")
+    logger.debug("步骤3: 配置智能体ANP通讯接口")
 
     from anp_open_sdk.anp_sdk_user_data import get_user_dir_did_doc_by_did
 
@@ -1053,7 +1053,7 @@ async def configure_agent_interfaces(anp_agent: LocalAgent):
     # 保存配置文件
     await save_interface_files(user_full_path, agent_description, api_interface, jsonrpc_interface)
     
-    logger.info("智能体ANP通讯接口配置完成")
+    logger.debug("智能体ANP通讯接口配置完成")
     return True
 
 
@@ -1269,7 +1269,7 @@ async def save_interface_files(user_full_path: str, agent_description: dict,
     
     with open(template_ad_path, 'w', encoding='utf-8') as f:
         json.dump(agent_description, f, ensure_ascii=False, indent=2)
-    logger.info(f"组装智能体描述文件已保存: {template_ad_path}")
+    logger.debug(f"组装智能体描述文件已保存: {template_ad_path}")
 
     # 保存YAML接口文件
     template_yaml_path = Path(user_full_path) / "assembled-interface.yaml"
@@ -1278,7 +1278,7 @@ async def save_interface_files(user_full_path: str, agent_description: dict,
     
     with open(template_yaml_path, "w", encoding="utf-8") as file:
         yaml.dump(api_interface, file, allow_unicode=True)
-    logger.info(f"组装接口YAML文件已保存: {template_yaml_path}")
+    logger.debug(f"组装接口YAML文件已保存: {template_yaml_path}")
 
     # 保存JSON-RPC接口文件
     template_jsonrpc_path = Path(user_full_path) / "assembled-interface.json"
@@ -1287,7 +1287,7 @@ async def save_interface_files(user_full_path: str, agent_description: dict,
     
     with open(template_jsonrpc_path, "w", encoding="utf-8") as file:
         json.dump(jsonrpc_interface, file, indent=2, ensure_ascii=False)
-    logger.info(f"组装接口JSON-RPC文件已保存: {template_jsonrpc_path}")
+    logger.debug(f"组装接口JSON-RPC文件已保存: {template_jsonrpc_path}")
 
 
 # ============================================================================
@@ -1297,7 +1297,7 @@ async def save_interface_files(user_full_path: str, agent_description: dict,
 async def run_assembled_agent_crawler_demo(crawler: ANPToolCrawler, target_wrapper: ANPAgentWrapper, 
                                          task_input: str, output_file: str = "assembled_agent_crawler_result.json"):
     """运行爬虫演示，测试组装后的智能体"""
-    logger.info(f"开始测试组装后的智能体: {task_input}")
+    logger.debug(f"开始测试组装后的智能体: {task_input}")
     
     result = await crawler.run_crawler_demo(
         task_input=task_input,
@@ -1312,20 +1312,20 @@ async def run_assembled_agent_crawler_demo(crawler: ANPToolCrawler, target_wrapp
     output_path = f"anp_sdk_demo/demo_data/{output_file}"
     with open(output_path, 'w', encoding='utf-8') as f:
         json.dump(result, f, ensure_ascii=False, indent=2, cls=CustomJSONEncoder)
-    logger.info(f"组装智能体测试结果已保存到 {output_path}")
+    logger.debug(f"组装智能体测试结果已保存到 {output_path}")
     
     return result
 
 
 async def run_multi_agent_collaboration_demo(sdk: ANPSDK, wrapper: ANPAgentWrapper):
     """运行多智能体协作演示"""
-    logger.info("=== 多智能体协作演示 ===")
+    logger.debug("=== 多智能体协作演示 ===")
     
     # 获取另一个智能体进行协作
     user_data = sdk.user_data_manager.get_user_data_by_name("本田")
     if user_data:
         collaborator = LocalAgent.from_did(user_data.did)
-        logger.info(f"找到协作智能体: {collaborator.name}")
+        logger.debug(f"找到协作智能体: {collaborator.name}")
 
         # 模拟智能体间协作 - 通过智能爬虫完成任务
         # 创建爬虫实例
@@ -1342,7 +1342,7 @@ async def run_multi_agent_collaboration_demo(sdk: ANPSDK, wrapper: ANPAgentWrapp
                 initial_url=f"http://localhost:{sdk.port}/wba/user/{wrapper.anp_agent.id}/ad.json",
                 use_two_way_auth=True,  # 使用双向认证
             )
-            logger.info(f"智能协作结果: {result}")
+            logger.debug(f"智能协作结果: {result}")
             return
 
         except Exception as e:
@@ -1350,13 +1350,13 @@ async def run_multi_agent_collaboration_demo(sdk: ANPSDK, wrapper: ANPAgentWrapp
             return
 
     else:
-        logger.info("未找到协作智能体，跳过协作演示")
+        logger.debug("未找到协作智能体，跳过协作演示")
         return
 
 
 async def cleanup_assembled_resources(sdk: ANPSDK, wrapper: ANPAgentWrapper):
     """清理组装后的智能体资源"""
-    logger.info("步骤4: 清理组装后的智能体资源")
+    logger.debug("步骤4: 清理组装后的智能体资源")
     
     try:
         from anp_open_sdk.anp_sdk_user_data import get_user_dir_did_doc_by_did
@@ -1376,7 +1376,7 @@ async def cleanup_assembled_resources(sdk: ANPSDK, wrapper: ANPAgentWrapper):
         
         if os.path.exists(user_full_path):
             shutil.rmtree(user_full_path)
-            logger.info(f"组装智能体目录已删除: {user_full_path}")
+            logger.debug(f"组装智能体目录已删除: {user_full_path}")
             
     except Exception as e:
         logger.error(f"清理组装资源时发生错误: {e}")
@@ -1386,9 +1386,9 @@ async def run_web_agent_crawler_demo(crawler: ANPToolCrawler,
                                    task_input: str = "查询北京天津上海今天的天气",
                                    initial_url: str = "https://agent-search.ai/ad.json"):
     """运行Web智能体爬虫演示 - 集成自project_1"""
-    logger.info(f"=== Web智能体查询演示 ===")
-    logger.info(f"查询任务: {task_input}")
-    logger.info(f"目标URL: {initial_url}")
+    logger.debug(f"=== Web智能体查询演示 ===")
+    logger.debug(f"查询任务: {task_input}")
+    logger.debug(f"目标URL: {initial_url}")
     
     result = await crawler.run_crawler_demo(
         task_input=task_input,
@@ -1400,10 +1400,10 @@ async def run_web_agent_crawler_demo(crawler: ANPToolCrawler,
     )
     
     # 保存结果到文件
-    output_file = "anp_sdk_demo/demo_data/web_agent_crawler_result.json"
+    output_file = "anp_sdk_demo/demo_data/project_3_web_agent_crawler_result.json"
     with open(output_file, 'w', encoding='utf-8') as f:
         json.dump(result, f, ensure_ascii=False, indent=2, cls=CustomJSONEncoder)
-    logger.info(f"Web智能体查询结果已保存到 {output_file}")
+    logger.debug(f"Web智能体查询结果已保存到 {output_file}")
     
     return result
 
@@ -1444,10 +1444,10 @@ async def main_assemble_demo():
     
     使用优化后的ANPAgentWrapper，简化组装流程
     """
-    logger.info("=== ANP智能体组装演示开始 (使用优化后的ANPAgentWrapper) ===")
+    logger.debug("=== ANP智能体组装演示开始 (使用优化后的ANPAgentWrapper) ===")
     
     # 步骤1: 初始化ANP通讯网络
-    logger.info("步骤1: 初始化ANP通讯网络")
+    logger.debug("步骤1: 初始化ANP通讯网络")
     sdk = ANPSDK()
     
     # 步骤2: 使用优化后的ANPAgentWrapper组装现有智能体
@@ -1463,17 +1463,17 @@ async def main_assemble_demo():
         return
     
     # 步骤4: 启动ANP通讯服务
-    logger.info("步骤4: 启动ANP通讯服务")
+    logger.debug("步骤4: 启动ANP通讯服务")
     sdk_manager = DemoSDKManager()
     sdk_manager.start_server(sdk)
     
     # 步骤5: 测试ANP网络通讯
-    logger.info("步骤5: 测试ANP网络通讯")
+    logger.debug("步骤5: 测试ANP网络通讯")
     crawler = ANPToolCrawler(sdk)
     
     try:
         # 演示1: 通过ANP网络调用组装后的智能体 - 快速排序
-        logger.info("\n=== 演示1: ANP网络通讯测试 - 快速排序算法 ===")
+        logger.debug("\n=== 演示1: ANP网络通讯测试 - 快速排序算法 ===")
         await run_assembled_agent_crawler_demo(
             crawler,
             wrapper,
@@ -1482,7 +1482,7 @@ async def main_assemble_demo():
         )
         
         # 演示2: 测试另一个任务
-        logger.info("\n=== 演示2: ANP网络通讯测试 - 装饰器示例 ===")
+        logger.debug("\n=== 演示2: ANP网络通讯测试 - 装饰器示例 ===")
         await run_assembled_agent_crawler_demo(
             crawler,
             wrapper,
@@ -1490,7 +1490,7 @@ async def main_assemble_demo():
             "assembled_decorator_demo.json"
         )
             
-        logger.info("\n=== 演示3: Web智能体 - 天气查询功能 ===")
+        logger.debug("\n=== 演示3: Web智能体 - 天气查询功能 ===")
         await run_web_agent_crawler_demo(
             crawler,
             "查询北京天津上海今天的天气",
@@ -1498,17 +1498,17 @@ async def main_assemble_demo():
         )
         
         # 演示4: 多智能体协作
-        logger.info("\n=== 演示4: 多智能体协作演示 ===")
+        logger.debug("\n=== 演示4: 多智能体协作演示 ===")
         await run_multi_agent_collaboration_demo(sdk, wrapper)
         
-        logger.info("\n=== 智能体组装演示完成 ===")
-        logger.info("核心成果:")
-        logger.info("1. 成功将现有智能体组装到ANP网络")
-        logger.info("2. 现有智能体获得了ANP通讯能力")
-        logger.info("3. 可以通过ANP协议进行智能体间通讯")
-        logger.info("4. 保持了原有智能体的核心功能不变")
-        logger.info("5. 使用优化后的ANPAgentWrapper简化了组装流程")
-        logger.info("6. 消除了重复逻辑，提高了代码质量")
+        logger.debug("\n=== 智能体组装演示完成 ===")
+        logger.debug("核心成果:")
+        logger.debug("1. 成功将现有智能体组装到ANP网络")
+        logger.debug("2. 现有智能体获得了ANP通讯能力")
+        logger.debug("3. 可以通过ANP协议进行智能体间通讯")
+        logger.debug("4. 保持了原有智能体的核心功能不变")
+        logger.debug("5. 使用优化后的ANPAgentWrapper简化了组装流程")
+        logger.debug("6. 消除了重复逻辑，提高了代码质量")
         
     except Exception as e:
         import traceback
@@ -1517,7 +1517,7 @@ async def main_assemble_demo():
     finally:
         # 步骤6: 清理组装资源
         await cleanup_assembled_resources(sdk, wrapper)
-        logger.info("=== ANP智能体组装演示结束 ===")
+        logger.debug("=== ANP智能体组装演示结束 ===")
 
 
 if __name__ == "__main__":

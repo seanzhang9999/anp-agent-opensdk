@@ -1,0 +1,12 @@
+name: "我的小本田"
+did: "did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1"
+api:
+  - path: "/hello"
+    method: "GET"
+    handler: "hello_handler"
+  - path: "/info"
+    method: "POST"
+    handler: "info_handler"
+  - path: "/llm/chat"
+    method: "POST"
+    handler: "chat_completion"

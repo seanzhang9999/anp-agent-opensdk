@@ -1,13 +1,9 @@
 # anp_open_sdk/auth/base_auth.py
 from abc import ABC, abstractmethod
-from typing import Optional, Dict, Any, Tuple, List
-from .schemas import (
-    DIDCredentials,
-    AuthenticationContext,
-    DIDDocument,
-    DIDKeyPair,
-)
-from .schemas import DIDUser
+from typing import Optional, Dict, Any, Tuple
+from .schemas import DIDCredentials, AuthenticationContext, DIDDocument, DIDKeyPair
+
+
 
 class BaseDIDResolver(ABC):
     """DID解析器基类"""
@@ -62,50 +58,19 @@ class BaseAuth(ABC):
 class BaseDIDAuthenticator(ABC):
     """DID认证器基类"""
     
-    def __init__(
-        self,
-        resolver: BaseDIDResolver,
-        signer: BaseDIDSigner,
-        header_builder: BaseAuthHeaderBuilder,
-        base_auth: BaseAuth,
-    ):
+    def __init__(self, resolver: BaseDIDResolver, signer: BaseDIDSigner, header_builder: BaseAuthHeaderBuilder, base_auth : BaseAuth):
         self.resolver = resolver
         self.signer = signer
         self.header_builder = header_builder
         self.base_auth = base_auth
     
     @abstractmethod
-    async def authenticate_request(
-        self, context: AuthenticationContext, credentials: DIDCredentials
-    ) -> Tuple[bool, str, Dict[str, Any]]:
+    async def authenticate_request(self, context: AuthenticationContext, credentials: DIDCredentials) -> Tuple[bool, str, Dict[str, Any]]:
         """认证请求"""
         pass
 
+
     @abstractmethod
-    async def verify_response(
-        self, auth_header: str, context: AuthenticationContext
-    ) -> Tuple[bool, str]:
+    async def verify_response(self,  auth_header: str, context: AuthenticationContext) -> Tuple[bool, str]:
         """验证响应"""
-        pass
-
-class BaseDIDUserManager(ABC):
-    """DID用户管理基类"""
-    @abstractmethod
-    def create_user(self, params: Dict[str, Any]) -> DIDUser:
-        """创建DID用户，返回DIDUser对象"""
-        pass
-
-    @abstractmethod
-    def save_user(self, user: DIDUser):
-        """保存DID用户信息到存储"""
-        pass
-
-    @abstractmethod
-    def load_user(self, did: str) -> Optional[DIDUser]:
-        """根据DID加载用户"""
-        pass
-
-    @abstractmethod
-    def list_users(self) -> List[DIDUser]:
-        """列出所有用户"""
         pass

@@ -1,0 +1,6 @@
+name: Calculator Agent
+did: "did:anp:calculator_agent"
+api:
+  - path: "/calculator/add"
+    method: "POST"
+    handler: "add"

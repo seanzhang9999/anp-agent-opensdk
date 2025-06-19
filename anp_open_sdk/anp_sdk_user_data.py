@@ -35,78 +35,12 @@ import argparse
 from datetime import datetime
 
 from Crypto.PublicKey import RSA
-from loguru import logger
+from utils.log_base import  logging as logger
 from typing import Dict, List, Optional, Any
 
 from anp_open_sdk.config.path_resolver import path_resolver
 from anp_open_sdk.config.legacy.dynamic_config import dynamic_config
 from anp_open_sdk.base_user_data import BaseUserData, BaseUserDataManager
-
-from anp_open_sdk.auth.schemas import DIDUser
-import shutil
-def save_user_to_file(user: DIDUser, overwrite: bool = False):
-    os.makedirs(user.user_dir, exist_ok=True)
-    # 保存 agent_cfg.yaml
-    cfg_path = os.path.join(user.user_dir, "agent_cfg.yaml")
-    _safe_write_yaml(cfg_path, user.cfg, overwrite)
-    # 保存 did_document.json
-    did_doc_path = os.path.join(user.user_dir, "did_document.json")
-    _safe_write_json(did_doc_path, user.did_document, overwrite)
-    # 保存密钥
-    for key_path, content in [
-        (getattr(user, "did_private_key_path", None), None),
-        (getattr(user, "did_public_key_path", None), None),
-        (getattr(user, "jwt_private_key_path", None), None),
-        (getattr(user, "jwt_public_key_path", None), None)
-    ]:
-        if key_path and os.path.exists(key_path):
-            if not overwrite:
-                continue
-        # 这里假设密钥内容已在 user 创建时写入，若需再次写入可传递内容参数
-        # with open(key_path, "wb") as f:
-        #     f.write(content)
-        pass
-
-def _safe_write_yaml(path, data, overwrite):
-    if os.path.exists(path) and not overwrite:
-        return
-    _backup_file(path)
-    with open(path, "w", encoding="utf-8") as f:
-        yaml.dump(data, f, allow_unicode=True, sort_keys=False)
-
-def _safe_write_json(path, data, overwrite):
-    if os.path.exists(path) and not overwrite:
-        return
-    _backup_file(path)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=4, ensure_ascii=False)
-
-def _backup_file(path):
-    if os.path.exists(path):
-        shutil.copy2(path, path + ".bak")
-
-def load_user_from_file(did: str) -> Optional[DIDUser]:
-    user_base_dir = dynamic_config.get('anp_sdk.user_did_path')
-    for user_dir in os.listdir(user_base_dir):
-        did_path = os.path.join(user_base_dir, user_dir, "did_document.json")
-        if os.path.exists(did_path):
-            with open(did_path, "r", encoding="utf-8") as f:
-                did_doc = json.load(f)
-                if did_doc.get("id") == did:
-                    return DIDUser.from_user_dir(os.path.join(user_base_dir, user_dir))
-    return None
-
-def list_all_users_from_file() -> List[DIDUser]:
-    user_base_dir = dynamic_config.get('anp_sdk.user_did_path')
-    users = []
-    for user_dir in os.listdir(user_base_dir):
-        full_dir = os.path.join(user_base_dir, user_dir)
-        if os.path.isdir(full_dir):
-            try:
-                users.append(DIDUser.from_user_dir(full_dir))
-            except Exception:
-                continue
-    return users
 
 def create_user(args):
     name, host, port, host_dir, agent_type = args.n
@@ -116,67 +50,116 @@ def create_user(args):
         'port': int(port),
         'dir': host_dir,
         'type': agent_type,
-        }
-    did_document, user_obj = did_create_user(params)
+    }
+    did_document = did_create_user(params)
     if did_document:
-        print(f"用户 {user_obj.name} 创建成功，DID: {did_document['id']}")
+        logger.debug(f"用户 {name} 创建成功，DID: {did_document['id']}")
     else:
         logger.error(f"用户 {name} 创建失败")
 
 def list_users():
-    users = list_all_users_from_file()
-    if not users:
-        print("未找到任何用户")
+    user_list, name_to_dir = get_user_cfg_list()
+    if not user_list:
+        logger.debug("未找到任何用户")
         return
+    
     users_info = []
-    for user in users:
-        dir_path = user.user_dir
+    user_dirs = dynamic_config.get('anp_sdk.user_did_path')
+    
+    for name in user_list:
+        user_dir = name_to_dir[name]
+        dir_path = os.path.join(user_dirs, user_dir)
         created_time = os.path.getctime(dir_path)
+        did_path = os.path.join(dir_path, "did_document.json")
+        did_id = ""
+        if os.path.exists(did_path):
+            with open(did_path, 'r', encoding='utf-8') as f:
+                did_dict = json.load(f)
+                did_id = did_dict.get('id', '')
+        cfg_path = os.path.join(dir_path, "agent_cfg.yaml")
+        agent_type = ""
+        host = ""
+        port = ""
+        if os.path.exists(cfg_path):
+            with open(cfg_path, 'r', encoding='utf-8') as f:
+                cfg = yaml.safe_load(f)
+                agent_type = cfg.get('type', '')
+                if did_id and 'did:wba:' in did_id:
+                    parts = did_id.split(':')[2:]
+                    if len(parts) >= 2:
+                        host = parts[0]
+                        if ':' in parts[1]:
+                            port = parts[1].split(':')[0]
         users_info.append({
-            'name': user.name,
-            'dir': os.path.basename(dir_path),
-            'did': user.did,
-            'type': user.type,
-            'host': getattr(user, 'host', ''),
-            'port': getattr(user, 'port', ''),
+            'name': name,
+            'dir': user_dir,
+            'did': did_id,
+            'type': agent_type,
+            'host': host,
+            'port': port,
             'created_time': created_time,
             'created_date': datetime.fromtimestamp(created_time).strftime('%Y-%m-%d %H:%M:%S')
         })
     users_info.sort(key=lambda x: x['created_time'], reverse=True)
-    print(f"找到 {len(users_info)} 个用户，按创建时间从新到旧排序：")
+    logger.debug(f"找到 {len(users_info)} 个用户，按创建时间从新到旧排序：")
     for i, user in enumerate(users_info, 1):
-        print(f"[{i}] 用户名: {user['name']}")
-        print(f"    DID: {user['did']}")
-        print(f"    类型: {user['type']}")
-        print(f"    服务器: {user['host']}:{user['port']}")
-        print(f"    创建时间: {user['created_date']}")
-        print(f"    目录: {user['dir']}")
-        print("---")
+        logger.debug(f"[{i}] 用户名: {user['name']}")
+        logger.debug(f"    DID: {user['did']}")
+        logger.debug(f"    类型: {user['type']}")
+        logger.debug(f"    服务器: {user['host']}:{user['port']}")
+        logger.debug(f"    创建时间: {user['created_date']}")
+        logger.debug(f"    目录: {user['dir']}")
+        logger.debug("---")
 
 def sort_users_by_server():
-    users = list_all_users_from_file()
-    if not users:
-        print("未找到任何用户")
+    user_list, name_to_dir = get_user_cfg_list()
+    if not user_list:
+        logger.debug("未找到任何用户")
         return
+    
     users_info = []
-    for user in users:
+    user_dirs = dynamic_config.get('anp_sdk.user_did_path')
+    
+    for name in user_list:
+        user_dir = name_to_dir[name]
+        dir_path = os.path.join(user_dirs, user_dir)
+        did_path = os.path.join(dir_path, "did_document.json")
+        did_id = ""
+        if os.path.exists(did_path):
+            with open(did_path, 'r', encoding='utf-8') as f:
+                did_dict = json.load(f)
+                did_id = did_dict.get('id', '')
+        cfg_path = os.path.join(dir_path, "agent_cfg.yaml")
+        agent_type = ""
+        host = ""
+        port = ""
+        if os.path.exists(cfg_path):
+            with open(cfg_path, 'r', encoding='utf-8') as f:
+                cfg = yaml.safe_load(f)
+                agent_type = cfg.get('type', '')
+                if did_id and 'did:wba:' in did_id:
+                    parts = did_id.split(':')[2:]
+                    if len(parts) >= 2:
+                        host = parts[0]
+                        if ':' in parts[1]:
+                            port = parts[1].split(':')[0]
         users_info.append({
-            'name': user.name,
-            'dir': os.path.basename(user.user_dir),
-            'did': user.did,
-            'type': user.type,
-            'host': getattr(user, 'host', ''),
-            'port': getattr(user, 'port', '')
+            'name': name,
+            'dir': user_dir,
+            'did': did_id,
+            'type': agent_type,
+            'host': host,
+            'port': port
         })
     users_info.sort(key=lambda x: (x['host'], x['port'], x['type']))
-    print(f"找到 {len(users_info)} 个用户，按服务器信息排序：")
+    logger.debug(f"找到 {len(users_info)} 个用户，按服务器信息排序：")
     for i, user in enumerate(users_info, 1):
-        print(f"[{i}] 服务器: {user['host']}:{user['port']}")
-        print(f"    用户名: {user['name']}")
-        print(f"    DID: {user['did']}")
-        print(f"    类型: {user['type']}")
-        print(f"    目录: {user['dir']}")
-        print("---")
+        logger.debug(f"[{i}] 服务器: {user['host']}:{user['port']}")
+        logger.debug(f"    用户名: {user['name']}")
+        logger.debug(f"    DID: {user['did']}")
+        logger.debug(f"    类型: {user['type']}")
+        logger.debug(f"    目录: {user['dir']}")
+        logger.debug("---")
 
 def main():
     parser = argparse.ArgumentParser(description='ANP用户工具')
@@ -218,6 +201,7 @@ class LocalUserData(BaseUserData):
         self.token_to_remote_dict = {}
         self.token_from_remote_dict = {}
         self.contacts = {}
+
 
     @property
     def did_private_key_file_path(self) -> str:
@@ -330,7 +314,7 @@ class LocalUserDataManager(BaseUserDataManager):
             else:
                 logger.warning(f"不合格的文件或文件夹: {entry.name}")
 
-        logger.info(f"加载用户数据共 {len(self.users)} 个用户")
+        logger.debug(f"加载用户数据共 {len(self.users)} 个用户")
 
     def get_user_data(self, did: str) -> Optional[BaseUserData]:
         return self.users.get(did)
@@ -358,7 +342,7 @@ def get_user_cfg_list():
                         user_list.append(cfg['name'])
                         name_to_dir[cfg['name']] = user_dir
             except Exception as e:
-                print(f"读取配置文件 {cfg_path} 出错: {e}")
+                logger.debug(f"读取配置文件 {cfg_path} 出错: {e}")
     return user_list, name_to_dir
 
 def get_user_dir_did_doc_by_did(did):
@@ -370,7 +354,7 @@ def get_user_dir_did_doc_by_did(did):
                 with open(did_path, 'r', encoding='utf-8') as f:
                     did_dict = json.load(f)
                     if did_dict.get('id') == did:
-                        logger.info(f"已加载用户 {user_dir} 的 DID 文档")
+                        logger.debug(f"已加载用户 {user_dir} 的 DID 文档")
                         return True, did_dict, user_dir
             except Exception as e:
                 logger.error(f"读取DID文档 {did_path} 出错: {e}")
@@ -389,7 +373,7 @@ def did_create_user(user_iput: dict, *, did_hex: bool = True, did_check_unique: 
     required_fields = ['name', 'host', 'port', 'dir', 'type']
     if not all(field in user_iput for field in required_fields):
         logger.error("缺少必需的参数字段")
-        return None, None
+        return None
 
     userdid_filepath = dynamic_config.get('anp_sdk.user_did_path')
     userdid_filepath = path_resolver.resolve_path(userdid_filepath)
@@ -424,16 +408,15 @@ def did_create_user(user_iput: dict, *, did_hex: bool = True, did_check_unique: 
             next_number = max(numbers + [0]) + 1
             new_name = f"{new_name}_{next_number}"
         user_iput['name'] = new_name
-        logger.info(f"用户名 {base_name} 已存在，使用新名称：{new_name}")
+        logger.debug(f"用户名 {base_name} 已存在，使用新名称：{new_name}")
 
     userdid_hostname = user_iput['host']
     userdid_port = int(user_iput['port'])
     unique_id = secrets.token_hex(8) if did_hex else None
 
+
     if userdid_port not in (80, 443):
         userdid_host_port = f"{userdid_hostname}%3A{userdid_port}"
-    else:
-        userdid_host_port = userdid_hostname
     did_parts = ['did', 'wba', userdid_host_port]
     if user_iput['dir']:
         did_parts.append(urllib.parse.quote(user_iput['dir'], safe=''))
@@ -451,10 +434,10 @@ def did_create_user(user_iput: dict, *, did_hex: bool = True, did_check_unique: 
                     did_dict = json.load(f)
                     if did_dict.get('id') == did_id:
                         logger.error(f"DID已存在: {did_id}")
-        return None, None
+        return None
 
     user_dir_name = f"user_{unique_id}" if did_hex else f"user_{user_iput['name']}"
-    userdid_filepath_full = os.path.join(userdid_filepath, user_dir_name)
+    userdid_filepath = os.path.join(userdid_filepath, user_dir_name)
 
     path_segments = [user_iput['dir'], user_iput['type']]
     if did_hex:
@@ -471,19 +454,15 @@ def did_create_user(user_iput: dict, *, did_hex: bool = True, did_check_unique: 
     if keys:
         did_document['key_id'] = list(keys.keys())[0]
 
-    os.makedirs(userdid_filepath_full, exist_ok=True)
-    with open(f"{userdid_filepath_full}/did_document.json", "w") as f:
+    os.makedirs(userdid_filepath, exist_ok=True)
+    with open(f"{userdid_filepath}/did_document.json", "w") as f:
         json.dump(did_document, f, indent=4)
 
-    private_key_pem = None
-    public_key_pem = None
-    for key_id, (private_key_pem_bytes, public_key_pem_bytes) in keys.items():
-        with open(f"{userdid_filepath_full}/{key_id}_private.pem", "wb") as f:
-            f.write(private_key_pem_bytes)
-        with open(f"{userdid_filepath_full}/{key_id}_public.pem", "wb") as f:
-            f.write(public_key_pem_bytes)
-        private_key_pem = private_key_pem_bytes
-        public_key_pem = public_key_pem_bytes
+    for key_id, (private_key_pem, public_key_pem) in keys.items():
+        with open(f"{userdid_filepath}/{key_id}_private.pem", "wb") as f:
+            f.write(private_key_pem)
+        with open(f"{userdid_filepath}/{key_id}_public.pem", "wb") as f:
+            f.write(public_key_pem)
 
     time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     agent_cfg = {
@@ -496,7 +475,7 @@ def did_create_user(user_iput: dict, *, did_hex: bool = True, did_check_unique: 
         "version": "0.1.0",
         "created_at": time
     }
-    with open(f"{userdid_filepath_full}/agent_cfg.yaml", "w", encoding='utf-8') as f:
+    with open(f"{userdid_filepath}/agent_cfg.yaml", "w", encoding='utf-8') as f:
         yaml.dump(agent_cfg, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
 
     private_key = RSA.generate(2048).export_key()
@@ -505,25 +484,22 @@ def did_create_user(user_iput: dict, *, did_hex: bool = True, did_check_unique: 
     token = create_jwt(testcontent, private_key)
     token = verify_jwt(token, public_key)
     if testcontent["user_id"] == token["user_id"]:
-        with open(f"{userdid_filepath_full}/private_key.pem", "wb") as f:
+        with open(f"{userdid_filepath}/private_key.pem", "wb") as f:
             f.write(private_key)
-        with open(f"{userdid_filepath_full}/public_key.pem", "wb") as f:
+        with open(f"{userdid_filepath}/public_key.pem", "wb") as f:
             f.write(public_key)
 
-    logger.info(f"DID创建成功: {did_document['id']}")
-    logger.info(f"DID文档已保存到: {userdid_filepath_full}")
-    logger.info(f"密钥已保存到: {userdid_filepath_full}")
-    logger.info(f"用户文件已保存到: {userdid_filepath_full}")
-    logger.info(f"jwt密钥已保存到: {userdid_filepath_full}")
+    logger.debug(f"DID创建成功: {did_document['id']}")
+    logger.debug(f"DID文档已保存到: {userdid_filepath}")
+    logger.debug(f"密钥已保存到: {userdid_filepath}")
+    logger.debug(f"用户文件已保存到: {userdid_filepath}")
+    logger.debug(f"jwt密钥已保存到: {userdid_filepath}")
 
     if user_iput['type'] == "agent":
-        agent_dir = os.path.join(userdid_filepath_full, "agent")
+        agent_dir = os.path.join(userdid_filepath, "agent")
         os.makedirs(agent_dir, exist_ok=True)
-        logger.info(f"为agent创建目录: {agent_dir}")
-
-    user_obj = DIDUser.from_user_dir(userdid_filepath_full)
-    save_user_to_file(user_obj)
-    return did_document, user_obj
+        logger.debug(f"为agent创建目录: {agent_dir}")
+    return did_document
 
 def create_jwt(content: dict, private_key: str) -> str:
     try:

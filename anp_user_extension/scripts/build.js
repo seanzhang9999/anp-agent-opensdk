@@ -2,7 +2,7 @@ const fs = require('fs-extra');
 const path = require('path');
 
 async function build() {
-  console.log('🔨 Building LLM Chat Extension...');
+  console.log('🔨 Building ANP User Extension...');
   
   // 清理输出目录
   await fs.emptyDir('dist');
@@ -31,9 +31,9 @@ async function build() {
     // 自动生成 manifest.json
   const manifest = {
     manifest_version: 3,
-      name: "LLM Chat Extension",
+      name: "ANP User Extension",
     version: "1.0.0",
-      description: "一个极简的 LLM 聊天 Chrome 扩展，支持自定义 OpenAI 兼容 API。",
+      description: "ANP用户的Chrome 扩展，支持自定义 OpenAI 兼容 API。",
     action: {
       default_popup: "popup.html",
       default_icon: {
@@ -81,7 +81,7 @@ const archiver = require('archiver');
 async function packageExtension() {
   console.log('📦 Packaging extension...');
   
-  const output = fs.createWriteStream('mcp-chat-extension.zip');
+  const output = fs.createWriteStream('anp-user-extension.zip');
   const archive = archiver('zip', { zlib: { level: 9 } });
   
   output.on('close', () => {

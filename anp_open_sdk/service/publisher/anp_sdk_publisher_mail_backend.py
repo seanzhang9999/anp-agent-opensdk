@@ -22,7 +22,7 @@ from email.mime.text import MIMEText
 from email.header import Header
 from typing import List, Dict, Tuple
 from pathlib import Path
-from loguru import logger
+from utils.log_base import  logging as logger
 from abc import ABC, abstractmethod
 
 
@@ -83,7 +83,7 @@ class LocalFileMailBackend(MailBackend):
             with open(inbox_path, 'w', encoding='utf-8') as f:
                 json.dump(email_data, f, ensure_ascii=False, indent=2)
             
-            logger.info(f"本地邮件已发送: {subject} -> {to_address}")
+            logger.debug(f"本地邮件已发送: {subject} -> {to_address}")
             return True
             
         except Exception as e:
@@ -136,7 +136,7 @@ class LocalFileMailBackend(MailBackend):
                         # 删除原文件
                         email_file.unlink()
                         
-                        logger.info(f"邮件已标记为已读: {message_id}")
+                        logger.debug(f"邮件已标记为已读: {message_id}")
                         return True
                         
                 except Exception as e:
@@ -208,7 +208,7 @@ class GmailBackend(MailBackend):
             smtp.sendmail(self.mail_user, [to_address], msg.as_string())
             smtp.quit()
             
-            logger.info(f"邮件已发送: {subject} -> {to_address}")
+            logger.debug(f"邮件已发送: {subject} -> {to_address}")
             return True
             
         except Exception as e:
@@ -296,16 +296,16 @@ class EnhancedMailManager:
             use_local_backend: 是否使用本地文件后端（用于测试）
             local_mail_dir: 本地邮件存储目录
         """
-        logger.info(f"使用本地文件邮件后端参数设置:{use_local_backend}")
+        logger.debug(f"使用本地文件邮件后端参数设置:{use_local_backend}")
         if use_local_backend:
             if local_mail_dir is None:
                 local_mail_dir = dynamic_config.get("mail.local_backend_path")
             self.backend = LocalFileMailBackend(local_mail_dir)
-            logger.info("使用本地文件邮件后端")
+            logger.debug("使用本地文件邮件后端")
 
         else:
             self.backend = GmailBackend()
-            logger.info("使用Gmail邮件后端")
+            logger.debug("使用Gmail邮件后端")
     
     def send_email(self, to_address: str, subject: str, content: str, from_address: str = None) -> bool:
         """发送邮件"""
@@ -335,7 +335,7 @@ class EnhancedMailManager:
             to_address = register_email or get_config_value('REGISTER_MAIL_USER', 'admin@local.com')
             from_address = get_config_value('SENDER_MAIL_USER')
 
-            logger.info(f"发送托管DID申请邮件: {to_address}")
+            logger.debug(f"发送托管DID申请邮件: {to_address}")
             return self.send_email(
                 from_address=from_address,
                 to_address=to_address,
@@ -385,13 +385,13 @@ def setup_test_environment(mail_dir: str = None) -> Tuple[EnhancedMailManager, P
         from_address="sender@local.com"
     )
     
-    logger.info(f"测试环境已设置，邮件存储路径: {mail_storage_path}")
+    logger.debug(f"测试环境已设置，邮件存储路径: {mail_storage_path}")
     return mail_manager, mail_storage_path
 
 
 if __name__ == "__main__":
     # 测试代码
-    print("测试邮件管理器...")
+    logger.debug("测试邮件管理器...")
     
     # 创建测试环境
     test_manager, storage_path = setup_test_environment("./test_mail")
@@ -405,7 +405,7 @@ if __name__ == "__main__":
     
     # 测试获取未读邮件
     unread = test_manager.get_unread_did_requests()
-    print(f"未读DID请求: {len(unread)}")
+    logger.debug(f"未读DID请求: {len(unread)}")
     
     # 测试模拟响应
     test_manager.simulate_hosted_did_response(
@@ -416,6 +416,6 @@ if __name__ == "__main__":
     
     # 测试获取响应邮件
     responses = test_manager.get_unread_hosted_responses()
-    print(f"未读响应: {len(responses)}")
+    logger.debug(f"未读响应: {len(responses)}")
     
-    print(f"测试完成，邮件存储在: {storage_path}")
+    logger.debug(f"测试完成，邮件存储在: {storage_path}")

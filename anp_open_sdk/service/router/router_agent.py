@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
+from utils.log_base import logger
+
 from importlib.metadata import always_iterable
 from fastapi import FastAPI, Request
 from typing import Dict, Any, List, Optional
@@ -21,7 +22,7 @@ import time
 import json
 
 from anp_open_sdk.anp_sdk import ANPSDK
-from loguru import logger
+from utils.log_base import  logging as logger
 import sys
 import os
 
@@ -158,7 +159,7 @@ class AgentRouter:
     def register_agent(self, agent):
         """注册一个本地智能体"""
         self.local_agents[str(agent.id)] = agent
-        self.logger.info(f"已注册智能体到多智能体路由: {agent.id}")
+        self.logger.debug(f"已注册智能体到多智能体路由: {agent.id}")
         return agent
         
     def get_agent(self, did: str):

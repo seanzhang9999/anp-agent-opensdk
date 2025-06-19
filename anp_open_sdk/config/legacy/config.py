@@ -25,7 +25,7 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 env_path = Path(__file__).parents[2] / ".env"
 load_dotenv(dotenv_path=env_path)
-print(f"{env_path}")
+logger.debug(f"{env_path}")
 
 
 

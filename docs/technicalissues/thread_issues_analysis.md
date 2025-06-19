@@ -112,7 +112,7 @@ def stop_server(self):
     # TODO: 实现 uvicorn 服务器的优雅关闭
     
     self.server_running = False
-    self.logger.info("服务器已停止")
+    self.logger.debug("服务器已停止")
     
     return True
 ```
@@ -153,7 +153,7 @@ def __del__(self):
 
 ```python
 except asyncio.CancelledError:
-    logger.info(f"{caller_agent} 的群聊监听已停止")
+    logger.debug(f"{caller_agent} 的群聊监听已停止")
     # 添加资源清理代码
     try:
         # 清理会话资源

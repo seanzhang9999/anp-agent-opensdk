@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "LLM Chat Extension",
+  "name": "ANP User Extension",
   "version": "1.0.0",
-  "description": "一个极简的 LLM 聊天 Chrome 扩展，支持自定义 OpenAI 兼容 API。",
+  "description": "ANP用户的Chrome 扩展，支持自定义 OpenAI 兼容 API。",
   "action": {
     "default_popup": "popup.html",
     "default_icon": {

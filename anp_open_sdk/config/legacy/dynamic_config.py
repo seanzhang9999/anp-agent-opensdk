@@ -17,8 +17,8 @@
 此模块提供动态配置管理功能，允许在运行时更新配置并将变更保存到文件中。
 """
 
-import json
-import logging
+
+
 import os
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -42,7 +42,8 @@ class DynamicConfig:
         Args:
             config_file: 配置文件路径，如果为None则使用默认路径
         """
-        self.logger = logging.getLogger(__name__)
+        from utils.log_base import logging as logger
+        self.logger =logger
         
         # 默认配置文件路径
         if config_file is None:
@@ -113,12 +114,12 @@ class DynamicConfig:
                         
                         # 直接使用加载的配置，不与默认配置合并
                         self._config = loaded_config
-                        self.logger.info(f"已从 {self.config_file} 加载配置")
+                        self.logger.debug(f"已从 {self.config_file} 加载配置")
                 else:
                     # 如果文件不存在，使用默认配置并创建文件
                     self._config = self._default_config.copy()
                     self.save_config()
-                    self.logger.info(f"已创建默认配置文件 {self.config_file}")
+                    self.logger.debug(f"已创建默认配置文件 {self.config_file}")
             except Exception as e:
                 self.logger.error(f"加载配置出错: {e}")
                 # 出错时使用默认配置
@@ -137,7 +138,7 @@ class DynamicConfig:
                 with open(self.config_file, 'w', encoding='utf-8') as f:
                     yaml.dump(self._config, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
                         
-                self.logger.info(f"已保存配置到 {self.config_file}")
+                self.logger.debug(f"已保存配置到 {self.config_file}")
                 return True
             except Exception as e:
                 self.logger.error(f"保存配置出错: {e}")

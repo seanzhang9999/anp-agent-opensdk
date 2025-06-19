@@ -1,5 +1,5 @@
 from typing import List, Optional
-from loguru import logger
+from utils.log_base import  logging as logger
 from anp_open_sdk.anp_sdk import ANPSDK, LocalAgent
 from anp_open_sdk.anp_sdk_user_data import LocalUserDataManager
 from anp_open_sdk.config.legacy.dynamic_config import dynamic_config
@@ -38,9 +38,9 @@ class DemoAgentLoader:
         for user_data in user_datas:
             agent = LocalAgent(sdk, user_data.did)
             if agent.is_hosted_did:
-                logger.info(f"hosted_did: {agent.id}")
-                logger.info(f"parent_did: {agent.parent_did}")
-                logger.info(f"hosted_info: {agent.hosted_info}")
+                logger.debug(f"hosted_did: {agent.id}")
+                logger.debug(f"parent_did: {agent.parent_did}")
+                logger.debug(f"hosted_info: {agent.hosted_info}")
                 return agent
         return None
 

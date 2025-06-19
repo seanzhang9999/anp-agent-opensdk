@@ -5,6 +5,9 @@ from typing import Dict, Any
 from datetime import datetime
 from anp_open_sdk.service.interaction.anp_sdk_group_runner import GroupRunner, Message, MessageType, Agent
 from anp_open_sdk.config.path_resolver import path_resolver
+from utils.log_base import logging  as logger
+from anp_open_sdk.config import config
+
 
 
 class FileLoggingGroupRunner(GroupRunner):
@@ -14,7 +17,7 @@ class FileLoggingGroupRunner(GroupRunner):
         super().__init__(group_id)
         self.log_dir = path_resolver.resolve_path("anp_sdk_demo/demo_data/group_logs")
         os.makedirs(self.log_dir, exist_ok=True)
-        print(f"🗂️ 群组日志目录已创建: {self.log_dir}")  # 添加调试信息
+        logger.debug(f"🗂️ 群组日志目录已创建: {self.log_dir}")  # 添加调试信息
 
     async def save_message_to_file(self, message_data: Dict[str, Any]):
         """保存消息到文件"""
@@ -41,7 +44,7 @@ class ChatRoomRunnerWithLogging(FileLoggingGroupRunner):
     """带日志的简单聊天室"""
 
     async def on_agent_join(self, agent: Agent) -> bool:
-        print(f"🚪 {agent.name} is joining chat room {self.group_id}...")
+        logger.debug(f"🚪 {agent.name} is joining chat room {self.group_id}...")
 
         # 记录加入事件
         join_data = {
@@ -66,7 +69,7 @@ class ChatRoomRunnerWithLogging(FileLoggingGroupRunner):
         return True
 
     async def on_agent_leave(self, agent: Agent):
-        print(f"🚪 {agent.name} is leaving chat room {self.group_id}...")
+        logger.debug(f"🚪 {agent.name} is leaving chat room {self.group_id}...")
 
         # 记录离开事件
         leave_data = {
@@ -90,7 +93,7 @@ class ChatRoomRunnerWithLogging(FileLoggingGroupRunner):
         await self.broadcast(leave_message)
 
     async def on_message(self, message: Message):
-        print(f"📢 Broadcasting message from {message.sender_id} in {self.group_id}")
+        logger.debug(f"📢 Broadcasting message from {message.sender_id} in {self.group_id}")
 
         # 保存消息到文件
         message_data = {
@@ -116,11 +119,11 @@ class ModeratedChatRunnerWithLogging(FileLoggingGroupRunner):
         self.moderators = []
 
     async def on_agent_join(self, agent: Agent) -> bool:
-        print(f"🛡️ {agent.name} is joining moderated chat {self.group_id}...")
+        logger.debug(f"🛡️ {agent.name} is joining moderated chat {self.group_id}...")
 
         # 检查黑名单
         if agent.metadata and agent.metadata.get("banned"):
-            print(f"❌ {agent.name} is banned and cannot join")
+            logger.debug(f"❌ {agent.name} is banned and cannot join")
             return False
 
         # 第一个加入的是管理员
@@ -130,7 +133,7 @@ class ModeratedChatRunnerWithLogging(FileLoggingGroupRunner):
             agent.metadata["role"] = "moderator"
             self.moderators.append(agent.id)
             role = "moderator"
-            print(f"👑 {agent.name} is now a moderator")
+            logger.debug(f"👑 {agent.name} is now a moderator")
 
         # 记录加入事件
         join_data = {
@@ -156,12 +159,12 @@ class ModeratedChatRunnerWithLogging(FileLoggingGroupRunner):
         return True
 
     async def on_agent_leave(self, agent: Agent):
-        print(f"🛡️ {agent.name} is leaving moderated chat {self.group_id}...")
+        logger.debug(f"🛡️ {agent.name} is leaving moderated chat {self.group_id}...")
 
         # 如果是管理员离开，移除管理员权限
         if agent.id in self.moderators:
             self.moderators.remove(agent.id)
-            print(f"👑 {agent.name} is no longer a moderator")
+            logger.debug(f"👑 {agent.name} is no longer a moderator")
 
         # 记录离开事件
         leave_data = {
@@ -185,12 +188,12 @@ class ModeratedChatRunnerWithLogging(FileLoggingGroupRunner):
         await self.broadcast(leave_message)
 
     async def on_message(self, message: Message):
-        print(f"🔍 Checking message from {message.sender_id}: '{message.content}'")
+        logger.debug(f"🔍 Checking message from {message.sender_id}: '{message.content}'")
 
         # 检查违禁词
         found_bad_words = [word for word in self.banned_words if word in message.content.lower()]
         if found_bad_words:
-            print(f"🚫 Message blocked! Found banned words: {found_bad_words}")
+            logger.debug(f"🚫 Message blocked! Found banned words: {found_bad_words}")
 
             # 记录被拦截的消息
             blocked_data = {
@@ -214,7 +217,7 @@ class ModeratedChatRunnerWithLogging(FileLoggingGroupRunner):
             await self.send_to_agent(message.sender_id, warning_message)
             return
 
-        print(f"✅ Message approved, broadcasting...")
+        logger.debug(f"✅ Message approved, broadcasting...")
 
         # 保存通过审核的消息
         message_data = {
