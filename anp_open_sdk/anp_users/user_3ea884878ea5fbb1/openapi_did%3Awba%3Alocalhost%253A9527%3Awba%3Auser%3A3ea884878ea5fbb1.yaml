@@ -3,24 +3,6 @@ info:
   title: Agent did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1 API Documentation
   version: 1.0.0
 paths:
-  /agent/api/did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1/hello:
-    get:
-      summary: 本田的/hello接口
-      operationId: get__agent_api_did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1_hello
-      parameters:
-      - name: req_did
-        in: query
-        required: false
-        schema:
-          type: string
-        default: demo_caller
-      responses:
-        '200':
-          description: 成功响应
-          content:
-            application/json:
-              schema:
-                type: object
   /wba/auth:
     get:
       summary: DID WBA authentication endpoint

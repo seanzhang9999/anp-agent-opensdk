@@ -54,6 +54,7 @@ def create_user(args):
     did_document = did_create_user(params)
     if did_document:
         logger.debug(f"用户 {name} 创建成功，DID: {did_document['id']}")
+        return
     else:
         logger.error(f"用户 {name} 创建失败")
 
@@ -495,10 +496,7 @@ def did_create_user(user_iput: dict, *, did_hex: bool = True, did_check_unique: 
     logger.debug(f"用户文件已保存到: {userdid_filepath}")
     logger.debug(f"jwt密钥已保存到: {userdid_filepath}")
 
-    if user_iput['type'] == "agent":
-        agent_dir = os.path.join(userdid_filepath, "agent")
-        os.makedirs(agent_dir, exist_ok=True)
-        logger.debug(f"为agent创建目录: {agent_dir}")
+
     return did_document
 
 def create_jwt(content: dict, private_key: str) -> str:

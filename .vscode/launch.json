@@ -4,12 +4,13 @@
     // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+
         {
-            "name": "win-anp_sdk_demo",
+            "name": "win-user_binding",
             "type": "debugpy",
             "request": "launch",
             "python": ".venv/Scripts/python.exe",
-            "program": "${workspaceFolder}/anp_sdk_demo.py",
+            "program": "${workspaceFolder}/anp_sdk_work_mode_demo/agent_user_binding.py",
             "console": "integratedTerminal",
             "justMyCode": true      
         },

@@ -650,18 +650,24 @@ class ANPSDK:
         port = dynamic_config.get("anp_sdk.sdk_port")
         host = dynamic_config.get("anp_sdk.sdk_host")
         app_instance = self.app
-        uvicorn.run(app_instance, host=host, port=port)
-
+        config = uvicorn.Config(app_instance, host=host, port=port)
+        server = uvicorn.Server(config)
+        self.uvicorn_server = server
+    # 创建一个线程来运行服务器
         def run_server():
-            config = uvicorn.Config(self.app, host=host, port=int(port))
-            self.uvicorn_server = uvicorn.Server(config)
-            self.uvicorn_server.run()
-        self.server_thread = threading.Thread(target=run_server)
-        self.server_thread.daemon = True
-        self.server_thread.start()
+            import asyncio
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(server.serve())
+            
+        server_thread = threading.Thread(target=run_server)
+        server_thread.daemon = True
+        server_thread.start()
         self.server_running = True
-        self.logger.debug(f"服务器已在端口 {self.port} 启动")
-        return True
+
+        return server_thread
+        
+
 
     def stop_server(self):
         if not self.server_running:

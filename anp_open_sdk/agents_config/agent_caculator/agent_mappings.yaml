@@ -1,6 +1,6 @@
 name: Calculator Agent
-did: "did:anp:calculator_agent"
+did: did:wba:localhost%3A9527:wba:user:28cddee0fade0258
 api:
-  - path: "/calculator/add"
-    method: "POST"
-    handler: "add"
+- path: /calculator/add
+  method: POST
+  handler: add
