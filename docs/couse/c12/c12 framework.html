@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ANP C12 Framework</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            font-family: 'Arial', sans-serif;
+            color: white;
+            overflow-x: auto;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            animation: fadeInDown 1s ease-out;
+        }
+        
+        .title {
+            font-size: 3.5rem;
+            font-weight: bold;
+            background: linear-gradient(45deg, #00d4ff, #00ff88, #ff6b6b, #ffd93d);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+            text-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            color: #b8c6db;
+            opacity: 0.9;
+        }
+        
+        .framework {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+        
+        .layer {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+            animation: slideInLeft 0.8s ease-out;
+        }
+        
+        .layer::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            animation: shimmer 3s infinite;
+        }
+        
+        .layer-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .layer-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-right: 15px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .layer1 .layer-icon {
+            background: linear-gradient(135deg, #ff6b6b, #ff8e8e);
+        }
+        
+        .layer2 .layer-icon {
+            background: linear-gradient(135deg, #4ecdc4, #44a08d);
+        }
+        
+        .layer3 .layer-icon {
+            background: linear-gradient(135deg, #ffd93d, #ff8f00);
+        }
+        
+        .layer-title {
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .layer-desc {
+            color: #b8c6db;
+            font-size: 0.9rem;
+        }
+        
+        .components {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .component {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .component:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+        
+        .component-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #00d4ff;
+        }
+        
+        .component-desc {
+            font-size: 0.85rem;
+            color: #b8c6db;
+            line-height: 1.4;
+        }
+        
+        .connections {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .connection {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 25px;
+            padding: 12px 20px;
+            border: 2px solid;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .connection::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            transition: all 0.3s ease;
+            transform: translate(-50%, -50%);
+        }
+        
+        .connection:hover::before {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .connection:hover {
+            transform: scale(1.05);
+        }
+        
+        .http {
+            border-color: #ff6b6b;
+            color: #ff6b6b;
+        }
+        
+        .rpc {
+            border-color: #4ecdc4;
+            color: #4ecdc4;
+        }
+        
+        .api {
+            border-color: #ffd93d;
+            color: #ffd93d;
+        }
+        
+        .context {
+            border-color: #00d4ff;
+            color: #00d4ff;
+        }
+        
+        .arrow {
+            font-size: 2rem;
+            color: #00d4ff;
+            animation: pulse 2s infinite;
+        }
+        
+        .central-diagram {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 40px 0;
+            position: relative;
+        }
+        
+        .carbon-atom {
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(135deg, #00d4ff, #00ff88);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: bold;
+            color: white;
+            box-shadow: 0 0 40px rgba(0, 212, 255, 0.6);
+            animation: rotate 10s linear infinite;
+            position: relative;
+        }
+        
+        .bond {
+            position: absolute;
+            width: 80px;
+            height: 4px;
+            background: linear-gradient(90deg, #ff6b6b, #4ecdc4, #ffd93d, #00d4ff);
+            border-radius: 2px;
+        }
+        
+        .bond1 { transform: rotate(0deg) translateX(60px); }
+        .bond2 { transform: rotate(90deg) translateX(60px); }
+        .bond3 { transform: rotate(180deg) translateX(60px); }
+        .bond4 { transform: rotate(270deg) translateX(60px); }
+        
+        .processing-modes {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .mode {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 10px 15px;
+            font-size: 0.9rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .mode:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.05);
+        }
+        
+        .sync { border-color: #ff6b6b; }
+        .async { border-color: #4ecdc4; }
+        .event { border-color: #ffd93d; }
+        .stream { border-color: #00d4ff; }
+        
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes slideInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .formula {
+            text-align: center;
+            margin: 30px 0;
+            font-size: 1.5rem;
+            color: #00d4ff;
+            font-weight: bold;
+        }
+        
+        @media (max-width: 768px) {
+            .title {
+                font-size: 2.5rem;
+            }
+            
+            .components {
+                grid-template-columns: 1fr;
+            }
+            
+            .connections {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">ANP C12 Framework</h1>
+            <p class="subtitle">Agent Network Protocol - Carbon-12 Inspired Intelligence</p>
+        </div>
+        
+        <div class="central-diagram">
+            <div class="carbon-atom">
+                C12
+                <div class="bond bond1"></div>
+                <div class="bond bond2"></div>
+                <div class="bond bond3"></div>
+                <div class="bond bond4"></div>
+            </div>
+        </div>
+        
+        <div class="formula">
+            M种外部资源 × 4种连接方式 × N种处理模式 = 无限智能组合
+        </div>
+        
+        <div class="framework">
+            <!-- 第三层：智能处理层 -->
+            <div class="layer layer3">
+                <div class="layer-header">
+                    <div class="layer-icon">🧠</div>
+                    <div>
+                        <div class="layer-title">第三层：智能处理层</div>
+                        <div class="layer-desc">N=4种处理方式 | 智能决策引擎</div>
+                    </div>
+                </div>
+                
+                <div class="processing-modes">
+                    <div class="mode sync">🔄 同步处理</div>
+                    <div class="mode async">⏳ 异步处理</div>
+                    <div class="mode event">⚡ 事件驱动</div>
+                    <div class="mode stream">🌊 流式处理</div>
+                </div>
+                
+                <div class="components">
+                    <div class="component">
+                        <div class="component-title">🎯 决策路由器</div>
+                        <div class="component-desc">智能选择最优处理方式，基于任务特征和系统状态</div>
+                    </div>
+                    <div class="component">
+                        <div class="component-title">📊 负载均衡器</div>
+                        <div class="component-desc">在4种处理方式间分配资源，优化系统性能</div>
+                    </div>
+                    <div class="component">
+                        <div class="component-title">🔄 状态管理器</div>
+                        <div class="component-desc">维护各种处理模式的执行状态和进度跟踪</div>
+                    </div>
+                    <div class="component">
+                        <div class="component-title">📈 自适应优化器</div>
+                        <div class="component-desc">学习历史性能，动态优化决策策略</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="arrow">↕️</div>
+            
+            <!-- 第二层：ANP连接层 -->
+            <div class="layer layer2">
+                <div class="layer-header">
+                    <div class="layer-icon">⚛️</div>
+                    <div>
+                        <div class="layer-title">第二层：ANP连接层</div>
+                        <div class="layer-desc">4种碳键式连接 | 智能组网拓扑</div>
+                    </div>
+                </div>
+                
+                <div class="connections">
+                    <div class="connection http">🔗 HTTP直连<br><small>共价键</small></div>
+                    <div class="connection rpc">⚡ JSON-RPC<br><small>离子键</small></div>
+                    <div class="connection api">🔄 伪API适配<br><small>金属键</small></div>
+                    <div class="connection context">🤝 群体上下文<br><small>氢键</small></div>
+                </div>
+                
+                <div class="components">
+                    <div class="component">
+                        <div class="component-title">🏗️ 链式连接</div>
+                        <div class="component-desc">A-B-C-D 流水线处理，如烷烃链结构</div>
+                    </div>
+                    <div class="component">
+                        <div class="component-title">⭐ 星型连接</div>
+                        <div class="component-desc">中心协调模式，如配位化合物结构</div>
+                    </div>
+                    <div class="component">
+                        <div class="component-title">🌐 网状连接</div>
+                        <div class="component-desc">全互连复杂协作，如石墨层状结构</div>
+                    </div>
+                    <div class="component">
+                        <div class="component-title">🌳 层次连接</div>
+                        <div class="component-desc">树形分层处理，如聚合物分支结构</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="arrow">↕️</div>
+            
+            <!-- 第一层：资源适配层 -->
+            <div class="layer layer1">
+                <div class="layer-header">
+                    <div class="layer-icon">🔌</div>
+                    <div>
+                        <div class="layer-title">第一层：资源适配层</div>
+                        <div class="layer-desc">M种外部资源接入 | 万能适配器</div>
+                    </div>
+                </div>
+                
+                <div class="components">
+                    <div class="component">
+                        <div class="component-title">🛠️ MCP协议</div>
+                        <div class="component-desc">工具调用、资源发现、提示模板适配</div>
+                    </div>
+                    <div class="component">
+                        <div class="component-title">🌐 REST API</div>
+                        <div class="component-desc">OpenAPI解析、认证适配、数据转换</div>
+                    </div>
+                    <div class="component">
+                        <div class="component-title">🤖 智能体系统</div>
+                        <div class="component-desc">对话接口、状态管理、能力声明适配</div>
+                    </div>
+                    <div class="component">
+                        <div class="component-title">🗄️ 数据库</div>
+                        <div class="component-desc">SQL/NoSQL查询、连接池、数据流控制</div>
+                    </div>
+                    <div class="component">
+                        <div class="component-title">📨 消息队列</div>
+                        <div class="component-desc">发布订阅、消息路由、持久化处理</div>
+                    </div>
+                    <div class="component">
+                        <div class="component-title">📁 文件系统</div>
+                        <div class="component-desc">文件操作、权限管理、版本控制</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="header" style="margin-top: 50px;">
+            <p class="subtitle">像碳原子一样，构建智能世界的有机化合物</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,207 @@
+<svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- 渐变色定义 -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1a2e"/>
+      <stop offset="50%" style="stop-color:#16213e"/>
+      <stop offset="100%" style="stop-color:#0f3460"/>
+    </linearGradient>
+    
+    <linearGradient id="layer1Gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#ff6b6b"/>
+      <stop offset="100%" style="stop-color:#ff8e8e"/>
+    </linearGradient>
+    
+    <linearGradient id="layer2Gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#4ecdc4"/>
+      <stop offset="100%" style="stop-color:#44a08d"/>
+    </linearGradient>
+    
+    <linearGradient id="layer3Gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#ffd93d"/>
+      <stop offset="100%" style="stop-color:#ff8f00"/>
+    </linearGradient>
+    
+    <linearGradient id="carbonGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00d4ff"/>
+      <stop offset="100%" style="stop-color:#00ff88"/>
+    </linearGradient>
+    
+    <!-- 阴影滤镜 -->
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="2" dy="4" stdDeviation="4" flood-color="rgba(0,0,0,0.3)"/>
+    </filter>
+    
+    <!-- 发光效果 -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge> 
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- 背景 -->
+  <rect width="1200" height="800" fill="url(#bgGradient)"/>
+  
+  <!-- 标题 -->
+  <text x="600" y="40" text-anchor="middle" fill="url(#carbonGradient)" font-size="32" font-weight="bold" filter="url(#glow)">ANP C12 Framework</text>
+  <text x="600" y="65" text-anchor="middle" fill="#b8c6db" font-size="14">Agent Network Protocol - Carbon-12 Inspired Intelligence</text>
+  
+  <!-- 上方：智能体业务应用 -->
+  <rect x="200" y="90" width="800" height="60" rx="30" fill="rgba(255,255,255,0.1)" stroke="rgba(0,212,255,0.5)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="600" y="115" text-anchor="middle" fill="#00d4ff" font-size="16" font-weight="bold">智能体业务应用</text>
+  <text x="250" y="135" fill="#b8c6db" font-size="12">多智能体协作</text>
+  <text x="400" y="135" fill="#b8c6db" font-size="12">任务分发</text>
+  <text x="550" y="135" fill="#b8c6db" font-size="12">结果聚合</text>
+  <text x="700" y="135" fill="#b8c6db" font-size="12">智能决策</text>
+  <text x="850" y="135" fill="#b8c6db" font-size="12">业务编排</text>
+  
+  <!-- 左侧三层架构 -->
+  
+  <!-- 第三层：智能处理层 -->
+  <g transform="translate(50, 180)">
+    <rect width="400" height="120" rx="15" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.2)" filter="url(#shadow)"/>
+    <circle cx="30" cy="30" r="20" fill="url(#layer3Gradient)" filter="url(#shadow)"/>
+    <text x="30" y="36" text-anchor="middle" fill="white" font-size="16">🧠</text>
+    <text x="65" y="25" fill="#ffd93d" font-size="16" font-weight="bold">第三层：智能处理层</text>
+    <text x="65" y="45" fill="#b8c6db" font-size="12">N=4种处理方式 | 智能决策引擎</text>
+    
+    <!-- 处理模式 -->
+    <rect x="20" y="65" width="80" height="25" rx="12" fill="rgba(255,107,107,0.2)" stroke="#ff6b6b"/>
+    <text x="60" y="80" text-anchor="middle" fill="#ff6b6b" font-size="10">同步处理</text>
+    
+    <rect x="110" y="65" width="80" height="25" rx="12" fill="rgba(78,205,196,0.2)" stroke="#4ecdc4"/>
+    <text x="150" y="80" text-anchor="middle" fill="#4ecdc4" font-size="10">异步处理</text>
+    
+    <rect x="200" y="65" width="80" height="25" rx="12" fill="rgba(255,217,61,0.2)" stroke="#ffd93d"/>
+    <text x="240" y="80" text-anchor="middle" fill="#ffd93d" font-size="10">事件驱动</text>
+    
+    <rect x="290" y="65" width="80" height="25" rx="12" fill="rgba(0,212,255,0.2)" stroke="#00d4ff"/>
+    <text x="330" y="80" text-anchor="middle" fill="#00d4ff" font-size="10">流式处理</text>
+  </g>
+  
+  <!-- 连接箭头 -->
+  <path d="M 250 310 L 250 330" stroke="#00d4ff" stroke-width="3" marker-end="url(#arrowhead)" filter="url(#glow)"/>
+  
+  <!-- 第二层：ANP连接层 -->
+  <g transform="translate(50, 340)">
+    <rect width="400" height="120" rx="15" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.2)" filter="url(#shadow)"/>
+    <circle cx="30" cy="30" r="20" fill="url(#layer2Gradient)" filter="url(#shadow)"/>
+    <text x="30" y="36" text-anchor="middle" fill="white" font-size="16">⚛️</text>
+    <text x="65" y="25" fill="#4ecdc4" font-size="16" font-weight="bold">第二层：ANP连接层</text>
+    <text x="65" y="45" fill="#b8c6db" font-size="12">4种碳键式连接 | 智能组网拓扑</text>
+    
+    <!-- 连接方式 -->
+    <rect x="20" y="65" width="80" height="35" rx="12" fill="rgba(255,107,107,0.2)" stroke="#ff6b6b"/>
+    <text x="60" y="78" text-anchor="middle" fill="#ff6b6b" font-size="9">HTTP直连</text>
+    <text x="60" y="90" text-anchor="middle" fill="#ff6b6b" font-size="8">共价键</text>
+    
+    <rect x="110" y="65" width="80" height="35" rx="12" fill="rgba(78,205,196,0.2)" stroke="#4ecdc4"/>
+    <text x="150" y="78" text-anchor="middle" fill="#4ecdc4" font-size="9">JSON-RPC</text>
+    <text x="150" y="90" text-anchor="middle" fill="#4ecdc4" font-size="8">离子键</text>
+    
+    <rect x="200" y="65" width="80" height="35" rx="12" fill="rgba(255,217,61,0.2)" stroke="#ffd93d"/>
+    <text x="240" y="78" text-anchor="middle" fill="#ffd93d" font-size="9">伪API适配</text>
+    <text x="240" y="90" text-anchor="middle" fill="#ffd93d" font-size="8">金属键</text>
+    
+    <rect x="290" y="65" width="80" height="35" rx="12" fill="rgba(0,212,255,0.2)" stroke="#00d4ff"/>
+    <text x="330" y="78" text-anchor="middle" fill="#00d4ff" font-size="9">群体上下文</text>
+    <text x="330" y="90" text-anchor="middle" fill="#00d4ff" font-size="8">氢键</text>
+  </g>
+  
+  <!-- 连接箭头 -->
+  <path d="M 250 470 L 250 490" stroke="#00d4ff" stroke-width="3" marker-end="url(#arrowhead)" filter="url(#glow)"/>
+  
+  <!-- 第一层：资源适配层 -->
+  <g transform="translate(50, 500)">
+    <rect width="400" height="120" rx="15" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.2)" filter="url(#shadow)"/>
+    <circle cx="30" cy="30" r="20" fill="url(#layer1Gradient)" filter="url(#shadow)"/>
+    <text x="30" y="36" text-anchor="middle" fill="white" font-size="16">🔌</text>
+    <text x="65" y="25" fill="#ff6b6b" font-size="16" font-weight="bold">第一层：资源适配层</text>
+    <text x="65" y="45" fill="#b8c6db" font-size="12">M种外部资源接入 | 万能适配器</text>
+    
+    <!-- 资源类型 -->
+    <rect x="20" y="65" width="60" height="25" rx="12" fill="rgba(255,107,107,0.2)" stroke="#ff6b6b"/>
+    <text x="50" y="80" text-anchor="middle" fill="#ff6b6b" font-size="9">MCP协议</text>
+    
+    <rect x="90" y="65" width="60" height="25" rx="12" fill="rgba(78,205,196,0.2)" stroke="#4ecdc4"/>
+    <text x="120" y="80" text-anchor="middle" fill="#4ecdc4" font-size="9">智能体系统</text>
+    
+    <rect x="160" y="65" width="60" height="25" rx="12" fill="rgba(255,217,61,0.2)" stroke="#ffd93d"/>
+    <text x="190" y="80" text-anchor="middle" fill="#ffd93d" font-size="9">REST API</text>
+    
+    <rect x="230" y="65" width="60" height="25" rx="12" fill="rgba(0,212,255,0.2)" stroke="#00d4ff"/>
+    <text x="260" y="80" text-anchor="middle" fill="#00d4ff" font-size="9">数据库</text>
+    
+    <rect x="300" y="65" width="70" height="25" rx="12" fill="rgba(255,107,107,0.2)" stroke="#ff6b6b"/>
+    <text x="335" y="80" text-anchor="middle" fill="#ff6b6b" font-size="9">消息队列</text>
+  </g>
+  
+  <!-- 中央C12原子 -->
+  <g transform="translate(550, 350)">
+    <circle cx="50" cy="50" r="40" fill="url(#carbonGradient)" filter="url(#glow)"/>
+    <text x="50" y="45" text-anchor="middle" fill="white" font-size="20" font-weight="bold">C</text>
+    <text x="50" y="60" text-anchor="middle" fill="white" font-size="14">12</text>
+    
+    <!-- 四个键位 -->
+    <line x1="50" y1="10" x2="50" y2="40" stroke="#ff6b6b" stroke-width="4"/>
+    <line x1="90" y1="50" x2="60" y2="50" stroke="#4ecdc4" stroke-width="4"/>
+    <line x1="50" y1="90" x2="50" y2="60" stroke="#ffd93d" stroke-width="4"/>
+    <line x1="10" y1="50" x2="40" y2="50" stroke="#00d4ff" stroke-width="4"/>
+  </g>
+  
+  <!-- 右侧相关实体 -->
+  
+  <!-- 传入调用 -->
+  <g transform="translate(700, 180)">
+    <rect width="450" height="60" rx="15" fill="rgba(255,217,61,0.1)" stroke="#ffd93d" filter="url(#shadow)"/>
+    <text x="20" y="25" fill="#ffd93d" font-size="14" font-weight="bold">传入调用</text>
+    <text x="20" y="45" fill="#b8c6db" font-size="12">API请求 • 智能体调用 • 事件触发 • 数据流输入</text>
+  </g>
+  
+  <!-- ANP网络/ANP目录服务 -->
+  <g transform="translate(700, 340)">
+    <rect width="450" height="60" rx="15" fill="rgba(78,205,196,0.1)" stroke="#4ecdc4" filter="url(#shadow)"/>
+    <text x="20" y="25" fill="#4ecdc4" font-size="14" font-weight="bold">ANP网络 / ANP目录服务</text>
+    <text x="20" y="45" fill="#b8c6db" font-size="12">服务发现 • 负载均衡 • 路由管理 • 健康检查 • 网络拓扑</text>
+  </g>
+  
+  <!-- MCP/Agent/API -->
+  <g transform="translate(700, 500)">
+    <rect width="450" height="60" rx="15" fill="rgba(255,107,107,0.1)" stroke="#ff6b6b" filter="url(#shadow)"/>
+    <text x="20" y="25" fill="#ff6b6b" font-size="14" font-weight="bold">MCP / Agent / API</text>
+    <text x="20" y="45" fill="#b8c6db" font-size="12">协议适配 • 认证管理 • 数据转换 • 接口标准化 • 资源池化</text>
+  </g>
+  
+  <!-- 底部：DID身份发布与认证 -->
+  <rect x="200" y="650" width="800" height="60" rx="30" fill="rgba(255,255,255,0.1)" stroke="rgba(255,107,107,0.5)" stroke-width="2" filter="url(#shadow)"/>
+  <text x="600" y="675" text-anchor="middle" fill="#ff6b6b" font-size="16" font-weight="bold">DID身份发布与认证</text>
+  <text x="250" y="695" fill="#b8c6db" font-size="12">去中心化身份</text>
+  <text x="380" y="695" fill="#b8c6db" font-size="12">数字签名</text>
+  <text x="500" y="695" fill="#b8c6db" font-size="12">权限管理</text>
+  <text x="620" y="695" fill="#b8c6db" font-size="12">信任网络</text>
+  <text x="740" y="695" fill="#b8c6db" font-size="12">身份验证</text>
+  <text x="860" y="695" fill="#b8c6db" font-size="12">访问控制</text>
+  
+  <!-- 连接线 -->
+  <!-- 从传入调用到智能处理层 -->
+  <path d="M 700 210 Q 600 210 500 240" stroke="#ffd93d" stroke-width="2" stroke-dasharray="5,5" fill="none" opacity="0.7"/>
+  
+  <!-- 从ANP网络到ANP连接层 -->
+  <path d="M 700 370 Q 600 370 500 400" stroke="#4ecdc4" stroke-width="2" stroke-dasharray="5,5" fill="none" opacity="0.7"/>
+  
+  <!-- 从MCP/Agent/API到资源适配层 -->
+  <path d="M 700 530 Q 600 530 500 560" stroke="#ff6b6b" stroke-width="2" stroke-dasharray="5,5" fill="none" opacity="0.7"/>
+  
+  <!-- 箭头标记定义 -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#00d4ff"/>
+    </marker>
+  </defs>
+  
+  <!-- 公式 -->
+  <text x="600" y="750" text-anchor="middle" fill="#00d4ff" font-size="16" font-weight="bold">M种外部资源 × 4种连接方式 × N种处理模式 = 无限智能组合</text>
+</svg>
