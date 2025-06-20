@@ -482,8 +482,10 @@ class ANPToolCrawler:
                  {{task_description}}
 
                  ## 重要提示
-                 1. 你将收到一个初始 URL（{{initial_url}}），这是一个agent列表文件，每个agent的did格式为 'did:wba:localhost%3A9527:wba:user:5fea49e183c6c211'
-                 2. 从 did格式可以获取agent的did文件地址，例如 'did:wba:localhost%3A9527:wba:user:5fea49e183c6c211' 的did地址为 http://localhost:9527/wba/user/5fea49e183c6c211/did.json
+                 1. 你使用的anp_tool非常强大，可以访问内网和外网地址，你将用它访问初始URL（{{initial_url}}），它是一个agent列表文件，
+                 2. 每个agent的did格式为 'did:wba:localhost%3A9527:wba:user:5fea49e183c6c211'，从 did格式可以获取agent的did文件地址
+                 例如 'did:wba:localhost%3A9527:wba:user:5fea49e183c6c211' 的did地址为 
+                 http://localhost:9527/wba/user/5fea49e183c6c211/did.json
                  3. 从 did文件中，可以获得 "serviceEndpoint": "http://localhost:9527/wba/user/5fea49e183c6c211/ad.json"
                  4. 从 ad.json，你可以获得这个代理的详细结构、功能和 API 使用方法。
                  5. 你需要像网络爬虫一样不断发现和访问新的 URL 和 API 端点。
@@ -726,7 +728,7 @@ class ANPToolCrawler:
 
         while current_iteration < max_documents:
             current_iteration += 1
-            logger.debug(f"开始爬取迭代 {current_iteration}/{max_documents}")
+            logger.info(f"开始爬取迭代 {current_iteration}/{max_documents}")
 
             if len(crawled_documents) >= max_documents:
                 logger.debug(f"已达到最大爬取文档数 {max_documents}，停止爬取")
@@ -744,15 +746,13 @@ class ANPToolCrawler:
                 )
 
                 response_message = completion.choices[0].message
+                logger.info(f"\n模型返回:\n{response_message}")
                 messages.append({
                     "role": "assistant",
                     "content": response_message.content,
                     "tool_calls": response_message.tool_calls,
                 })
 
-                logger.info(f"\n模型思考:\n{response_message.content}")
-                if response_message.tool_calls:
-                    logger.info(f"\n模型调用:\n{response_message.tool_calls}")
 
                 if not response_message.tool_calls:
                     logger.debug("模型没有请求任何工具调用，结束爬取")
@@ -820,7 +820,15 @@ class ANPToolCrawler:
         url = function_args.get("url")
         method = function_args.get("method", "GET")
         headers = function_args.get("headers", {})
+        # 兼容 "parameters":{"params":{...}}、"parameters":{"a":...} 以及直接 "params":{...} 的情况
         params = function_args.get("params", {})
+        if not params and "parameters" in function_args and isinstance(function_args["parameters"], dict):
+                    parameters = function_args["parameters"]
+                    if "params" in parameters and isinstance(parameters["params"], dict):
+                        params = parameters["params"]
+                    else:
+                        # 如果parameters本身就是参数字典（如{"a":2.88888,"b":999933.4445556}），直接作为params
+                        params = parameters
         body = function_args.get("body", {})
 
         # 处理消息参数
@@ -829,7 +837,7 @@ class ANPToolCrawler:
             if message_value is not None:
                 logger.debug(f"模型发出调用消息：{message_value}")
                 body = {"message": message_value}
-
+        logger.info(f"根据模型要求组装请求:\n{url}:{method}\nheaders:{headers}params:{params}body:{body}")
         try:
             if use_two_way_auth:
                 result = await anp_tool.execute_with_two_way_auth(
