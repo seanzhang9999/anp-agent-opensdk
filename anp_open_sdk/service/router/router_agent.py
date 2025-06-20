@@ -15,7 +15,7 @@ import inspect
 
 from utils.log_base import logger
 
-from importlib.metadata import always_iterable
+
 from fastapi import FastAPI, Request
 from typing import Dict, Any, List, Optional
 from datetime import datetime

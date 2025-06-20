@@ -550,7 +550,7 @@ async def main():
     
     # 步骤6: 创建并运行爬虫演示
     logger.debug("步骤5: 运行智能爬虫演示")
-    crawler = ANPToolCrawler(sdk)
+    crawler = ANPToolCrawler()
     
     try:
         # 演示1: 基本爬虫功能 - 生成冒泡排序代码

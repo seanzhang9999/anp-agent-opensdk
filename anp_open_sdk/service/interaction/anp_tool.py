@@ -402,8 +402,7 @@ class CustomJSONEncoder(JSONEncoder):
 class ANPToolCrawler:
     """ANP Tool 智能爬虫 - 简化版本"""
 
-    def __init__(self, sdk: ANPSDK):
-        self.sdk = sdk
+
 
     async def run_crawler_demo(self, task_input: str, initial_url: str,
                              use_two_way_auth: bool = True, req_did: str = None,
@@ -419,13 +418,16 @@ class ANPToolCrawler:
             if task_type == "weather_query":
                 prompt_template = self._create_weather_search_prompt_template()
                 agent_name = "天气查询爬虫"
+            elif task_type == "function_query":
+                prompt_template = self._create_function_search_prompt_template()
+                agent_name = "天气查询爬虫"
             else:
                 prompt_template = self._create_code_search_prompt_template()
                 agent_name = "代码生成爬虫"
 
             # 调用通用智能爬虫
             result = await self._intelligent_crawler(
-                anpsdk=self.sdk,
+                anpsdk=None,
                 caller_agent=str(caller_agent.id),
                 target_agent=str(resp_did) if resp_did else str(caller_agent.id),
                 use_two_way_auth=use_two_way_auth,
@@ -453,7 +455,6 @@ class ANPToolCrawler:
             user_data = user_data_manager.get_user_data_by_name("托管智能体_did:wba:agent-did.com:test:public")
             if user_data:
                 agent = LocalAgent.from_did(user_data.did)
-                self.sdk.register_agent(agent)
                 logger.debug(f"使用托管身份智能体进行爬取: {agent.name}")
                 return agent
             else:
@@ -462,6 +463,39 @@ class ANPToolCrawler:
         else:
             return LocalAgent.from_did(req_did)
 
+
+    def _create_function_search_prompt_template(self) :
+        """创建代码搜索智能体的提示模板"""
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        return f"""
+                你是一个智能搜索工具。你的目标是根据用户输入要求识别合适的工具，调用工具完成代码任务。
+
+                ## 当前任务
+                {{task_description}}
+
+                ## 重要提示
+                1. 你将收到一个初始 URL（{{initial_url}}），这是一个代理描述文件。
+                2. 你需要理解这个代理的结构、功能和 API 使用方法。
+                3. 你需要像网络爬虫一样不断发现和访问新的 URL 和 API 端点。
+                4. 你可以使用 anp_tool 获取任何 URL 的内容。
+                5. 该工具可以处理各种响应格式。
+                6. 阅读每个文档以找到与任务相关的信息或 API 端点。
+                7. 你需要自己决定爬取路径，不要等待用户指令。
+                8. 注意：你最多可以爬取 10 个 URL，达到此限制后必须结束搜索。
+
+                ## 工作流程
+                1. 获取初始 URL 的内容并理解代理的功能。
+                2. 分析内容以找到所有可能的链接和 API 文档。
+                3. 解析 API 文档以了解 API 的使用方法。
+                4. 根据任务需求构建请求以获取所需的信息。
+                5. 继续探索相关链接，直到找到足够的信息。
+                6. 总结信息并向用户提供最合适的建议。
+
+                提供详细的信息和清晰的解释，帮助用户理解你找到的信息和你的建议。
+
+                ## 日期
+                当前日期：{current_date}
+                """
     def _create_code_search_prompt_template(self):
         """创建代码搜索智能体的提示模板"""
         current_date = datetime.now().strftime("%Y-%m-%d")

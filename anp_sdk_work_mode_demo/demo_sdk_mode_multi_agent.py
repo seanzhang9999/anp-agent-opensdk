@@ -125,9 +125,9 @@ async def main():
         # 直接调用 agent 实例上的方法
         publisher_url = "http://localhost:9527/publisher/agents"
         # await discovery_agent.discover_and_describe_agents(publisher_url)
-        result = await discovery_agent.run_calculator_add_demo()
-        result = await discovery_agent.run_hello_demo()
-
+        #result = await discovery_agent.run_calculator_add_demo()
+        #result = await discovery_agent.run_hello_demo()
+        result = await discovery_agent.run_ai_crawler_demo()
     else:
         print("⚠️ No agent with discovery capabilities was found.")
 

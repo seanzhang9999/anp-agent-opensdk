@@ -1,11 +1,17 @@
 # anp_open_sdk/agents_config/orchestrator_agent/agent_handlers.py
 import os
+from pdb import post_mortem
+
 import yaml
 import httpx  # 需要安装 httpx: pip install httpx
 import json
 import asyncio
 
+from pygments.lexer import default
+
+
 from anp_open_sdk.service.interaction.agent_api_call import agent_api_call_get
+from anp_open_sdk.service.interaction.anp_tool import ANPToolCrawler
 from utils.log_base import logger
 from pydantic.v1.networks import host_regex
 
@@ -36,7 +42,7 @@ async def initialize_agent():
     my_agent_instance.discover_and_describe_agents = discover_and_describe_agents
     my_agent_instance.run_calculator_add_demo = run_calculator_add_demo
     my_agent_instance.run_hello_demo = run_hello_demo
-
+    my_agent_instance.run_ai_crawler_demo = run_ai_crawler_demo
     print(f" -> Attached capability to loading side.")
 
     return my_agent_instance
@@ -155,6 +161,34 @@ async def run_hello_demo():
 
     logger.debug(f"调用结果: {result}")
     return result
+
+
+async def run_ai_crawler_demo():
+
+    target_did= "did:wba:localhost%3A9527:wba:user:28cddee0fade0258"
+
+
+    crawler = ANPToolCrawler()
+
+    # 协作智能体通过爬虫向组装后的智能体请求服务
+    task_description = "我需要计算两个浮点数相加 2.88888+999933.4445556"
+
+    host,port = ANPSDK.get_did_host_port_from_did(target_did)
+    try:
+        result = await crawler.run_crawler_demo(
+            req_did=my_agent_instance.id,  # 请求方是协作智能体
+            resp_did=target_did,  # 目标是组装后的智能体
+            task_input=task_description,
+            initial_url=f"http://{host}:{port}/wba/user/{target_did}/ad.json",
+            use_two_way_auth=True,  # 使用双向认证
+            task_type = "function_query"
+        )
+        logger.debug(f"智能协作结果: {result}")
+        return
+
+    except Exception as e:
+        logger.error(f"智能协作过程中出错: {e}")
+        return
 
 
 
