@@ -371,6 +371,8 @@ def did_create_user(user_iput: dict, *, did_hex: bool = True, did_check_unique: 
     import re
     import urllib.parse
 
+
+
     required_fields = ['name', 'host', 'port', 'dir', 'type']
     if not all(field in user_iput for field in required_fields):
         logger.error("缺少必需的参数字段")
@@ -539,3 +541,19 @@ def get_agent_cfg_by_user_dir(user_dir: str) -> dict:
     with open(cfg_path, "r", encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
     return cfg
+
+
+async def save_interface_files(user_full_path: str, interface_data: dict, inteface_file_name: str, interface_file_type: str):
+
+    """保存接口配置文件"""
+    # 保存智能体描述文件
+    template_ad_path = Path(user_full_path) / inteface_file_name
+    template_ad_path = Path(path_resolver.resolve_path(template_ad_path.as_posix()))
+    template_ad_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with open(template_ad_path, 'w', encoding='utf-8') as f:
+        if interface_file_type.upper() == "JSON" :
+            json.dump(interface_data, f, ensure_ascii=False, indent=2)
+        elif interface_file_type.upper() == "YAML" :
+            yaml.dump(interface_data, f, allow_unicode=True)
+    logger.debug(f"接口文件{inteface_file_name}已保存在: {template_ad_path}")

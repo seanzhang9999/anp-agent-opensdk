@@ -71,14 +71,14 @@ class ANPSDK:
         self.user_data_manager = LocalUserDataManager()
         self.agent = None
         self.initialized = True
+        self.debug_mode = config.anp_sdk.debug_mode
 
-        debug_mode = config.anp_sdk.debug_mode
-        if debug_mode:
+        if self.debug_mode:
             self.app = FastAPI(
                 title="ANP SDK Server in DebugMode",
                 description="ANP SDK Server in DebugMode",
                 version="0.1.0",
-                reload=True,
+                reload=False,
                 docs_url="/docs",
                 redoc_url="/redoc"
                     )
@@ -87,7 +87,7 @@ class ANPSDK:
                 title="ANP SDK Server",
                 description="ANP SDK Server",
                 version="0.1.0",
-                reload=False,
+                reload=True,
                 docs_url=None,
                 redoc_url=None
                     )
@@ -117,6 +117,10 @@ class ANPSDK:
             self._register_default_routes()
             self._register_ws_proxy_server(ws_host, ws_port)
         # 其他模式由LocalAgent主导
+
+        @self.app.on_event("startup")
+        async def generate_openapi_yaml():
+            self.save_openapi_yaml()
 
 
     def _register_ws_proxy_server(self, ws_host, ws_port):
@@ -209,10 +213,8 @@ class ANPSDK:
     def register_agent(self, agent: LocalAgent):
         self.router.register_agent(agent)
         self.logger.debug(f"已注册智能体到SDK: {agent.id}")
-        self._register_default_routes()
-        @self.app.on_event("startup")
-        async def generate_openapi_yaml():
-            self.save_openapi_yaml()
+
+
     
     def save_openapi_yaml(self):
         import yaml
@@ -650,23 +652,27 @@ class ANPSDK:
         port = dynamic_config.get("anp_sdk.sdk_port")
         host = dynamic_config.get("anp_sdk.sdk_host")
         app_instance = self.app
-        config = uvicorn.Config(app_instance, host=host, port=port)
-        server = uvicorn.Server(config)
-        self.uvicorn_server = server
-    # 创建一个线程来运行服务器
-        def run_server():
-            import asyncio
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            loop.run_until_complete(server.serve())
-            
-        server_thread = threading.Thread(target=run_server)
-        server_thread.daemon = True
-        server_thread.start()
-        self.server_running = True
 
-        return server_thread
-        
+        if not self.debug_mode:
+            config = uvicorn.Config(app_instance, host=host, port=port)
+            server = uvicorn.Server(config)
+            self.uvicorn_server = server
+
+            def run_server():
+                import asyncio
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                loop.run_until_complete(server.serve())
+
+            server_thread = threading.Thread(target=run_server)
+            server_thread.daemon = True
+            server_thread.start()
+            self.server_running = True
+            return server_thread
+        else:
+            uvicorn.run(app_instance, host=host, port=port)
+            self.server_running = True
+        return True
 
 
     def stop_server(self):

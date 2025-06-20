@@ -1,4 +1,5 @@
-# anp_open_sdk/agents_config/agent001/agent_register.py
+from anp_open_sdk.service.router.router_agent import wrap_business_handler
+
 
 def register(agent):
     """
@@ -6,8 +7,8 @@ def register(agent):
     """
     from .agent_handlers import hello_handler, info_handler
 
-    # 注册 /hello GET
-    agent.expose_api("/hello", hello_handler, methods=["GET"])
+    # 注册 /hello POST,GET
+    agent.expose_api("/hello", wrap_business_handler(hello_handler), methods=["POST","GET"])
 
     # 注册 /info POST
     agent.expose_api("/info", info_handler, methods=["POST"])

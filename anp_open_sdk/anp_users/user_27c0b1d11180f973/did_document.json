@@ -26,7 +26,7 @@
         {
             "id": "did:wba:localhost%3A9527:wba:user:27c0b1d11180f973#ad",
             "type": "AgentDescription",
-            "serviceEndpoint": "http://localhost:9527/wba/user27c0b1d11180f973/ad.json"
+            "serviceEndpoint": "http://localhost:9527/wba/user/27c0b1d11180f973/ad.json"
         }
     ]
 }

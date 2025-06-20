@@ -63,10 +63,14 @@ def main():
                 port = input("端口号: ")
                 host_dir = input("主机路径: ")
                 agent_type = input("用户类型: ")
-                class Args: pass
-                args = Args()
-                args.n = [name, host, port, host_dir, agent_type]
-                did_doc = did_create_user(args)
+                params = {
+                    'name': name,
+                    'host': host,
+                    'port': int(port),
+                    'dir': host_dir,
+                    'type': agent_type,
+                }
+                did_doc = did_create_user(params)
                 if did_doc and "id" in did_doc:
                     new_did = did_doc["id"]
                     print(f"新用户DID创建成功: {new_did}")

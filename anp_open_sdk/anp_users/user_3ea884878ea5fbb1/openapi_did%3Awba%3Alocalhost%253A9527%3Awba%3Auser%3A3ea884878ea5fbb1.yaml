@@ -39,10 +39,10 @@ paths:
             application/json:
               schema:
                 type: object
-  /wba/user/{resp_did}/ad.json:
+  /wba/user/{user_id}/ad.json:
     get:
       summary: Get agent description
-      operationId: get__wba_user_resp_did_ad.json
+      operationId: get__wba_user_user_id_ad.json
       parameters:
       - name: req_did
         in: query

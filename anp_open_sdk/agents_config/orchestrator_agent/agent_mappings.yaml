@@ -1,6 +1,3 @@
 name: Orchestrator Agent
-did: did:wba:localhost%3A9527:wba:user:7c15257e086afeba
-api:
-- path: /orchestrate/llm_and_calc
-  method: POST
-  handler: handle_llm_and_calc_task
+did: did:wba:localhost%3A9527:wba:user:7d7cdd1907d6029f
+api: []

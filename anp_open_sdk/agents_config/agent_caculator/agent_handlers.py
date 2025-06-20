@@ -1,11 +1,8 @@
-# anp_open_sdk/agents_config/calculator_agent/agent_handlers.py
 
-async def add(request_data, request):
-    """一个简单的加法处理器"""
+
+async def add(a: float, b: float):
     try:
-        a = float(request_data.get("a", 0))
-        b = float(request_data.get("b", 0))
-        result = a + b
+        result = float(a) + float(b)
         print(f"  -> Calculator Agent: Performed {a} + {b} = {result}")
         return {"result": result}
     except (ValueError, TypeError) as e:

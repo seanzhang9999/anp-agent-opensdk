@@ -55,19 +55,16 @@ async def cleanup_agent():
         print(f"  -> LLM client cleaned up.")
 
 
-async def chat_completion(request_data, request):
+async def chat_completion(prompt: str ):
     """
     API处理函数，现在直接使用模块内的 my_llm_client。
     它不再需要从request中获取agent实例。
     """
     global my_llm_client
-    prompt = request_data.get("prompt")
     if not prompt:
         return {"error": "Prompt is required."}
-
     if not my_llm_client:
         return {"error": "LLM client is not initialized in this module."}
-
     try:
         print(f"  -> LLM Agent Module: Sending prompt to model...")
         response = await my_llm_client.chat.completions.create(

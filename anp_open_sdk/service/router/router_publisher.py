@@ -48,48 +48,33 @@ async def get_hosted_did_document(user_id: str) -> Dict:
 
 
 @router.get("/publisher/agents", summary="Get published agent list")
-async def get_agent_publishers() -> Dict:
+async def get_agent_publishers(request: Request) -> Dict:
     """
-    获取已发布的代理列表，根据配置文件中的发布设置进行过滤。
-    
+    获取已发布的代理列表，直接从运行中的 SDK 实例获取。
     发布设置:
     - open: 公开给所有人
-    - local: 公开给指定域名/did列表
-    - self: 不公开
     """
-    publisher_config_path = Path(dynamic_config.get('anp_sdk.publisher_config_path', 'publisher_config.yaml'))
-    publisher_config_path = Path(path_resolver.resolve_path(publisher_config_path.as_posix()))
-    
-    if not publisher_config_path.exists():
-        return {"agents": [], "message": "No publisher configuration found"}
-    
     try:
-        with open(publisher_config_path, 'r', encoding='utf-8') as f:
-            publisher_config = yaml.safe_load(f)
-        
-        if not publisher_config or "agents" not in publisher_config:
-            return {"agents": [], "message": "No agents configured in publisher configuration"}
-        
-        # 过滤出可公开的代理
+        # 通过 request.app.state 获取在 ANPSDK 初始化时存储的 sdk 实例
+        sdk = request.app.state.sdk
+
+        # 从 SDK 实例中获取所有已注册的 agent
+        all_agents = sdk.get_agents() # 使用 get_agents() 公共方法
+
         public_agents = []
-        for agent in publisher_config.get("agents", []):
-            # 确保必要字段存在
-            if "publisher" not in agent:
-                logger.warning(f"Agent missing required 'publisher' field: {agent.get('name', 'unknown')}")
-                continue
-            
-            # 根据发布设置过滤
-            if agent["publisher"] == "open":
-                public_agents.append(agent)
-            # local 和 self 类型的代理在此不返回，需要额外的授权检查
-        
+        for agent in all_agents:
+                public_agents.append({
+                    "did": getattr(agent, "id", "unknown"),
+                    "name": getattr(agent, "name", "unknown")
+                })
+
         return {
             "agents": public_agents,
             "count": len(public_agents)
         }
     except Exception as e:
-        logger.error(f"Error loading publisher configuration: {e}")
-        raise HTTPException(status_code=500, detail="Error loading publisher configuration")
+        logger.error(f"Error getting agent list from SDK instance: {e}")
+        raise HTTPException(status_code=500, detail="Error getting agent list from SDK instance")
 
 
 @router.get("/publisher/agents/{did}", summary="Get specific agent publisher info")

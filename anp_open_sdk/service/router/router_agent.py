@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import inspect
 
 from utils.log_base import logger
 
@@ -173,6 +174,9 @@ class AgentRouter:
         if resp_did in self.local_agents:
 
             if hasattr(self.local_agents[resp_did].handle_request, "__call__"):  # 确保 `handle_request` 可调用
+                resp_agent = self.local_agents[resp_did]
+                # 将agent实例 挂载到request.state 方便在处理中引用
+                request.state.agent = resp_agent
                 return await self.local_agents[resp_did].handle_request(req_did, request_data , request)
             else:
                 self.logger.error(f"{resp_did} 的 `handle_request` 不是一个可调用对象")
@@ -186,3 +190,28 @@ class AgentRouter:
     def get_all_agents(self):
         """获取所有本地智能体"""
         return self.local_agents
+
+
+import functools
+
+def wrap_business_handler(business_func):
+    sig = inspect.signature(business_func)
+    param_names = list(sig.parameters.keys())
+
+    @functools.wraps(business_func)
+    async def api_handler(request_data, request):
+        kwargs = {k: request_data.get(k) for k in param_names if k in request_data}
+        if "params" in request_data:
+            import json
+            params = request_data["params"]
+            if isinstance(params, str):
+                params = json.loads(params)
+            for k in param_names:
+                if k in params:
+                    kwargs[k] = params[k]
+        sig = inspect.signature(business_func)
+        if 'request' in sig.parameters:
+            return await business_func(request, **kwargs)
+        else:
+            return await business_func(**kwargs)
+    return api_handler

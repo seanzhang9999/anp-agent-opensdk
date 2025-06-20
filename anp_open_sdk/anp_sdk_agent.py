@@ -16,7 +16,7 @@ import inspect
 import json
 import os
 from datetime import datetime
-from typing import Dict, Any, Callable
+from typing import Dict, Any, Callable, List
 
 import nest_asyncio
 from fastapi import FastAPI, Request
@@ -51,6 +51,7 @@ class RemoteAgent:
 
 class LocalAgent:
     """本地智能体，代表当前用户的DID身份"""
+    api_config: List[Dict[str, Any]]  # 用于多智能体加载时 从agent_mappings.yaml加载api相关扩展描述
 
     def __init__(self, user_data, name: str = "未命名", agent_type: str = "personal"):
         """初始化本地智能体
@@ -63,7 +64,7 @@ class LocalAgent:
         user_dir = self.user_data.user_dir
 
         if name == "未命名":
-            if self.user_data.name:
+            if self.user_data.name  is not None:
                 self.name = self.user_data.name
             else:
                 self.name = f"未命名智能体{self.user_data.did}"
