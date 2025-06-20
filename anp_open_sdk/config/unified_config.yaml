@@ -2,7 +2,7 @@
 '# 项目根目录自动检测，支持 {APP_ROOT} 占位符': null
 
 log_settings:
-  log_level: DEBUG
+  log_level: INFO
   detail:
     file: "/tmp/app.log"
     max_size: 100

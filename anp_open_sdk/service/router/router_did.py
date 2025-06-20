@@ -229,11 +229,14 @@ def url_did_format(user_id,request):
             parts = user_id.split(":")
             if len(parts) > 4 and parts[3].isdigit():
                 resp_did = ":".join(parts[:3]) + "%3A" + ":".join(parts[3:])
-    else:
+    elif len(user_id) == 16: # unique_id
         if port == 80 or port == 443:
             resp_did = f"did:wba:{host}:wba:user:{user_id}"
         else:
             resp_did = f"did:wba:{host}%3A{port}:wba:user:{user_id}"
+    else :
+        resp_did = "not_did_wba"
+
     return resp_did
 
 

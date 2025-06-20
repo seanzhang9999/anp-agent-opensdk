@@ -9,6 +9,8 @@ import os
 from pathlib import Path
 from typing import Dict, Any, Optional
 
+from pydantic.v1.typing import test_type
+
 from anp_open_sdk.anp_sdk import ANPSDK
 from anp_open_sdk.anp_sdk_agent import LocalAgent
 from anp_open_sdk.anp_sdk_user_data import LocalUserDataManager
@@ -418,12 +420,19 @@ class ANPToolCrawler:
             if task_type == "weather_query":
                 prompt_template = self._create_weather_search_prompt_template()
                 agent_name = "天气查询爬虫"
+                max_documents = 10
+            elif task_type == "root_query":
+                prompt_template = self._create_root_search_prompt_template()
+                agent_name = "多智能体搜索爬虫"
+                max_documents = 60
             elif task_type == "function_query":
                 prompt_template = self._create_function_search_prompt_template()
-                agent_name = "天气查询爬虫"
+                agent_name = "功能搜索爬虫"
+                max_documents = 10
             else:
                 prompt_template = self._create_code_search_prompt_template()
                 agent_name = "代码生成爬虫"
+                max_documents = 10
 
             # 调用通用智能爬虫
             result = await self._intelligent_crawler(
@@ -437,7 +446,7 @@ class ANPToolCrawler:
                 did_document_path=caller_agent.did_document_path,
                 private_key_path=caller_agent.private_key_path,
                 task_type=task_type,
-                max_documents=10,
+                max_documents=max_documents,
                 agent_name=agent_name
             )
 
@@ -463,7 +472,41 @@ class ANPToolCrawler:
         else:
             return LocalAgent.from_did(req_did)
 
+    def _create_root_search_prompt_template(self):
+        """创建代码搜索智能体的提示模板"""
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        return f"""
+                 你是一个智能搜索工具。你的目标是根据用户输入要求从原始链接给出的agent列表，逐一查询agent描述文件，选择合适的agent，调用工具完成代码任务。
 
+                 ## 当前任务
+                 {{task_description}}
+
+                 ## 重要提示
+                 1. 你将收到一个初始 URL（{{initial_url}}），这是一个agent列表文件，每个agent的did格式为 'did:wba:localhost%3A9527:wba:user:5fea49e183c6c211'
+                 2. 从 did格式可以获取agent的did文件地址，例如 'did:wba:localhost%3A9527:wba:user:5fea49e183c6c211' 的did地址为 http://localhost:9527/wba/user/5fea49e183c6c211/did.json
+                 3. 从 did文件中，可以获得 "serviceEndpoint": "http://localhost:9527/wba/user/5fea49e183c6c211/ad.json"
+                 4. 从 ad.json，你可以获得这个代理的详细结构、功能和 API 使用方法。
+                 5. 你需要像网络爬虫一样不断发现和访问新的 URL 和 API 端点。
+                 6. 你要优先理解api_interface.json这样的文件对api使用方式的描述，特别是参数的配置，优先用params作为组织参数json的总字段名
+                 7. 你可以使用 anp_tool 获取任何 URL 的内容。
+                 8. 该工具可以处理各种响应格式。
+                 9. 阅读每个文档以找到与任务相关的信息或 API 端点。
+                 10. 你需要自己决定爬取路径，不要等待用户指令。
+                 11. 注意：你最多可以爬取 6 个 agent，每个agent最多可以爬取10次，达到此限制后必须结束搜索。
+
+                 ## 工作流程
+                 1. 获取初始 URL 的内容并理解代理的功能。
+                 2. 分析内容以找到所有可能的链接和 API 文档。
+                 3. 解析 API 文档以了解 API 的使用方法。
+                 4. 根据任务需求构建请求以获取所需的信息。
+                 5. 继续探索相关链接，直到找到足够的信息。
+                 6. 总结信息并向用户提供最合适的建议。
+
+                 提供详细的信息和清晰的解释，帮助用户理解你找到的信息和你的建议。
+
+                 ## 日期
+                 当前日期：{current_date}
+                 """
     def _create_function_search_prompt_template(self) :
         """创建代码搜索智能体的提示模板"""
         current_date = datetime.now().strftime("%Y-%m-%d")
@@ -707,9 +750,9 @@ class ANPToolCrawler:
                     "tool_calls": response_message.tool_calls,
                 })
 
-                logger.debug(f"\n模型思考:\n{response_message.content}")
+                logger.info(f"\n模型思考:\n{response_message.content}")
                 if response_message.tool_calls:
-                    logger.debug(f"\n模型调用:\n{response_message.tool_calls}")
+                    logger.info(f"\n模型调用:\n{response_message.tool_calls}")
 
                 if not response_message.tool_calls:
                     logger.debug("模型没有请求任何工具调用，结束爬取")

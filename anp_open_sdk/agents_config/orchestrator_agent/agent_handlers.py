@@ -43,6 +43,7 @@ async def initialize_agent():
     my_agent_instance.run_calculator_add_demo = run_calculator_add_demo
     my_agent_instance.run_hello_demo = run_hello_demo
     my_agent_instance.run_ai_crawler_demo = run_ai_crawler_demo
+    my_agent_instance.run_ai_root_crawler_demo = run_ai_root_crawler_demo
     print(f" -> Attached capability to loading side.")
 
     return my_agent_instance
@@ -65,7 +66,7 @@ async def discover_and_describe_agents(publisher_url):
             data = response.json()
             agents = data.get("agents", [])
             print(f"  - Found {len(agents)} public agents.")
-
+            print(f"\n  - {data}")
             for agent_info in agents:
                 did = agent_info.get("did")
                 if not did:
@@ -190,6 +191,34 @@ async def run_ai_crawler_demo():
         logger.error(f"智能协作过程中出错: {e}")
         return
 
+
+
+async def run_ai_root_crawler_demo():
+
+    target_did= "did:wba:localhost%3A9527:wba:user:28cddee0fade0258"
+
+
+    crawler = ANPToolCrawler()
+
+    # 协作智能体通过爬虫向组装后的智能体请求服务
+    task_description = "我需要计算两个浮点数相加 2.88888+999933.4445556"
+
+    host,port = ANPSDK.get_did_host_port_from_did(target_did)
+    try:
+        result = await crawler.run_crawler_demo(
+            req_did=my_agent_instance.id,
+            resp_did=target_did,
+            task_input=task_description,
+            initial_url="http://localhost:9527/publisher/agents",
+            use_two_way_auth=True,  # 使用双向认证
+            task_type = "root_query"
+        )
+        logger.debug(f"智能协作结果: {result}")
+        return
+
+    except Exception as e:
+        logger.error(f"智能协作过程中出错: {e}")
+        return
 
 
 

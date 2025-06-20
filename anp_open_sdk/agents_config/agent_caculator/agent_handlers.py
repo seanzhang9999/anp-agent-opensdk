@@ -1,9 +1,9 @@
-
+from utils.log_base import logger
 
 async def add(a: float, b: float):
     try:
         result = float(a) + float(b)
-        print(f"  -> Calculator Agent: Performed {a} + {b} = {result}")
+        logger.info(f"  -> Calculator Agent: Performed {a} + {b} = {result}")
         return {"result": result}
     except (ValueError, TypeError) as e:
         return {"error": f"Invalid input for addition. Details: {e}"}

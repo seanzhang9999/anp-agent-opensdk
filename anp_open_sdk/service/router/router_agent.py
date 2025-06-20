@@ -13,6 +13,7 @@
 # limitations under the License.
 import inspect
 
+from anp_open_sdk.service.router.router_did import url_did_format
 from utils.log_base import logger
 
 
@@ -169,20 +170,21 @@ class AgentRouter:
     from urllib.parse import unquote
     async def route_request(self, req_did: str, resp_did: str, request_data: Dict , request: Request) -> Any:
         """路由请求到对应的本地智能体"""
-        resp_did = str(resp_did)
-        req_did = str(req_did)
+        resp_did = url_did_format(resp_did,request)
+
         if resp_did in self.local_agents:
 
             if hasattr(self.local_agents[resp_did].handle_request, "__call__"):  # 确保 `handle_request` 可调用
                 resp_agent = self.local_agents[resp_did]
                 # 将agent实例 挂载到request.state 方便在处理中引用
                 request.state.agent = resp_agent
+                logger.info(f"成功路由到{resp_agent.id}的处理函数{self.local_agents[resp_did].handle_request} ")
                 return await self.local_agents[resp_did].handle_request(req_did, request_data , request)
             else:
                 self.logger.error(f"{resp_did} 的 `handle_request` 不是一个可调用对象")
                 raise TypeError(f"{resp_did} 的 `handle_request` 不是一个可调用对象")
         else:
-            self.logger.error(f"未找到本地智能体: {resp_did}")
+            self.logger.error(f"智能体路由器未找到本地智能体注册的调用方法: {resp_did}")
             raise ValueError(f"未找到本地智能体: {resp_did}")
 
 
