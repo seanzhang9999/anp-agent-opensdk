@@ -258,10 +258,14 @@ class LocalAgent:
                     else:
                         return result
                 except Exception as e:
+                    self.logger.debug(
+                        f"发送到 handler的请求数据{request_data}\n"                        
+                        f"完整请求为 url: {request.url} \n"
+                        f"body: {await request.body()}")
                     self.logger.error(f"API调用错误: {e}")
                     return JSONResponse(
                         status_code=500,
-                        content={"status": "error", "message": str(e)}
+                        content={"status": "error", "error_message": str(e)}
                     )
             else:
                 return JSONResponse(

@@ -178,7 +178,10 @@ class AgentRouter:
                 resp_agent = self.local_agents[resp_did]
                 # 将agent实例 挂载到request.state 方便在处理中引用
                 request.state.agent = resp_agent
-                logger.info(f"成功路由到{resp_agent.id}的处理函数{self.local_agents[resp_did].handle_request} ")
+                logger.info(
+                        f"成功路由到{resp_agent.id}的处理函数, 请求数据为{request_data}\n"
+                        f"完整请求为 url: {request.url} \n"
+                        f"body: {await request.body()}")
                 return await self.local_agents[resp_did].handle_request(req_did, request_data , request)
             else:
                 self.logger.error(f"{resp_did} 的 `handle_request` 不是一个可调用对象")
@@ -199,21 +202,25 @@ import functools
 def wrap_business_handler(business_func):
     sig = inspect.signature(business_func)
     param_names = list(sig.parameters.keys())
-
     @functools.wraps(business_func)
     async def api_handler(request_data, request):
-        kwargs = {k: request_data.get(k) for k in param_names if k in request_data}
-        if "params" in request_data:
-            import json
-            params = request_data["params"]
-            if isinstance(params, str):
-                params = json.loads(params)
-            for k in param_names:
-                if k in params:
-                    kwargs[k] = params[k]
-        sig = inspect.signature(business_func)
-        if 'request' in sig.parameters:
-            return await business_func(request, **kwargs)
-        else:
-            return await business_func(**kwargs)
+        import json
+        try:
+            kwargs = {k: request_data.get(k) for k in param_names if k in request_data}
+            if "params" in request_data:
+                params = request_data["params"]
+                if isinstance(params, str):
+                    params = json.loads(params)
+                for k in param_names:
+                    if k in params:
+                        kwargs[k] = params[k]
+            kwargs_str = json.dumps(kwargs, ensure_ascii=False)
+            logger.info(f"api封装器发送参数 {kwargs_str}到{business_func.__name__}")
+            if 'request' in sig.parameters:
+                return await business_func(request, **kwargs)
+            else:
+                return await business_func(**kwargs)
+        except Exception as e :
+            logger.error(f"wrap error {e}")
+            return f"wrap error {e}"
     return api_handler

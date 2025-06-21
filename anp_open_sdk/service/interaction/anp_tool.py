@@ -489,7 +489,7 @@ class ANPToolCrawler:
                  3. 从 did文件中，可以获得 "serviceEndpoint": "http://localhost:9527/wba/user/5fea49e183c6c211/ad.json"
                  4. 从 ad.json，你可以获得这个代理的详细结构、功能和 API 使用方法。
                  5. 你需要像网络爬虫一样不断发现和访问新的 URL 和 API 端点。
-                 6. 你要优先理解api_interface.json这样的文件对api使用方式的描述，特别是参数的配置，优先用params作为组织参数json的总字段名
+                 6. 你要优先理解api_interface.json这样的文件对api使用方式的描述，特别是参数的配置，params下属的字段可以直接作为api的参数
                  7. 你可以使用 anp_tool 获取任何 URL 的内容。
                  8. 该工具可以处理各种响应格式。
                  9. 阅读每个文档以找到与任务相关的信息或 API 端点。
@@ -616,7 +616,7 @@ class ANPToolCrawler:
                                  use_two_way_auth: bool = True, task_type: str = "general",
                                  max_documents: int = 10, agent_name: str = "智能爬虫"):
         """通用智能爬虫功能"""
-        logger.debug(f"启动{agent_name}智能爬取: {initial_url}")
+        logger.info(f"启动{agent_name}智能爬取: {initial_url}")
 
         # 初始化变量
         visited_urls = set()
@@ -731,7 +731,7 @@ class ANPToolCrawler:
             logger.info(f"开始爬取迭代 {current_iteration}/{max_documents}")
 
             if len(crawled_documents) >= max_documents:
-                logger.debug(f"已达到最大爬取文档数 {max_documents}，停止爬取")
+                logger.info(f"已达到最大爬取文档数 {max_documents}，停止爬取")
                 messages.append({
                     "role": "system",
                     "content": f"你已爬取 {len(crawled_documents)} 个文档，达到最大爬取限制 {max_documents}。请根据获取的信息做出最终总结。",

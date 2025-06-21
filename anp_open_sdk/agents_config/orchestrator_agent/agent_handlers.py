@@ -27,7 +27,7 @@ async def initialize_agent():
     初始化钩子，创建和配置Agent实例，并附加特殊能力。
     """
     global my_agent_instance
-    print(f" -> Self-initializing Orchestrator Agent from its own module...")
+    logger.debug(f" -> Self-initializing Orchestrator Agent from its own module...")
 
     config_path = os.path.join(os.path.dirname(__file__), "agent_mappings.yaml")
     with open(config_path, "r", encoding="utf-8") as f:
@@ -36,7 +36,7 @@ async def initialize_agent():
     my_agent_instance = LocalAgent.from_did(cfg["did"])
     my_agent_instance.name = cfg["name"]
     my_agent_instance.publisher = "open"
-    print(f" -> Self-created agent instance: {my_agent_instance.name}")
+    logger.debug(f" -> Self-created agent instance: {my_agent_instance.name}")
 
     # 关键步骤：将函数作为方法动态地附加到创建的 Agent 实例上
     my_agent_instance.discover_and_describe_agents = discover_and_describe_agents
@@ -44,7 +44,7 @@ async def initialize_agent():
     my_agent_instance.run_hello_demo = run_hello_demo
     my_agent_instance.run_ai_crawler_demo = run_ai_crawler_demo
     my_agent_instance.run_ai_root_crawler_demo = run_ai_root_crawler_demo
-    print(f" -> Attached capability to loading side.")
+    logger.debug(f" -> Attached capability to loading side.")
 
     return my_agent_instance
 
@@ -53,33 +53,33 @@ async def discover_and_describe_agents(publisher_url):
     发现并获取所有已发布Agent的详细描述。
     这个函数将被附加到 Agent 实例上作为方法。
     """
-    print("\n🕵️  Starting agent discovery process (from agent method)...")
+    logger.debug("\n🕵️  Starting agent discovery process (from agent method)...")
 
 
 
     async with httpx.AsyncClient() as client:
         try:
             # 1. 访问  获取公开的 agent 列表
-            print("  - Step 1: Fetching public agent list...")
+            logger.debug("  - Step 1: Fetching public agent list...")
             response = await client.get(publisher_url)
             response.raise_for_status()
             data = response.json()
             agents = data.get("agents", [])
-            print(f"  - Found {len(agents)} public agents.")
-            print(f"\n  - {data}")
+            logger.info(f"  - Found {len(agents)} public agents.")
+            logger.info(f"\n  - {data}")
             for agent_info in agents:
                 did = agent_info.get("did")
                 if not did:
                     continue
 
-                print(f"\n  🔎 Processing Agent DID: {did}")
+                logger.debug(f"\n  🔎 Processing Agent DID: {did}")
 
                 # 2. 获取每个 agent 的 DID Document
                 user_id = did.split(":")[-1]
                 host , port = ANPSDK.get_did_host_port_from_did(user_id)
                 did_doc_url = f"http://{host}:{port}/wba/user/{user_id}/did.json"
 
-                print(f"    - Step 2: Fetching DID Document from {did_doc_url}")
+                logger.debug(f"    - Step 2: Fetching DID Document from {did_doc_url}")
                 status, did_doc_data, msg, success = await agent_auth_request(
                     caller_agent=my_agent_instance.id,  # 使用 self.id 作为调用者
                     target_agent=did,
@@ -87,7 +87,7 @@ async def discover_and_describe_agents(publisher_url):
                 )
 
                 if not success:
-                    print(f"    - ❌ Failed to get DID Document for {did}. Message: {msg}")
+                    logger.debug(f"    - ❌ Failed to get DID Document for {did}. Message: {msg}")
                     continue
 
                 if isinstance(did_doc_data, str):
@@ -100,14 +100,14 @@ async def discover_and_describe_agents(publisher_url):
                 for service in did_document.get("service", []):
                     if service.get("type") == "AgentDescription":
                         ad_endpoint = service.get("serviceEndpoint")
-                        print(f"\n   - ✅ get endpoint from did-doc{did}:{ad_endpoint}")
+                        logger.info(f"\n   - ✅ get endpoint from did-doc{did}:{ad_endpoint}")
                         break
 
                 if not ad_endpoint:
-                    print(f"    - ⚠️  No 'AgentDescription' service found in DID Document for {did}.")
+                    logger.debug(f"    - ⚠️  No 'AgentDescription' service found in DID Document for {did}.")
                     continue
 
-                print(f"    - Step 3: Fetching Agent Description from {ad_endpoint}")
+                logger.debug(f"    - Step 3: Fetching Agent Description from {ad_endpoint}")
                 status, ad_data, msg, success = await agent_auth_request(
                     caller_agent=my_agent_instance.id,
                     target_agent=did,
@@ -119,16 +119,17 @@ async def discover_and_describe_agents(publisher_url):
                         agent_description = json.loads(ad_data)
                     else:
                         agent_description = ad_data
-                    print("    - ✅ Successfully fetched Agent Description:")
-                    print(json.dumps(agent_description, indent=2, ensure_ascii=False))
+                    logger.info(f"Agent Description:{ad_data}")
+                    logger.debug("    - ✅ Successfully fetched Agent Description:")
+                    logger.debug(json.dumps(agent_description, indent=2, ensure_ascii=False))
                 else:
-                    print(
+                    logger.debug(
                         f"    - ❌ Failed to get Agent Description from {ad_endpoint}. Status: {status}")
 
         except httpx.RequestError as e:
-            print(f"  - ❌ Discovery process failed due to a network error: {e}")
+            logger.debug(f"  - ❌ Discovery process failed due to a network error: {e}")
         except Exception as e:
-            print(f"  - ❌ An unexpected error occurred during discovery: {e}")
+            logger.debug(f"  - ❌ An unexpected error occurred during discovery: {e}")
 
 
 
@@ -145,7 +146,7 @@ async def run_calculator_add_demo():
     result = await agent_api_call_get(
     my_agent_instance.id, calculator_agent.id, "/calculator/add", params  )
 
-    logger.debug(f"调用结果: {result}")
+    logger.info(f"计算api调用结果: {result}")
     return result
 
 
@@ -160,7 +161,7 @@ async def run_hello_demo():
     result = await agent_api_call_get(
     my_agent_instance.id, target_agent.id, "/hello", params  )
 
-    logger.debug(f"调用结果: {result}")
+    logger.info(f"hello api调用结果: {result}")
     return result
 
 
@@ -184,11 +185,11 @@ async def run_ai_crawler_demo():
             use_two_way_auth=True,  # 使用双向认证
             task_type = "function_query"
         )
-        logger.debug(f"智能协作结果: {result}")
+        logger.debug(f"智能调用结果: {result}")
         return
 
     except Exception as e:
-        logger.error(f"智能协作过程中出错: {e}")
+        logger.info(f"智能调用过程中出错: {e}")
         return
 
 
@@ -213,11 +214,11 @@ async def run_ai_root_crawler_demo():
             use_two_way_auth=True,  # 使用双向认证
             task_type = "root_query"
         )
-        logger.debug(f"智能协作结果: {result}")
+        logger.debug(f"智能探索结果: {result}")
         return
 
     except Exception as e:
-        logger.error(f"智能协作过程中出错: {e}")
+        logger.info(f"智能探索过程中出错: {e}")
         return
 
 
@@ -229,6 +230,6 @@ async def cleanup_agent():
     """
     global my_agent_instance
     if my_agent_instance:
-        print(f" -> Self-cleaning Orchestrator Agent: {my_agent_instance.name}")
+        logger.debug(f" -> Self-cleaning Orchestrator Agent: {my_agent_instance.name}")
         my_agent_instance = None
-    print(f" -> Orchestrator Agent cleaned up.")
+    logger.debug(f" -> Orchestrator Agent cleaned up.")

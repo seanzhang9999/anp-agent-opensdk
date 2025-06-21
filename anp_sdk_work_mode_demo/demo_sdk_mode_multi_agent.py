@@ -18,13 +18,13 @@ import inspect
 
 
 async def load_agent_from_module(yaml_path):
-    print(f"\n🔎 Loading agent module from path: {yaml_path}")
+    logger.debug(f"\n🔎 Loading agent module from path: {yaml_path}")
     plugin_dir = os.path.dirname(yaml_path)
     handler_script_path = os.path.join(plugin_dir, "agent_handlers.py")
     register_script_path = os.path.join(plugin_dir, "agent_register.py")
 
     if not os.path.exists(handler_script_path):
-        print(f"  - ⚠️  Skipping: No 'agent_handlers.py' found in {plugin_dir}")
+        logger.debug(f"  - ⚠️  Skipping: No 'agent_handlers.py' found in {plugin_dir}")
         return None, None
 
     module_path_prefix = os.path.dirname(plugin_dir).replace(os.sep, ".")
@@ -44,23 +44,23 @@ async def load_agent_from_module(yaml_path):
         agent = LocalAgent.from_did(cfg["did"])
         agent.name = cfg["name"]
         agent.api_config = cfg.get("api", [])  # 添加
-        print(f"  -> Self-created agent instance: {agent.name}")
+        logger.info(f"  -> self register agent : {agent.name}")
         register_module.register(agent)
         return agent, None
 
     # 2. agent_llm: 存在 initialize_agent
     if hasattr(handlers_module, "initialize_agent"):
-        print(f"  - Calling 'initialize_agent' in module: {base_module_name}.agent_handlers")
+        logger.debug(f"  - Calling 'initialize_agent' in module: {base_module_name}.agent_handlers")
         agent = await handlers_module.initialize_agent()
         agent.api_config = cfg.get("api", [])  # 添加
-        print(f"  - Module returned agent: {agent.name}")
+        logger.info(f"  - self init agent: {agent.name}")
         return agent, handlers_module
 
     # 3. 普通配置型 agent_001 / agent_caculator
     agent = LocalAgent.from_did(cfg["did"])
     agent.name = cfg["name"]
     agent.api_config = cfg.get("api", [])  # 添加
-    print(f"  -> Self-created agent instance: {agent.name}")
+    logger.debug(f"  -> Self-created agent instance: {agent.name}")
     for api in cfg.get("api", []):
         handler_func = getattr(handlers_module, api["handler"])
         # 判断handler_func参数，如果不是(request_data, request)，则用包装器
@@ -70,11 +70,12 @@ async def load_agent_from_module(yaml_path):
         if params != [ "request","request_data"]:
             handler_func = wrap_business_handler(handler_func)
         agent.expose_api(api["path"], handler_func, methods=[api["method"]])
+        logger.info(f"  - config register agent: {agent.name}，api:{api}")
     return agent, None
 
 
 async def main():
-    print("🚀 Starting Agent Host Application...")
+    logger.debug("🚀 Starting Agent Host Application...")
     if os.getcwd() not in sys.path:
         sys.path.append(os.getcwd())
 
@@ -82,7 +83,7 @@ async def main():
     agent_files = glob.glob("anp_open_sdk/agents_config/*/agent_mappings.yaml")
 
     if not agent_files:
-        print("No agent configurations found. Exiting.")
+        logger.info("No agent configurations found. Exiting.")
         return
 
     preparation_tasks = [load_agent_from_module(f) for f in agent_files]
@@ -95,7 +96,7 @@ async def main():
     lifecycle_modules = {info[0].id: info[1] for info in valid_agents_info}
 
     if not all_agents:
-        print("No agents were loaded successfully. Exiting.")
+        logger.info("No agents were loaded successfully. Exiting.")
         return
 
     # --- 启动SDK ---
@@ -111,9 +112,9 @@ async def main():
     server_thread = threading.Thread(target=run_server, daemon=True)
     server_thread.start()
 
-    print("\n🔥 Server is running. Press Ctrl+C to stop.")
+    logger.info("\n🔥 Server is running. Press Ctrl+C to stop.")
 
-    print("\n🔍 Searching for an agent with discovery capabilities...")
+    logger.debug("\n🔍 Searching for an agent with discovery capabilities...")
     discovery_agent = None
     for agent in all_agents:
         if hasattr(agent, 'discover_and_describe_agents'):
@@ -121,7 +122,7 @@ async def main():
             break
 
     if discovery_agent:
-        print(f"✅ Found discovery agent: '{discovery_agent.name}'. Starting its discovery task...")
+        logger.info(f"✅ Found discovery agent: '{discovery_agent.name}'. Starting its discovery task...")
         # 直接调用 agent 实例上的方法
         publisher_url = "http://localhost:9527/publisher/agents"
         #result = await discovery_agent.discover_and_describe_agents(publisher_url)
@@ -131,30 +132,34 @@ async def main():
         result = await discovery_agent.run_ai_root_crawler_demo()
 
     else:
-        print("⚠️ No agent with discovery capabilities was found.")
+        logger.debug("⚠️ No agent with discovery capabilities was found.")
 
     input("按任意键停止服务")
 
     # --- 清理 ---
-    print("\n🛑 Shutdown signal received. Cleaning up...")
+    logger.debug("\n🛑 Shutdown signal received. Cleaning up...")
 
     # 停止服务器
+    # 注意：start_server() 是在单独线程中调用的，sdk.stop_server() 只有在 ANPSDK 实现了对应的停止机制时才有效
     if 'sdk' in locals():
-        print("  - Stopping server...")
-        sdk.stop_server()
-        print("  - Server stopped.")
+        logger.debug("  - Stopping server...")
+        if hasattr(sdk, "stop_server"):
+            sdk.stop_server()
+            logger.debug("  - Server stopped.")
+        else:
+            logger.debug("  - sdk 实例没有 stop_server 方法，无法主动停止服务。")
 
     # 清理 Agent
     cleanup_tasks = []
     for agent in all_agents:
         module = lifecycle_modules.get(agent.id)
         if module and hasattr(module, "cleanup_agent"):
-            print(f"  - Scheduling cleanup for module of agent: {agent.name}...")
+            logger.debug(f"  - Scheduling cleanup for module of agent: {agent.name}...")
             cleanup_tasks.append(module.cleanup_agent())
 
     if cleanup_tasks:
         await asyncio.gather(*cleanup_tasks)
-    print("✅ All agents cleaned up. Exiting.")
+    logger.debug("✅ All agents cleaned up. Exiting.")
 
 
 
