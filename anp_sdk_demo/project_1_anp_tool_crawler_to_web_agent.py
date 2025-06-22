@@ -10,7 +10,7 @@ import json
 from json import JSONEncoder
 from typing import Dict, Any, List
 from dotenv import load_dotenv
-from utils.log_base import  logging as logger
+from anp_open_sdk.utils.log_base import  logging as logger
 
 # 加载环境变量
 load_dotenv()

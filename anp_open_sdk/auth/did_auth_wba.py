@@ -11,7 +11,7 @@ import json
 import base64
 from typing import Optional, Dict, Any, Tuple
 import re
-from utils.log_base import  logging as logger
+from anp_open_sdk.utils.log_base import  logging as logger
 
 from agent_connect.authentication.did_wba import extract_auth_header_parts
 
@@ -142,7 +142,7 @@ class WBADIDAuthenticator(BaseDIDAuthenticator):
     async def authenticate_request(self, context: AuthenticationContext, credentials: DIDCredentials) -> Tuple[bool, str, Dict[str, Any]]:
         """执行WBA认证请求"""
         import aiohttp
-        from utils.log_base import logger
+        from anp_open_sdk.utils.log_base import logger
 
         """执行WBA认证请求"""
         try:
@@ -201,7 +201,7 @@ class WBADIDAuthenticator(BaseDIDAuthenticator):
             )
             from anp_open_sdk.auth.did_auth_wba_custom_did_resolver import resolve_local_did_document
             from anp_open_sdk.config.legacy.dynamic_config import dynamic_config
-            from utils.log_base import logger
+            from anp_open_sdk.utils.log_base import logger
 
 
             # 1. 尝试解析为两路认证

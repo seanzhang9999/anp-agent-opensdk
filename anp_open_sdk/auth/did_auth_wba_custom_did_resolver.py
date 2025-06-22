@@ -15,14 +15,14 @@
 """
 自定义DID文档解析器，用于本地测试环境
 """
-import os
 import json
-from utils.log_base import logger
+from anp_open_sdk.utils.log_base import logger
 
 import aiohttp
 from pathlib import Path
 from typing import Dict, Optional
-from urllib.parse import unquote, urlparse
+from urllib.parse import unquote
+
 
 async def resolve_local_did_document(did: str) -> Optional[Dict]:
     """

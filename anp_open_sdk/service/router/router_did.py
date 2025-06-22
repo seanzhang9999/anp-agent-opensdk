@@ -26,7 +26,7 @@ from anp_open_sdk.anp_sdk_user_data import get_user_dir_did_doc_by_did, get_agen
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..","..")))
 import os
 import json
-from utils.log_base import logger
+from anp_open_sdk.utils.log_base import logger
 
 from typing import Dict
 from pathlib import Path
@@ -34,7 +34,7 @@ from fastapi import APIRouter, Request, Response, HTTPException
 from anp_open_sdk.config.legacy.dynamic_config import dynamic_config
 from anp_open_sdk.config.path_resolver import path_resolver
 
-from utils.log_base import  logging as logger
+from anp_open_sdk.utils.log_base import  logging as logger
 
 router = APIRouter(tags=["did"])
 

@@ -21,12 +21,9 @@
 
 import os
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 import threading
-import time
-from types import SimpleNamespace
 import yaml
-import json
 from anp_open_sdk.config.path_resolver import path_resolver
 
 
@@ -42,7 +39,7 @@ class DynamicConfig:
         Args:
             config_file: 配置文件路径，如果为None则使用默认路径
         """
-        from utils.log_base import logging as logger
+        from anp_open_sdk.utils.log_base import logging as logger
         self.logger =logger
         
         # 默认配置文件路径

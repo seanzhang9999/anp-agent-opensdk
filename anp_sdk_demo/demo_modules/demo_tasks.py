@@ -9,7 +9,7 @@ from urllib.parse import quote
 
 import requests
 import aiofiles
-from utils.log_base import  logging as logger
+from anp_open_sdk.utils.log_base import  logging as logger
 
 from anp_open_sdk.anp_sdk import ANPSDK, LocalAgent
 from anp_open_sdk.config.path_resolver import path_resolver

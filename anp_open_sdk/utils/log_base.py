@@ -63,8 +63,10 @@ def setup_logging(level=logging.debug):
     except Exception as e:
         logger.debug(f"Error setting up log directory: {e}")
         # If failed, use backup log directory
+        from anp_open_sdk.config import config
+        log_dir = config.get_app_root()
         log_dir = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "logs"
+            log_dir, "logs"
         )
         os.makedirs(log_dir, exist_ok=True)
 

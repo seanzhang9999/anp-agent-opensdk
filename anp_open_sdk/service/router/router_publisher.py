@@ -17,13 +17,13 @@ Publisher API router for hosted DID documents, agent descriptions, and API forwa
 """
 import json
 import yaml
-from utils.log_base import logger
+from anp_open_sdk.utils.log_base import logger
 from typing import Dict
 from pathlib import Path
 from fastapi import APIRouter, Request, HTTPException
 from anp_open_sdk.config.legacy.dynamic_config import dynamic_config
 from anp_open_sdk.config.path_resolver import path_resolver
-from utils.log_base import  logging as logger
+from anp_open_sdk.utils.log_base import  logging as logger
 
 router = APIRouter(tags=["publisher"])
 

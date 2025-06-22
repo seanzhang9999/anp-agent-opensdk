@@ -22,7 +22,7 @@ from email.mime.text import MIMEText
 from email.header import Header
 from typing import List, Dict, Tuple
 from pathlib import Path
-from utils.log_base import  logging as logger
+from anp_open_sdk.utils.log_base import  logging as logger
 from abc import ABC, abstractmethod
 
 

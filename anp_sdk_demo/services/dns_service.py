@@ -1,6 +1,6 @@
 import threading
 from typing import Dict
-from utils.log_base import  logging as logger
+from anp_open_sdk.utils.log_base import  logging as logger
 
 
 class DemoDNSService:

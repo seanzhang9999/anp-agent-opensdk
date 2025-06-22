@@ -1,5 +1,5 @@
 import json
-from utils.log_base import logger
+from anp_open_sdk.utils.log_base import logger
 
 import string
 from typing import Optional, Dict, Tuple, Any
@@ -12,7 +12,7 @@ from ..anp_sdk_agent import LocalAgent
 from ..anp_sdk_user_data import LocalUserDataManager
 from ..auth.schemas import DIDCredentials, AuthenticationContext
 from ..auth.did_auth_base import BaseDIDAuthenticator
-from utils.log_base import  logging as logger
+from anp_open_sdk.utils.log_base import  logging as logger
 
 
 def create_authenticator(auth_method: str = "wba") -> BaseDIDAuthenticator:

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 """Bearer token authentication module."""
-from utils.log_base import logger
+from anp_open_sdk.utils.log_base import logger
 
 import os
 from typing import Optional, Dict
@@ -22,7 +22,6 @@ from fastapi import HTTPException
 
 from datetime import datetime, timezone, timedelta
 
-from anp_open_sdk.config.legacy.dynamic_config import dynamic_config
 from anp_open_sdk.config import config
 
 def create_access_token(private_key_path, data: Dict, expires_delta: int = None) -> str:

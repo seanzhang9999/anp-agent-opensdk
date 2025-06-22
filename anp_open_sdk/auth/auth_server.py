@@ -16,8 +16,7 @@
 Authentication middleware module.
 """
 
-from utils.log_base import logger
-import os
+from anp_open_sdk.utils.log_base import logger
 from datetime import timezone
 from pathlib import Path
 import random
@@ -29,7 +28,6 @@ import json
 import jwt
 from fastapi import Request, HTTPException, Response
 from fastapi.responses import JSONResponse
-from anp_open_sdk.config import config
 from .did_auth_base import BaseDIDAuthenticator
 from .schemas import AuthenticationContext
 # ... existing imports ...
@@ -45,7 +43,6 @@ VALID_SERVER_NONCES: Dict[str, datetime] = {}
 from ..agent_connect_hotpatch.authentication.did_wba_auth_header import DIDWbaAuthHeader
 from ..anp_sdk_agent import LocalAgent
 from anp_open_sdk.config.legacy.dynamic_config import dynamic_config
-from anp_open_sdk.config import config
 
 EXEMPT_PATHS = [
     "/docs", "/anp-nlp/", "/ws/", "/publisher/agents", "/agent/group/*",
@@ -350,7 +347,7 @@ def is_valid_server_nonce(nonce: str) -> bool:
         bool: Whether the nonce is valid
     """
     from datetime import datetime, timezone, timedelta
-    from utils.log_base import logger
+    from anp_open_sdk.utils.log_base import logger
 
     try:
         from anp_open_sdk.config.legacy.dynamic_config import dynamic_config

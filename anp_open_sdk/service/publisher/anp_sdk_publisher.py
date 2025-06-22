@@ -2,7 +2,7 @@ import os
 import json
 import secrets
 from pathlib import Path
-from utils.log_base import  logging as logger
+from anp_open_sdk.utils.log_base import  logging as logger
 import socket
 
 class DIDManager:

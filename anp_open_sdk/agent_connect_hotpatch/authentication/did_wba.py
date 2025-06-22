@@ -19,31 +19,27 @@
 #
 # This project is open-sourced under the MIT License. For details, please see the LICENSE file.
 
-import os
-import sys
 import re
 import urllib.parse
 import base64
-from utils.log_base import logger
+from anp_open_sdk.utils.log_base import logger
 from typing import Any, Dict, Tuple, Optional, List, Callable, Union
 import aiohttp
 import asyncio
 import json
 import secrets
 import hashlib
-from datetime import datetime, timezone, timedelta
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.asymmetric import ec, ed25519, utils
-from cryptography.exceptions import InvalidSignature
+from datetime import datetime, timezone
+from cryptography.hazmat.primitives.asymmetric import ec, ed25519
 from cryptography.hazmat.primitives.serialization import (
     Encoding, PublicFormat, PrivateFormat, NoEncryption
 )
 import base58  # Need to add this dependency
 import traceback
-from agent_connect.authentication.verification_methods import create_verification_method, VerificationMethod, CURVE_MAPPING
+from agent_connect.authentication.verification_methods import create_verification_method, CURVE_MAPPING
 import jcs
 
-from utils.log_base import logging as logger
+from anp_open_sdk.utils.log_base import logging as logger
 
 def _is_ip_address(hostname: str) -> bool:
     """Check if a hostname is an IP address."""
@@ -311,7 +307,6 @@ def generate_auth_header_two_way(
     content_hash = hashlib.sha256(canonical_json).digest()
     logger.debug(f"[签名] content_hash:{content_hash.hex()} ")
     # Calculate SHA-256 hash
-    from agent_connect.authentication.did_wba_auth_header import DIDWbaAuthHeader
     # Create verifier and encode signature
     verifier = create_verification_method(method_dict)
     signature_bytes = sign_callback(content_hash, verification_method_fragment)

@@ -1,4 +1,3 @@
-import asyncio
 import json
 from datetime import datetime
 from json import JSONEncoder
@@ -9,12 +8,9 @@ import os
 from pathlib import Path
 from typing import Dict, Any, Optional
 
-from pydantic.v1.typing import test_type
-
-from anp_open_sdk.anp_sdk import ANPSDK
 from anp_open_sdk.anp_sdk_agent import LocalAgent
 from anp_open_sdk.anp_sdk_user_data import LocalUserDataManager
-from utils.log_base import logger
+from anp_open_sdk.utils.log_base import logger
 
 from agent_connect.authentication import DIDWbaAuthHeader
 from anp_open_sdk.auth.auth_client import agent_auth_request

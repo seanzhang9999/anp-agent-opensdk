@@ -23,7 +23,7 @@ import yaml
 from anyio import Path
 from dotenv import load_dotenv
 from fastapi import Request
-from utils.log_base import  logging as logger
+from anp_open_sdk.utils.log_base import  logging as logger
 from starlette.responses import JSONResponse
 
 # 加载环境变量

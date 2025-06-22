@@ -7,13 +7,12 @@
 #     http://www.apache.org/licenses/LICENSE-2.0
 
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional, List, AsyncGenerator
+from typing import Dict, Any, Optional, List
 from dataclasses import dataclass
 from enum import Enum
 import asyncio
 import time
-import json
-from utils.log_base import  logging as logger
+from anp_open_sdk.utils.log_base import  logging as logger
 
 class MessageType(Enum):
     """消息类型枚举"""

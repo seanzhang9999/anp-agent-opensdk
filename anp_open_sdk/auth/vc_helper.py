@@ -18,16 +18,14 @@
 提供创建和验证DID验证凭证(Verifiable Credential)的功能
 """
 
-import os
-import json
-from utils.log_base import logger
+from anp_open_sdk.utils.log_base import logger
 
 import base64
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional
 from datetime import datetime, timezone, timedelta
 
 from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.asymmetric import ec, utils
+from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
 
 import jcs  # 用于规范化JSON

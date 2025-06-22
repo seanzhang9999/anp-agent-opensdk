@@ -35,7 +35,7 @@ import argparse
 from datetime import datetime
 
 from Crypto.PublicKey import RSA
-from utils.log_base import  logging as logger
+from anp_open_sdk.utils.log_base import  logging as logger
 from typing import Dict, List, Optional, Any
 
 from anp_open_sdk.config.path_resolver import path_resolver

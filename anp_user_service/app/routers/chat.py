@@ -1,4 +1,4 @@
-from utils.log_base import logger
+from anp_open_sdk.utils.log_base import logger
 
 from fastapi import APIRouter, HTTPException, status
 from anp_user_service.app.models.schemas import ChatAgentRequest, ChatResponse, LLMConfig
@@ -20,10 +20,6 @@ async def chat_with_personal_agent(request: ChatAgentRequest):
         logger.debug(f"Warning: Personal data path not found for user. RAG context will be limited. Path: {personal_data_path}")
         # Or, return an error if personal_data is essential:
         # raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Personal data for user not found.")
-
-    from anp_open_sdk.config.legacy.dynamic_config import dynamic_config
-
-
 
     # Get API key from environment variables via settings
 

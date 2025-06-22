@@ -6,7 +6,7 @@ from datetime import datetime
 from anp_open_sdk.service.interaction.anp_sdk_group_member import GroupMemberSDK
 from anp_open_sdk.service.interaction.anp_sdk_group_runner import Message, MessageType
 from anp_open_sdk.config.path_resolver import path_resolver
-from utils.log_base import logging as logger
+from anp_open_sdk.utils.log_base import logging as logger
 
 class GroupMemberWithStorage(GroupMemberSDK):
     """带存储功能的 GroupMemberSDK"""
