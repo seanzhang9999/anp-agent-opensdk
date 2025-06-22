@@ -4,12 +4,14 @@ import os
 import sys
 import asyncio
 import threading
+from urllib.request import parse_http_list
 
 from anp_open_sdk.anp_sdk import ANPSDK
 from anp_open_sdk.anp_sdk_user_data import save_interface_files, LocalUserDataManager
 from anp_open_sdk.sdk_mode import SdkMode
 from anp_open_sdk.service.router.router_agent import wrap_business_handler
 from anp_open_sdk.utils.log_base import logger
+from anp_open_sdk.config import config
 
 
 import inspect
@@ -78,7 +80,8 @@ async def main():
         sys.path.append(os.getcwd())
 
     # --- 加载和初始化所有Agent模块 ---
-    agent_files = glob.glob("anp_open_sdk/agents_config/*/agent_mappings.yaml")
+
+    agent_files = glob.glob("user_data/localhost_9527/agents_config/*/agent_mappings.yaml")
 
     if not agent_files:
         logger.info("No agent configurations found. Exiting.")
@@ -127,7 +130,9 @@ async def main():
         #result = await discovery_agent.run_calculator_add_demo()
         #result = await discovery_agent.run_hello_demo()
         #result = await discovery_agent.run_ai_crawler_demo()
-        result = await discovery_agent.run_ai_root_crawler_demo()
+        #result = await discovery_agent.run_ai_root_crawler_demo()
+        result = await discovery_agent.run_agent_002_demo(sdk)
+        print(result)
 
     else:
         logger.debug("⚠️ No agent with discovery capabilities was found.")

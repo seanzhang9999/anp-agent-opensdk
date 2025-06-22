@@ -39,7 +39,6 @@ import traceback
 from agent_connect.authentication.verification_methods import create_verification_method, CURVE_MAPPING
 import jcs
 
-from anp_open_sdk.utils.log_base import logging as logger
 
 def _is_ip_address(hostname: str) -> bool:
     """Check if a hostname is an IP address."""

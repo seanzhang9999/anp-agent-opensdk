@@ -4,7 +4,6 @@ import os
 from typing import Dict, Any
 from datetime import datetime
 from anp_open_sdk.service.interaction.anp_sdk_group_runner import GroupRunner, Message, MessageType, Agent
-from anp_open_sdk.config.path_resolver import path_resolver
 from anp_open_sdk.utils.log_base import logging  as logger
 
 
@@ -13,7 +12,7 @@ class FileLoggingGroupRunner(GroupRunner):
 
     def __init__(self, group_id: str):
         super().__init__(group_id)
-        self.log_dir = path_resolver.resolve_path("anp_sdk_demo/demo_data/group_logs")
+        self.log_dir = UnifiedConfig.resolve_path("anp_sdk_demo/demo_data/group_logs")
         os.makedirs(self.log_dir, exist_ok=True)
         logger.debug(f"🗂️ 群组日志目录已创建: {self.log_dir}")  # 添加调试信息
 

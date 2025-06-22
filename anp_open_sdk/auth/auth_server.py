@@ -42,7 +42,7 @@ VALID_SERVER_NONCES: Dict[str, datetime] = {}
 # ... rest of code ...
 from ..agent_connect_hotpatch.authentication.did_wba_auth_header import DIDWbaAuthHeader
 from ..anp_sdk_agent import LocalAgent
-from anp_open_sdk.config.legacy.dynamic_config import dynamic_config
+
 
 EXEMPT_PATHS = [
     "/docs", "/anp-nlp/", "/ws/", "/publisher/agents", "/agent/group/*",

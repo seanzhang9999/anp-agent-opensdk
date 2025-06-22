@@ -18,7 +18,7 @@
 - 统一配置管理（unified_config.py）
 - 类型提示和协议（config_types.py）
 - 向后兼容的动态配置（dynamic_config.py）
-- 路径解析（path_resolver.py）
+
 """
 
 # 导入新的统一配置

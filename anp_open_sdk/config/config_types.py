@@ -6,6 +6,8 @@
 from typing import Protocol, List, Dict, Any, Optional
 from pathlib import Path
 
+class MultiAgentModeConfig(Protocol):
+    agents_cfg_path: str
 
 class AnpSdkConfig(Protocol):
     """ANP SDK 配置协议"""
@@ -148,6 +150,7 @@ class SecretsConfig(Protocol):
 class UnifiedConfigProtocol(Protocol):
     """统一配置协议"""
     # 主要配置节点
+    multi_agent_mode: MultiAgentModeConfig
     log_settings: LogConfig
     anp_sdk: AnpSdkConfig
     llm: LlmConfig

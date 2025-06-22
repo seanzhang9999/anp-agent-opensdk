@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from anp_open_sdk.anp_sdk_user_data import LocalUserDataManager
-from anp_open_sdk.config.legacy.dynamic_config import get_config_value
 import urllib.parse
 import os
 import time
@@ -24,7 +23,6 @@ from typing import Dict, Any, Optional, List
 from fastapi.middleware.cors import CORSMiddleware
 from anp_open_sdk.auth.auth_server import auth_middleware
 from anp_open_sdk.service.router import router_did, router_publisher, router_auth
-from anp_open_sdk.config.legacy.dynamic_config import dynamic_config
 from anp_open_sdk.config import config
 from fastapi import Request, WebSocket, WebSocketDisconnect, FastAPI
 from fastapi.responses import StreamingResponse
@@ -157,7 +155,7 @@ class ANPSDK:
         from anp_open_sdk.service.publisher.anp_sdk_publisher_mail_backend import EnhancedMailManager
         from anp_open_sdk.service.publisher.anp_sdk_publisher import DIDManager
         try:
-            use_local = get_config_value('USE_LOCAL_MAIL', False)
+            use_local = config.anp_sdk.u('USE_LOCAL_MAIL', False)
             logger.debug(f"管理邮箱检查前初始化，使用本地文件邮件后端参数设置:{use_local}")
             mail_manager = EnhancedMailManager(use_local_backend=use_local)
             did_manager = DIDManager()
@@ -358,7 +356,7 @@ class ANPSDK:
 
             user_id = agent_id.split(':')[-1]
             user_dir = f"user_{user_id}"
-            user_path = os.path.join(dynamic_config.get('anp_sdk.user_did_path'), user_dir)
+            user_path = os.path.join(config.anp_sdk.user_did_path, user_dir)
             safe_agent_id = urllib.parse.quote(agent_id, safe="")
 
             if os.path.exists(user_path):
@@ -647,9 +645,12 @@ class ANPSDK:
             self.app.add_api_route(f"/{route_path}", func, methods=methods)
         import uvicorn
         import threading
+        from anp_open_sdk.config import config
 
-        port = dynamic_config.get("anp_sdk.sdk_port")
-        host = dynamic_config.get("anp_sdk.sdk_host")
+        # 2. 修正配置项的名称
+        port = config.anp_sdk.port
+        host = config.anp_sdk.host
+
         app_instance = self.app
 
         if not self.debug_mode:

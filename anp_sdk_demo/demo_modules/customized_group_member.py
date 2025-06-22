@@ -5,7 +5,6 @@ from typing import Dict, Any, Callable, List
 from datetime import datetime
 from anp_open_sdk.service.interaction.anp_sdk_group_member import GroupMemberSDK
 from anp_open_sdk.service.interaction.anp_sdk_group_runner import Message, MessageType
-from anp_open_sdk.config.path_resolver import path_resolver
 from anp_open_sdk.utils.log_base import logging as logger
 
 class GroupMemberWithStorage(GroupMemberSDK):
@@ -19,7 +18,7 @@ class GroupMemberWithStorage(GroupMemberSDK):
 
         self.enable_storage = enable_storage
         if self.enable_storage:
-            self.storage_dir = path_resolver.resolve_path(storage_dir)
+            self.storage_dir = UnifiedConfig.resolve_path(storage_dir)
             os.makedirs(self.storage_dir, exist_ok=True)
             logger.debug(f"🗂️ 存储目录已创建: {self.storage_dir}")  # 添加调试信息
 

@@ -23,8 +23,8 @@ from fastapi import FastAPI, Request
 from anp_open_sdk.utils.log_base import  logging as logger
 from starlette.responses import JSONResponse
 
-from anp_open_sdk.config.legacy.dynamic_config import dynamic_config
-from anp_open_sdk.config.legacy.dynamic_config import get_config_value
+
+from anp_open_sdk.config import config , get_config_value
 from anp_open_sdk.service.publisher.anp_sdk_publisher_mail_backend import EnhancedMailManager
 from anp_open_sdk.auth.did_auth_wba import parse_wba_did_host_port
 from anp_open_sdk.contact_manager import ContactManager
@@ -72,7 +72,7 @@ class LocalAgent:
         self.name = name
         self.user_dir = user_dir
         self.agent_type = agent_type
-        self.key_id = dynamic_config.get('anp_sdk.user_did_key_id')
+        self.key_id = config.anp_sdk.user_did_key_id
 
         self.did_document_path = self.user_data.did_doc_path
         self.private_key_path = self.user_data.did_private_key_file_path

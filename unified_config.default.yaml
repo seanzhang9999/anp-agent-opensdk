@@ -20,7 +20,7 @@ anp_sdk:
   user_did_path: "{APP_ROOT}/anp_open_sdk/anp_users"
   user_hosted_path: "{APP_ROOT}/anp_open_sdk/anp_users_hosted"
   group_msg_path: "{APP_ROOT}/anp_open_sdk"
-  
+
   # 虚拟目录配置
   auth_virtual_dir: "wba/auth"
   msg_virtual_dir: "/agent/message"

@@ -205,29 +205,7 @@ def test_path_tools():
         logger.error(f"❌ 路径工具测试失败: {e}")
         return False
 
-def test_backward_compatibility():
-    """测试向后兼容性"""
-    logger.info("\n=== 测试7: 向后兼容性 ===")
 
-    try:
-        # 测试旧接口仍然可用
-        from anp_open_sdk.config.legacy.dynamic_config import dynamic_config
-        from anp_open_sdk.config.path_resolver import path_resolver
-        from anp_open_sdk.config import legacy_get_config_value
-
-        logger.info("✅ 旧的dynamic_config可用")
-        logger.info("✅ 旧的path_resolver可用")
-        logger.info("✅ 旧的get_config_value函数可用")
-
-        # 测试新的便捷函数
-        from anp_open_sdk.config import get_config_value
-        port = get_config_value('anp_sdk.port')
-        logger.info(f"✅ 新的get_config_value: {port}")
-
-        return True
-    except Exception as e:
-        logger.error(f"❌ 向后兼容性测试失败: {e}")
-        return False
 
 def test_config_persistence():
     """测试配置持久化"""
@@ -378,7 +356,6 @@ def run_all_tests():
         test_path_resolution,
         test_secrets,
         test_path_tools,
-        #test_backward_compatibility,
         test_config_persistence,
         test_type_conversion,
         test_error_handling

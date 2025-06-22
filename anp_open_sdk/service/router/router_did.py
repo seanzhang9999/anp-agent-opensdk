@@ -31,8 +31,7 @@ from anp_open_sdk.utils.log_base import logger
 from typing import Dict
 from pathlib import Path
 from fastapi import APIRouter, Request, Response, HTTPException
-from anp_open_sdk.config.legacy.dynamic_config import dynamic_config
-from anp_open_sdk.config.path_resolver import path_resolver
+from anp_open_sdk.config import config,UnifiedConfig
 
 from anp_open_sdk.utils.log_base import  logging as logger
 
@@ -48,9 +47,9 @@ async def get_did_document(user_id: str, request: Request) -> Dict:
     """
 
 
-    did_path = Path(dynamic_config.get('anp_sdk.user_did_path'))
+    did_path = Path(config.anp_sdk.user_did_path)
     did_path = did_path.joinpath( f"user_{user_id}" , "did_document.json" )
-    did_path = Path(path_resolver.resolve_path(did_path.as_posix()))
+    did_path = Path(UnifiedConfig.resolve_path(did_path.as_posix()))
 
   
     
@@ -125,7 +124,7 @@ async def get_agent_description(user_id: str, request: Request) -> Dict:
     user_full_path = os.path.join(user_dirs, user_dir)
 
     template_ad_path = Path(user_full_path) / "template-ad.json"
-    template_ad_path = Path(path_resolver.resolve_path(template_ad_path.as_posix()))
+    template_ad_path = Path(UnifiedConfig.resolve_path(template_ad_path.as_posix()))
 
     # 默认模板内容
     default_template = {
@@ -257,7 +256,7 @@ async def get_agent_openapi_yaml(resp_did: str, yaml_file_name, request: Request
     
     
     user_did_path = dynamic_config.get('anp_sdk.user_did_path')
-    user_did_path = path_resolver.resolve_path(user_did_path)
+    user_did_path = UnifiedConfig.resolve_path(user_did_path)
 
 
     yaml_path = os.path.join(user_did_path, user_dir, f"{yaml_file_name}.yaml")
@@ -290,7 +289,7 @@ async def get_agent_jsonrpc(resp_did: str, jsonrpc_file_name, request: Request):
     
     
     user_did_path = dynamic_config.get('anp_sdk.user_did_path')
-    user_did_path = path_resolver.resolve_path(user_did_path)
+    user_did_path = UnifiedConfig.resolve_path(user_did_path)
 
 
     json_path = os.path.join(user_did_path, user_dir, f"{jsonrpc_file_name}.json")

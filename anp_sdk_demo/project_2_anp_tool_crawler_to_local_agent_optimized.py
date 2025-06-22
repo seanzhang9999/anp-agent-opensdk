@@ -33,7 +33,6 @@ load_dotenv()
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from anp_open_sdk.config.legacy.dynamic_config import dynamic_config
-from anp_open_sdk.config.path_resolver import path_resolver
 from anp_open_sdk.anp_sdk import ANPSDK
 from anp_open_sdk.anp_sdk_agent import LocalAgent
 from anp_open_sdk.service.interaction.anp_tool import CustomJSONEncoder, ANPToolCrawler
@@ -285,7 +284,7 @@ async def save_interface_files(user_full_path: str, agent_description: dict,
     """保存接口配置文件"""
     # 保存智能体描述文件
     template_ad_path = Path(user_full_path) / "template-ad.json"
-    template_ad_path = Path(path_resolver.resolve_path(template_ad_path.as_posix()))
+    template_ad_path = Path(UnifiedConfig.resolve_path(template_ad_path.as_posix()))
     await template_ad_path.parent.mkdir(parents=True, exist_ok=True)
     
     with open(template_ad_path, 'w', encoding='utf-8') as f:
@@ -294,7 +293,7 @@ async def save_interface_files(user_full_path: str, agent_description: dict,
 
     # 保存YAML接口文件
     template_yaml_path = Path(user_full_path) / "codegen-interface.yaml"
-    template_yaml_path = Path(path_resolver.resolve_path(template_yaml_path.as_posix()))
+    template_yaml_path = Path(UnifiedConfig.resolve_path(template_yaml_path.as_posix()))
     await template_yaml_path.parent.mkdir(parents=True, exist_ok=True)
     
     with open(template_yaml_path, "w", encoding="utf-8") as file:
@@ -303,7 +302,7 @@ async def save_interface_files(user_full_path: str, agent_description: dict,
 
     # 保存JSON-RPC接口文件
     template_jsonrpc_path = Path(user_full_path) / "codegen-interface.json"
-    template_jsonrpc_path = Path(path_resolver.resolve_path(template_jsonrpc_path.as_posix()))
+    template_jsonrpc_path = Path(UnifiedConfig.resolve_path(template_jsonrpc_path.as_posix()))
     await template_jsonrpc_path.parent.mkdir(parents=True, exist_ok=True)
     
     with open(template_jsonrpc_path, "w", encoding="utf-8") as file:

@@ -32,15 +32,8 @@ import yaml
 import logging
 from types import SimpleNamespace
 from dotenv import load_dotenv
-from anp_open_sdk.config.path_resolver import PathResolver
 import os
 
-# 获取根目录
-app_root = PathResolver.get_app_root()
-# 拼接 .env 文件路径
-env_path = os.path.join(app_root, ".env")
-# 加载 .env 文件
-load_dotenv(dotenv_path=env_path, override=True)
 
 if TYPE_CHECKING:
     from typing_extensions import Self
@@ -176,22 +169,42 @@ class SecretsConfig:
         return {name: "***" for name in self._secrets_list}
 
 class UnifiedConfig:
-    def __init__(self, config_file: Optional[str] = None):
+    # 1. 添加一个类属性来存储 app_root
+    _app_root_cls: Optional[Path] = None
+
+    def __init__(self, config_file: Optional[str] = None, app_root: Optional[str] = None):
         self.logger = logging.getLogger(__name__)
-        self.__annotations__ = {
-            'anp_sdk': 'ConfigNode',
-            'llm': 'ConfigNode',
-            'mail': 'ConfigNode',
-            'env': 'EnvConfig',
-            'secrets': 'SecretsConfig',
-        }
+        if app_root:
+            self._app_root = Path(app_root).resolve()
+        else:
+            self._app_root = Path(os.getcwd()).resolve()
+
+        # 如果类属性尚未设置，则使用实例的 _app_root 设置它
+        if UnifiedConfig._app_root_cls is None:
+            UnifiedConfig._app_root_cls = self._app_root
+        elif UnifiedConfig._app_root_cls != self._app_root:
+            self.logger.warning(
+                f"新的 UnifiedConfig 实例指定了不同的 app_root。 "
+                f"类方法将继续使用第一个初始化的路径: {UnifiedConfig._app_root_cls}"
+            )
+
+        # 2. 加载 .env 文件
+        env_path = self._app_root / ".env"
+        if env_path.exists():
+            load_dotenv(dotenv_path=env_path, override=True)
+            self.logger.info(f"已从 {env_path} 加载环境变量")
+
+        # 3. 解析配置文件路径
         self._config_file = self._resolve_config_file(config_file)
-        self._app_root = self._detect_app_root()
         self._config_data = {}
         self._config_lock = threading.RLock()
         self.load()
         self._create_config_tree()
         self._create_env_configs()
+
+
+
+
 
     def __dir__(self) -> List[str]:
         config_attrs = ['anp_sdk', 'llm', 'mail', 'env', 'secrets']
@@ -203,15 +216,11 @@ class UnifiedConfig:
 
     def _resolve_config_file(self, config_file: Optional[str]) -> Path:
         if config_file:
-            return Path(config_file)
-        return Path(__file__).parent / "unified_config.yaml"
-    def _detect_app_root(self) -> Path:
-        current = Path(__file__).parent
-        while current != current.parent:
-            if (current / 'anp_open_sdk').exists():
-                return current
-            current = current.parent
-        raise RuntimeError("无法检测到项目根目录，请检查项目结构")
+            return Path(config_file).resolve()
+            # 默认配置文件路径基于 app_root
+        return self._app_root / "unified_config.yaml"
+
+
 
     def _create_config_tree(self):
         processed_data = self._process_paths(self._config_data)
@@ -235,7 +244,8 @@ class UnifiedConfig:
         elif isinstance(data, list):
             return [self._process_paths(item) for item in data]
         elif isinstance(data, str) and '{APP_ROOT}' in data:
-            return data.replace('{APP_ROOT}', str(self._app_root))
+            # 现在可以调用类方法
+            return str(UnifiedConfig.resolve_path(data))
         return data
 
     def _convert_env_type(self, value: str, type_name: str) -> Any:
@@ -251,7 +261,7 @@ class UnifiedConfig:
             elif type_name == 'list':
                 return [item.strip() for item in value.split(',')]
             elif type_name == 'path':
-                return self._process_path(value)
+                return UnifiedConfig.resolve_path(value)
             elif type_name == 'path_list' and value.startswith('['):
                 value = os.environ.get('PATH', '')
                 return value
@@ -262,18 +272,7 @@ class UnifiedConfig:
         except (ValueError, AttributeError):
             return value
 
-    def _process_path(self, path_str: str) -> Path:
-        path = Path(path_str)
-        if str(path).startswith('~'):
-            path = path.expanduser()
-        if '{APP_ROOT}' in str(path):
-            path = Path(str(path).replace('{APP_ROOT}', str(self._app_root)))
-        path_config = self._config_data.get('path_config', {})
-        if path_config.get('resolve_paths', True):
-            if not path.is_absolute():
-                path = self._app_root / path
-            path = path.resolve()
-        return path
+
 
     def _process_path_list(self, path_str: str) -> List[Path]:
         if path_str.startswith('[') and path_str.endswith(']'):
@@ -338,11 +337,36 @@ class UnifiedConfig:
         self._create_env_configs()
         self.logger.info("配置已重新加载")
 
-    def resolve_path(self, path: Union[str, Path]) -> Path:
-        return self._process_path(str(path))
+        # 这是从 path_resolver 移入的核心方法
 
-    def get_app_root(self) -> Path:
-        return self._app_root
+    @classmethod
+    def resolve_path(cls, path: Union[str, Path]) -> Path:
+        """
+        解析路径，将{APP_ROOT}替换为实际的应用根目录并返回绝对路径。
+
+        Args:
+            path: 包含{APP_ROOT}占位符的路径字符串或Path对象。
+
+        Returns:
+            解析后的绝对路径 Path 对象。
+        """
+        if cls._app_root_cls is None:
+            raise RuntimeError("UnifiedConfig 尚未初始化，无法解析路径。请先创建 UnifiedConfig 实例。")
+
+        path_str = str(path).replace('{APP_ROOT}', str(cls._app_root_cls))
+        path_obj = Path(path_str)
+
+        if not path_obj.is_absolute():
+            path_obj = cls._app_root_cls / path_obj
+
+        return path_obj.resolve()
+
+    @classmethod
+    def get_app_root(cls) -> Path:
+        """获取已初始化的应用根目录。"""
+        if cls._app_root_cls is None:
+            raise RuntimeError("UnifiedConfig 尚未初始化，无法获取 app_root。请先创建 UnifiedConfig 实例。")
+        return cls._app_root_cls
 
     def add_to_path(self, new_path: str):
         current_path = os.environ.get('PATH', '')
@@ -415,91 +439,12 @@ class UnifiedConfig:
         return self._config_data.copy()
 
     def _get_default_config(self) -> dict:
-        return {
-            "# ANP SDK 统一配置文件": None,
-            "# 项目根目录自动检测，支持 {APP_ROOT} 占位符": None,
-            "anp_sdk": {
-                "debug_mode": True,
-                "host": "localhost",
-                "port": 9527,
-                "user_did_port_1": 9527,
-                "user_did_port_2": 9528,
-                "user_did_path": "{APP_ROOT}/anp_open_sdk/anp_users",
-                "user_hosted_path": "{APP_ROOT}/anp_open_sdk/anp_users_hosted",
-                "auth_virtual_dir": "wba/auth",
-                "msg_virtual_dir": "/agent/message",
-                "token_expire_time": 3600,
-                "user_did_key_id": "key-1",
-                "group_msg_path": "{APP_ROOT}/anp_open_sdk",
-                "jwt_algorithm": "RS256",
-                "nonce_expire_minutes": 6,
-                "helper_lang": "zh",
-                "agent": {
-                    "demo_agent1": "本田",
-                    "demo_agent2": "雅马哈",
-                    "demo_agent3": "铃木"
-                }
-            },
-            "llm": {
-                "api_url": "https://api.302ai.cn/v1",
-                "default_model": "deepseek/deepseek-chat-v3-0324:free",
-                "max_tokens": 512,
-                "system_prompt": "你是一个智能助手，请根据用户的提问进行专业、简洁的回复。"
-            },
-            "mail": {
-                "use_local_backend": True,
-                "local_backend_path": "{APP_ROOT}/anp_open_sdk/simulate/mail_local_backend",
-                "smtp_server": "smtp.gmail.com",
-                "smtp_port": 587,
-                "imap_server": "imap.gmail.com",
-                "imap_port": 993
-            },
-            "env_mapping": {
-                "# 应用配置": None,
-                "debug_mode": "ANP_DEBUG",
-                "host": "ANP_HOST",
-                "port": "ANP_PORT",
-                "# 系统环境变量": None,
-                "system_path": "PATH",
-                "home_dir": "HOME",
-                "user_name": "USER",
-                "python_path": "PYTHONPATH",
-                "# API 密钥": None,
-                "openai_api_key": "OPENAI_API_KEY",
-                "anthropic_api_key": "ANTHROPIC_API_KEY",
-                "# 邮件配置": None,
-                "mail_password": "MAIL_PASSWORD",
-                "hoster_mail_password": "HOSTER_MAIL_PASSWORD",
-                "sender_mail_password": "SENDER_MAIL_PASSWORD",
-                "# 数据库和服务": None,
-                "database_url": "DATABASE_URL",
-                "redis_url": "REDIS_URL"
-            },
-            "secrets": [
-                "openai_api_key",
-                "anthropic_api_key",
-                "mail_password",
-                "hoster_mail_password",
-                "sender_mail_password",
-                "database_url"
-            ],
-            "env_types": {
-                "debug_mode": "boolean",
-                "port": "integer",
-                "smtp_port": "integer",
-                "imap_port": "integer",
-                "system_path": "path_list",
-                "python_path": "path_list",
-                "home_dir": "path",
-                "token_expire_time": "integer",
-                "nonce_expire_minutes": "integer"
-            },
-            "path_config": {
-                "path_separator": ":",
-                "resolve_paths": True,
-                "validate_existence": False
-            }
-        }
+        default_config_path = self._app_root / 'unified_config.default.yaml'
+        if not default_config_path.exists():
+            self.logger.warning(f"默认配置文件 {default_config_path} 不存在。将使用空配置。")
+            return {}
+        with open(default_config_path, 'r', encoding='utf-8') as f:
+            return yaml.safe_load(f)
 
 config = UnifiedConfig()
 

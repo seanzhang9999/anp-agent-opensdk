@@ -38,8 +38,8 @@ from Crypto.PublicKey import RSA
 from anp_open_sdk.utils.log_base import  logging as logger
 from typing import Dict, List, Optional, Any
 
-from anp_open_sdk.config.path_resolver import path_resolver
-from anp_open_sdk.config.legacy.dynamic_config import dynamic_config
+
+from anp_open_sdk.config import config, UnifiedConfig
 from anp_open_sdk.base_user_data import BaseUserData, BaseUserDataManager
 
 def create_user(args):
@@ -65,7 +65,7 @@ def list_users():
         return
     
     users_info = []
-    user_dirs = dynamic_config.get('anp_sdk.user_did_path')
+    user_dirs = config.anp_sdk.user_did_path
     
     for name in user_list:
         user_dir = name_to_dir[name]
@@ -119,7 +119,7 @@ def sort_users_by_server():
         return
     
     users_info = []
-    user_dirs = dynamic_config.get('anp_sdk.user_did_path')
+    user_dirs = config.anp_sdk.user_did_path
     
     for name in user_list:
         user_dir = name_to_dir[name]
@@ -267,7 +267,7 @@ class LocalUserDataManager(BaseUserDataManager):
     def __init__(self, user_dir: Optional[str] = None):
         if hasattr(self, '_initialized') and self._initialized:
             return
-        self._user_dir = user_dir or dynamic_config.get('anp_sdk.user_did_path')
+        self._user_dir = user_dir or config.anp_sdk.user_did_path
         self.users: Dict[str, LocalUserData] = {}
         self.load_users()
         self._initialized = True
@@ -296,7 +296,7 @@ class LocalUserDataManager(BaseUserDataManager):
                     if os.path.exists(did_doc_path):
                         with open(did_doc_path, 'r', encoding='utf-8') as f:
                             did_doc = json.load(f)
-                    key_id = did_doc.get('key_id') or did_doc.get('publicKey', [{}])[0].get('id') if did_doc.get('publicKey') else dynamic_config.get('anp_sdk.user_did_key_id')
+                    key_id = did_doc.get('key_id') or did_doc.get('publicKey', [{}])[0].get('id') if did_doc.get('publicKey') else config.anp_sdk.user_did_key_id
                     did_private_key_file_path = os.path.join(user_folder_path, f"{key_id}_private.pem")
                     did_public_key_file_path = os.path.join(user_folder_path, f"{key_id}_public.pem")
                     jwt_private_key_file_path = os.path.join(user_folder_path, 'private_key.pem')
@@ -313,7 +313,7 @@ class LocalUserDataManager(BaseUserDataManager):
                 except Exception as e:
                     logger.error(f"加载用户数据失败 ({folder_name}): {e}")
             else:
-                logger.warning(f"不合格的文件或文件夹: {entry.name}")
+                logger.warning(f"不合格的文件或文件夹: {entry.name},{self._user_dir}")
 
         logger.debug(f"加载用户数据共 {len(self.users)} 个用户")
 
@@ -332,7 +332,7 @@ class LocalUserDataManager(BaseUserDataManager):
 def get_user_cfg_list():
     user_list = []
     name_to_dir = {}
-    user_dirs = dynamic_config.get('anp_sdk.user_did_path')
+    user_dirs = config.anp_sdk.user_did_path
     for user_dir in os.listdir(user_dirs):
         cfg_path = os.path.join(user_dirs, user_dir, "agent_cfg.yaml")
         if os.path.exists(cfg_path):
@@ -347,7 +347,7 @@ def get_user_cfg_list():
     return user_list, name_to_dir
 
 def get_user_dir_did_doc_by_did(did):
-    user_dirs = dynamic_config.get('anp_sdk.user_did_path')
+    user_dirs = config.anp_sdk.user_did_path
     for user_dir in os.listdir(user_dirs):
         did_path = os.path.join(user_dirs, user_dir, "did_document.json")
         if os.path.exists(did_path):
@@ -378,8 +378,8 @@ def did_create_user(user_iput: dict, *, did_hex: bool = True, did_check_unique: 
         logger.error("缺少必需的参数字段")
         return None
 
-    userdid_filepath = dynamic_config.get('anp_sdk.user_did_path')
-    userdid_filepath = path_resolver.resolve_path(userdid_filepath)
+    userdid_filepath = config.anp_sdk.user_did_path
+    userdid_filepath = UnifiedConfig.resolve_path(userdid_filepath)
 
     def get_existing_usernames(userdid_filepath):
         if not os.path.exists(userdid_filepath):
@@ -533,9 +533,9 @@ def verify_jwt(token: str, public_key: str) -> dict:
 def get_agent_cfg_by_user_dir(user_dir: str) -> dict:
     import os
     import yaml
-    did_path = Path(dynamic_config.get('anp_sdk.user_did_path'))
+    did_path = Path(config.anp_sdk.user_did_path)
     did_path = did_path.joinpath(user_dir, "agent_cfg.yaml")
-    cfg_path = Path(path_resolver.resolve_path(did_path.as_posix()))
+    cfg_path = Path(UnifiedConfig.resolve_path(did_path.as_posix()))
     if not os.path.isfile(cfg_path):
         raise FileNotFoundError(f"agent_cfg.yaml not found in {user_dir}")
     with open(cfg_path, "r", encoding="utf-8") as f:
@@ -548,7 +548,7 @@ async def save_interface_files(user_full_path: str, interface_data: dict, intefa
     """保存接口配置文件"""
     # 保存智能体描述文件
     template_ad_path = Path(user_full_path) / inteface_file_name
-    template_ad_path = Path(path_resolver.resolve_path(template_ad_path.as_posix()))
+    template_ad_path = Path(UnifiedConfig.resolve_path(template_ad_path.as_posix()))
     template_ad_path.parent.mkdir(parents=True, exist_ok=True)
 
     with open(template_ad_path, 'w', encoding='utf-8') as f:

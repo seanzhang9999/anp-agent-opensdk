@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from anp_open_sdk.config.legacy.dynamic_config import get_config_value,dynamic_config
+from anp_open_sdk.config import get_config_value,config
 import json
 import time
 import imaplib
