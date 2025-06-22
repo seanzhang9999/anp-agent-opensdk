@@ -38,6 +38,7 @@ async def initialize_agent():
     my_agent_instance.run_hello_demo = run_hello_demo
     my_agent_instance.run_ai_crawler_demo = run_ai_crawler_demo
     my_agent_instance.run_ai_root_crawler_demo = run_ai_root_crawler_demo
+    my_agent_instance.run_agent_002_demo = run_agent_002_demo
     logger.debug(f" -> Attached capability to loading side.")
 
     return my_agent_instance
@@ -216,6 +217,25 @@ async def run_ai_root_crawler_demo():
         return
 
 
+
+async def run_agent_002_demo(sdk, **kwargs):
+    """调用 agent_002 上的自定义演示方法"""
+    try:
+        # 通过 sdk 获取 agent_002 实例
+        target_agent = sdk.get_agent("did:wba:localhost%3A9527:wba:user:5fea49e183c6c211")
+        if not target_agent:
+            return "错误：未找到 agent_002"
+
+        # 调用 agent_002 上的方法
+        if hasattr(target_agent, 'demo_method') and callable(target_agent.demo_method):
+            result = target_agent.demo_method()
+            return result
+        else:
+            return "错误：在 agent_002 上未找到 demo_method"
+            
+    except Exception as e:
+        logger.error(f"调用 agent_002.demo_method 失败: {e}")
+        return f"调用 agent_002.demo_method 时出错: {e}"
 
 
 async def cleanup_agent():

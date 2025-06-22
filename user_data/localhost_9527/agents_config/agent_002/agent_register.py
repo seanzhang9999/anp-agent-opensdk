@@ -22,5 +22,11 @@ def register(agent):
     # agent.register_group_event_handler(...)
     # agent.add_permission_check(...)
     # ...
+    
+    
+        # 注册一个自定义方法
+    def demo_method():
+        return f"这是来自 {agent.name} 的演示方法"
+    agent.demo_method = demo_method
 
     print(f"[agent_register] 已为 {agent.name} 完成自定义注册")
