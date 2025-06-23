@@ -13,7 +13,7 @@
 # limitations under the License.
 
 """Bearer token authentication module."""
-from anp_open_sdk.utils.log_base import logger
+
 
 import os
 from typing import Optional, Dict
@@ -21,8 +21,11 @@ import jwt
 from fastapi import HTTPException
 
 from datetime import datetime, timezone, timedelta
+import logging
+logger = logging.getLogger(__name__)
+from anp_open_sdk.config import get_global_config
 
-from anp_open_sdk.config import config
+
 
 def create_access_token(private_key_path, data: Dict, expires_delta: int = None) -> str:
     """
@@ -36,7 +39,7 @@ def create_access_token(private_key_path, data: Dict, expires_delta: int = None)
     Returns:
         str: Encoded JWT token
     """
-
+    config = get_global_config()
     token_expire_time = config.anp_sdk.token_expire_time
 
     to_encode = data.copy()
@@ -78,7 +81,7 @@ def verify_timestamp(timestamp_str: str) -> bool:
 
         # Calculate time difference
         time_diff = abs((current_time - request_time).total_seconds() / 60)
-
+        config = get_global_config()
         nonce_expire_minutes = config.anp_sdk.nonce_expire_minutes
         # Verify timestamp is within valid period
         if time_diff > nonce_expire_minutes:

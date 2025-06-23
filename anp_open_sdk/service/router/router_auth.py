@@ -19,7 +19,8 @@ import sys
 import os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..","..")))
-from anp_open_sdk.utils.log_base import logger
+import logging
+logger = logging.getLogger(__name__)
 
 from typing import Dict
 from fastapi import APIRouter, Request, HTTPException

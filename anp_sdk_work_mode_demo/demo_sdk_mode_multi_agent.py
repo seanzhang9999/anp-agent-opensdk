@@ -10,9 +10,16 @@ from anp_open_sdk.anp_sdk import ANPSDK
 from anp_open_sdk.anp_sdk_user_data import save_interface_files, LocalUserDataManager
 from anp_open_sdk.sdk_mode import SdkMode
 from anp_open_sdk.service.router.router_agent import wrap_business_handler
-from anp_open_sdk.utils.log_base import logger
-from anp_open_sdk.config import config
 
+from anp_open_sdk.config import UnifiedConfig, set_global_config
+from anp_open_sdk.utils.log_base import setup_logging
+from anp_open_sdk.anp_sdk import ANPSDK
+
+import logging
+app_config = UnifiedConfig(config_file='multi_agent_unified_config.yaml')
+set_global_config(app_config)
+setup_logging() # 假设 setup_logging 内部也改用 get_global_config()
+logger = logging.getLogger(__name__)
 
 import inspect
 

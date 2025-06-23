@@ -14,7 +14,8 @@
 import inspect
 
 from anp_open_sdk.service.router.router_did import url_did_format
-from anp_open_sdk.utils.log_base import logger
+import logging
+logger = logging.getLogger(__name__)
 
 
 from fastapi import Request

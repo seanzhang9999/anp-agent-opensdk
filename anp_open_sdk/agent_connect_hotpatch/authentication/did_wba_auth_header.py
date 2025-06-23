@@ -20,13 +20,13 @@
 # This project is open-sourced under the MIT License. For details, please see the LICENSE file.
 
 import json
-from anp_open_sdk.utils.log_base import logger
 from typing import Dict, Optional
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives import hashes
 from urllib.parse import urlparse
-
+import logging
+logger = logging.getLogger(__name__)
 # Import agent_connect for DID authentication
 from .did_wba import (
     generate_auth_header_two_way

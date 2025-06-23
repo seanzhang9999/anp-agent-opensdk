@@ -22,7 +22,8 @@
 import re
 import urllib.parse
 import base64
-from anp_open_sdk.utils.log_base import logger
+import logging
+logger = logging.getLogger(__name__)
 from typing import Any, Dict, Tuple, Optional, List, Callable, Union
 import aiohttp
 import asyncio

@@ -20,7 +20,8 @@ from pathlib import Path
 from typing import Optional
 
 # 从我们的类型定义中导入协议
-from .config.config_types import LogConfig, UnifiedConfigProtocol
+from ..config.config_types import BaseUnifiedConfigProtocol
+from anp_open_sdk.config import get_global_config
 
 
 class ColoredFormatter(logging.Formatter):
@@ -46,7 +47,7 @@ class ColoredFormatter(logging.Formatter):
 _is_logging_configured = False
 
 
-def setup_logging(config: UnifiedConfigProtocol):
+def setup_logging():
     """
     根据传入的配置对象来设置根日志记录器。
 
@@ -55,6 +56,8 @@ def setup_logging(config: UnifiedConfigProtocol):
     Args:
         config: 一个符合 UnifiedConfigProtocol 协议的完整配置对象。
     """
+    config = get_global_config()
+
     global _is_logging_configured
     if _is_logging_configured:
         return

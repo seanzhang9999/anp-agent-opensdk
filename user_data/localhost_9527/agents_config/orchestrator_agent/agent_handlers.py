@@ -7,8 +7,8 @@ import json
 
 from anp_open_sdk.service.interaction.agent_api_call import agent_api_call_get
 from anp_open_sdk.service.interaction.anp_tool import ANPToolCrawler
-from anp_open_sdk.utils.log_base import logger
-
+import logging
+logger = logging.getLogger(__name__)
 from anp_open_sdk.anp_sdk import ANPSDK
 from anp_open_sdk.anp_sdk_agent import LocalAgent
 from anp_open_sdk.auth.auth_client import agent_auth_request

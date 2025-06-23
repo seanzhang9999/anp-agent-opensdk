@@ -23,13 +23,16 @@ from typing import Dict, Any, Optional, List
 from fastapi.middleware.cors import CORSMiddleware
 from anp_open_sdk.auth.auth_server import auth_middleware
 from anp_open_sdk.service.router import router_did, router_publisher, router_auth
-from anp_open_sdk.config import config
+from anp_open_sdk.config import get_global_config
 from fastapi import Request, WebSocket, WebSocketDisconnect, FastAPI
 from fastapi.responses import StreamingResponse
-from anp_open_sdk.utils.log_base import logging as logger
 from anp_open_sdk.anp_sdk_agent import LocalAgent
 from anp_open_sdk.service.interaction.anp_sdk_group_runner import GroupManager, GroupRunner, Message, MessageType, Agent
 from anp_open_sdk.sdk_mode import SdkMode
+
+# 在模块顶部获取 logger，这是标准做法
+import logging
+logger = logging.getLogger(__name__)
 
 class ANPSDK:
     """ANP SDK主类，支持多种运行模式"""
@@ -68,6 +71,7 @@ class ANPSDK:
         self.user_data_manager = LocalUserDataManager()
         self.agent = None
         self.initialized = True
+        config = get_global_config()
         self.debug_mode = config.anp_sdk.debug_mode
 
         if self.debug_mode:
@@ -155,6 +159,8 @@ class ANPSDK:
         from anp_open_sdk.service.publisher.anp_sdk_publisher_mail_backend import EnhancedMailManager
         from anp_open_sdk.service.publisher.anp_sdk_publisher import DIDManager
         try:
+            config = get_global_config()
+
             use_local = config.anp_sdk.u('USE_LOCAL_MAIL', False)
             logger.debug(f"管理邮箱检查前初始化，使用本地文件邮件后端参数设置:{use_local}")
             mail_manager = EnhancedMailManager(use_local_backend=use_local)
@@ -356,6 +362,8 @@ class ANPSDK:
 
             user_id = agent_id.split(':')[-1]
             user_dir = f"user_{user_id}"
+            config = get_global_config()
+
             user_path = os.path.join(config.anp_sdk.user_did_path, user_dir)
             safe_agent_id = urllib.parse.quote(agent_id, safe="")
 
@@ -645,9 +653,11 @@ class ANPSDK:
             self.app.add_api_route(f"/{route_path}", func, methods=methods)
         import uvicorn
         import threading
-        from anp_open_sdk.config import config
+        from anp_open_sdk.config import get_global_config
 
         # 2. 修正配置项的名称
+        config = get_global_config()
+
         port = config.anp_sdk.port
         host = config.anp_sdk.host
 

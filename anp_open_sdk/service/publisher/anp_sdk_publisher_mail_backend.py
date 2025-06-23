@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from anp_open_sdk.config import get_config_value,config
+from anp_open_sdk.config import get_config_value,get_global_config
 import json
 import time
 import imaplib
@@ -24,7 +24,7 @@ from typing import List, Dict, Tuple
 from pathlib import Path
 from anp_open_sdk.utils.log_base import  logging as logger
 from abc import ABC, abstractmethod
-
+from anp_open_sdk.config import get_global_config
 
 class MailBackend(ABC):
     """邮件后端抽象基类"""
@@ -171,8 +171,8 @@ class GmailBackend(MailBackend):
     
     def __init__(self):
         # 优先从 dynamic_config 获取配置，回退到环境变量
-        from anp_open_sdk.config.legacy.dynamic_config import get_config_value
-        self.mail_user = (get_config_value('HOSTER_MAIL_USER') or 
+        from anp_open_sdk.config import get_config_value
+        self.mail_user = (get_config_value('HOSTER_MAIL_USER') or
                          get_config_value('SENDER_MAIL_USER'))
         self.mail_pass = (get_config_value('HOSTER_MAIL_PASSWORD') or 
                          get_config_value('SENDER_PASSWORD'))
@@ -299,7 +299,9 @@ class EnhancedMailManager:
         logger.debug(f"使用本地文件邮件后端参数设置:{use_local_backend}")
         if use_local_backend:
             if local_mail_dir is None:
-                local_mail_dir = dynamic_config.get("mail.local_backend_path")
+                config = get_global_config()
+
+                local_mail_dir = config.mail.local_backend_path
             self.backend = LocalFileMailBackend(local_mail_dir)
             logger.debug("使用本地文件邮件后端")
 

@@ -16,7 +16,8 @@
 自定义DID文档解析器，用于本地测试环境
 """
 import json
-from anp_open_sdk.utils.log_base import logger
+import logging
+logger = logging.getLogger(__name__)
 
 import aiohttp
 from pathlib import Path

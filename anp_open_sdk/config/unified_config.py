@@ -33,10 +33,39 @@ import logging
 from types import SimpleNamespace
 from dotenv import load_dotenv
 import os
+from typing import Optional, cast
+from .config_types import BaseUnifiedConfigProtocol
 
 
-if TYPE_CHECKING:
-    from typing_extensions import Self
+
+# --- 新增部分 ---
+
+# 1. 定义一个模块级的“保管员”，初始时为 None
+_global_config: Optional['UnifiedConfig'] = None
+
+def set_global_config(config_instance: 'UnifiedConfig'):
+    """
+    【注册函数】由应用入口调用，设置全局唯一的配置实例。
+    """
+    global _global_config
+    if _global_config is not None:
+        # 可以加一个警告，防止被意外覆盖
+        print("Warning: Global config is being overridden.")
+    _global_config = config_instance
+
+def get_global_config() -> 'BaseUnifiedConfigProtocol':
+    """
+    【解析函数】供库内其他模块调用，获取已设置的全局配置实例。
+    """
+    if _global_config is None:
+        # 这是关键的保护措施！
+        raise RuntimeError(
+            "Global config has not been set. "
+            "Please call set_global_config(config) at your application's entry point."
+        )
+    # 使用 cast 来帮助类型检查器理解 _global_config 符合协议
+    return cast('UnifiedConfigProtocol', _global_config)
+
 
 class ConfigNode:
     def __init__(self, data: dict, parent_path: str = ""):
@@ -446,11 +475,12 @@ class UnifiedConfig:
         with open(default_config_path, 'r', encoding='utf-8') as f:
             return yaml.safe_load(f)
 
-config = UnifiedConfig()
+
 
 def get_config_value(key: str, default: Any = None) -> Any:
     try:
         keys = key.split('.')
+        config = get_global_config()
         value = config
         for k in keys:
             value = getattr(value, k)

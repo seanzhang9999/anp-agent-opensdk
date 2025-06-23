@@ -17,11 +17,12 @@ Publisher API router for hosted DID documents, agent descriptions, and API forwa
 """
 import json
 import yaml
-from anp_open_sdk.utils.log_base import logger
+import logging
+logger = logging.getLogger(__name__)
 from typing import Dict
 from pathlib import Path
 from fastapi import APIRouter, Request, HTTPException
-from anp_open_sdk.config import config, UnifiedConfig
+from anp_open_sdk.config import get_global_config, UnifiedConfig
 from anp_open_sdk.utils.log_base import  logging as logger
 
 router = APIRouter(tags=["publisher"])
@@ -32,6 +33,8 @@ async def get_hosted_did_document(user_id: str) -> Dict:
     """
     Retrieve a DID document by user ID from anp_users_hosted.
     """
+    config=get_global_config()
+
     did_path = Path(config.anp_sdk.user_hosted_path)
     did_path = did_path.joinpath(f"user_{user_id}", "did_document.json")
     did_path = Path(UnifiedConfig.resolve_path(did_path.as_posix()))
@@ -86,6 +89,8 @@ async def get_agent_publisher(did: str, request: Request) -> Dict:
     - local: 公开给指定域名/did列表
     - self: 不公开，仅代理自身可访问
     """
+    config=get_global_config()
+
     publisher_config_path = Path(dynamic_config.get('anp_sdk.publisher_config_path', 'publisher_config.yaml'))
     publisher_config_path = Path(UnifiedConfig.resolve_path(publisher_config_path.as_posix()))
     

@@ -10,7 +10,8 @@ from typing import Dict, Any, Optional
 
 from anp_open_sdk.anp_sdk_agent import LocalAgent
 from anp_open_sdk.anp_sdk_user_data import LocalUserDataManager
-from anp_open_sdk.utils.log_base import logger
+import logging
+logger = logging.getLogger(__name__)
 
 from agent_connect.authentication import DIDWbaAuthHeader
 from anp_open_sdk.auth.auth_client import agent_auth_request

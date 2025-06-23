@@ -26,12 +26,13 @@ from anp_open_sdk.anp_sdk_user_data import get_user_dir_did_doc_by_did, get_agen
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..","..")))
 import os
 import json
-from anp_open_sdk.utils.log_base import logger
+import logging
+logger = logging.getLogger(__name__)
 
 from typing import Dict
 from pathlib import Path
 from fastapi import APIRouter, Request, Response, HTTPException
-from anp_open_sdk.config import config,UnifiedConfig
+from anp_open_sdk.config import get_global_config,UnifiedConfig
 
 from anp_open_sdk.utils.log_base import  logging as logger
 
@@ -46,6 +47,7 @@ async def get_did_document(user_id: str, request: Request) -> Dict:
     Retrieve a DID document by user ID from anp_users.
     """
 
+    config=get_global_config()
 
     did_path = Path(config.anp_sdk.user_did_path)
     did_path = did_path.joinpath( f"user_{user_id}" , "did_document.json" )
@@ -119,8 +121,9 @@ async def get_agent_description(user_id: str, request: Request) -> Dict:
         }
     agent_id = f"{request.url.scheme}://{request.url.netloc}/wba/user/{resp_did}/ad.json"
     # 读取 ad.json 模板文件
+    config=get_global_config()
 
-    user_dirs = dynamic_config.get('anp_sdk.user_did_path')
+    user_dirs = config.anp_sdk.user_did_path
     user_full_path = os.path.join(user_dirs, user_dir)
 
     template_ad_path = Path(user_full_path) / "template-ad.json"
@@ -254,8 +257,9 @@ async def get_agent_openapi_yaml(resp_did: str, yaml_file_name, request: Request
     if agent.is_hosted_did:
         raise HTTPException(status_code=403, detail=f"{resp_did} is hosted did")
     
-    
-    user_did_path = dynamic_config.get('anp_sdk.user_did_path')
+    config=get_global_config()
+
+    user_did_path = config.anp_sdk.user_did_path
     user_did_path = UnifiedConfig.resolve_path(user_did_path)
 
 
@@ -287,8 +291,9 @@ async def get_agent_jsonrpc(resp_did: str, jsonrpc_file_name, request: Request):
     if agent.is_hosted_did:
         raise HTTPException(status_code=403, detail=f"{resp_did} is hosted did")
     
-    
-    user_did_path = dynamic_config.get('anp_sdk.user_did_path')
+    config=get_global_config()
+
+    user_did_path = config.anp_sdk.user_did_path
     user_did_path = UnifiedConfig.resolve_path(user_did_path)
 
 

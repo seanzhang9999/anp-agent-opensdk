@@ -147,7 +147,7 @@ class SecretsConfig(Protocol):
     database_url: Optional[str]
 
 
-class UnifiedConfigProtocol(Protocol):
+class BaseUnifiedConfigProtocol(Protocol):
     """统一配置协议"""
     # 主要配置节点
     multi_agent_mode: MultiAgentModeConfig

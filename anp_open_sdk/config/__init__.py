@@ -22,14 +22,18 @@
 """
 
 # 导入新的统一配置
-from .unified_config import config as _config, UnifiedConfig, get_config_value
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from .config_types import UnifiedConfigProtocol
-    config: UnifiedConfigProtocol = _config  # 明确类型
-else:
-    config = _config
+from .unified_config import UnifiedConfig, get_config_value, set_global_config, get_global_config
+from . import config_types
 
 
+
+
+# 使用 __all__ 明确声明包的公共接口，这是一个非常好的实践
+__all__ = [
+    "UnifiedConfig",
+    "set_global_config",
+    "get_global_config",
+    "config_types",
+    "get_config_value",
+]
 

@@ -39,7 +39,7 @@ from anp_open_sdk.utils.log_base import  logging as logger
 from typing import Dict, List, Optional, Any
 
 
-from anp_open_sdk.config import config, UnifiedConfig
+from anp_open_sdk.config import UnifiedConfig,get_global_config
 from anp_open_sdk.base_user_data import BaseUserData, BaseUserDataManager
 
 def create_user(args):
@@ -65,6 +65,7 @@ def list_users():
         return
     
     users_info = []
+    config=get_global_config()
     user_dirs = config.anp_sdk.user_did_path
     
     for name in user_list:
@@ -119,6 +120,7 @@ def sort_users_by_server():
         return
     
     users_info = []
+    config=get_global_config()
     user_dirs = config.anp_sdk.user_did_path
     
     for name in user_list:
@@ -267,6 +269,8 @@ class LocalUserDataManager(BaseUserDataManager):
     def __init__(self, user_dir: Optional[str] = None):
         if hasattr(self, '_initialized') and self._initialized:
             return
+        config = get_global_config()
+
         self._user_dir = user_dir or config.anp_sdk.user_did_path
         self.users: Dict[str, LocalUserData] = {}
         self.load_users()
@@ -296,6 +300,8 @@ class LocalUserDataManager(BaseUserDataManager):
                     if os.path.exists(did_doc_path):
                         with open(did_doc_path, 'r', encoding='utf-8') as f:
                             did_doc = json.load(f)
+                    config = get_global_config()
+
                     key_id = did_doc.get('key_id') or did_doc.get('publicKey', [{}])[0].get('id') if did_doc.get('publicKey') else config.anp_sdk.user_did_key_id
                     did_private_key_file_path = os.path.join(user_folder_path, f"{key_id}_private.pem")
                     did_public_key_file_path = os.path.join(user_folder_path, f"{key_id}_public.pem")
@@ -332,6 +338,8 @@ class LocalUserDataManager(BaseUserDataManager):
 def get_user_cfg_list():
     user_list = []
     name_to_dir = {}
+    config=get_global_config()
+
     user_dirs = config.anp_sdk.user_did_path
     for user_dir in os.listdir(user_dirs):
         cfg_path = os.path.join(user_dirs, user_dir, "agent_cfg.yaml")
@@ -347,6 +355,8 @@ def get_user_cfg_list():
     return user_list, name_to_dir
 
 def get_user_dir_did_doc_by_did(did):
+    config=get_global_config()
+
     user_dirs = config.anp_sdk.user_did_path
     for user_dir in os.listdir(user_dirs):
         did_path = os.path.join(user_dirs, user_dir, "did_document.json")
@@ -377,6 +387,7 @@ def did_create_user(user_iput: dict, *, did_hex: bool = True, did_check_unique: 
     if not all(field in user_iput for field in required_fields):
         logger.error("缺少必需的参数字段")
         return None
+    config=get_global_config()
 
     userdid_filepath = config.anp_sdk.user_did_path
     userdid_filepath = UnifiedConfig.resolve_path(userdid_filepath)
@@ -533,6 +544,8 @@ def verify_jwt(token: str, public_key: str) -> dict:
 def get_agent_cfg_by_user_dir(user_dir: str) -> dict:
     import os
     import yaml
+    config=get_global_config()
+
     did_path = Path(config.anp_sdk.user_did_path)
     did_path = did_path.joinpath(user_dir, "agent_cfg.yaml")
     cfg_path = Path(UnifiedConfig.resolve_path(did_path.as_posix()))
