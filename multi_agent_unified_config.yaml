@@ -8,7 +8,7 @@ multi_agent_mode:
 log_settings:
   log_level: INFO
   detail:
-    file: "/tmp/app.log"
+    file: "{APP_ROOT}/tmp/app.log"
     max_size: 100
 
 anp_sdk:
@@ -25,6 +25,7 @@ anp_sdk:
   user_did_key_id: key-1
   group_msg_path: '{APP_ROOT}/anp_open_sdk'
   jwt_algorithm: RS256
+  publisher_config_path:
   nonce_expire_minutes: 6
   helper_lang: zh
   agent:

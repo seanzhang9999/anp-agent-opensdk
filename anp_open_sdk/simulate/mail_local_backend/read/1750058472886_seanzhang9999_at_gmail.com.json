@@ -1,0 +1,9 @@
+{
+  "message_id": "1750058472886",
+  "from_address": "seanzhang9999@gmail.com",
+  "to_address": "seanzhang9999@gmail.com",
+  "subject": "ANP-DID host request",
+  "content": "{\n  \"@context\": [\n    \"https://www.w3.org/ns/did/v1\",\n    \"https://w3id.org/security/suites/jws-2020/v1\",\n    \"https://w3id.org/security/suites/secp256k1-2019/v1\"\n  ],\n  \"id\": \"did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1\",\n  \"verificationMethod\": [\n    {\n      \"id\": \"did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1#key-1\",\n      \"type\": \"EcdsaSecp256k1VerificationKey2019\",\n      \"controller\": \"did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1\",\n      \"publicKeyJwk\": {\n        \"kty\": \"EC\",\n        \"crv\": \"secp256k1\",\n        \"x\": \"83E8gpsCKxd5mvyG1fPuN7PO5mX-kfSbiuO006PtXbs\",\n        \"y\": \"fpZr5SZseT7t1rOrsJYAhdmrrZpulMz5EcoYOLBAfAA\",\n        \"kid\": \"lPbStMg3SkGuR0g7g6srhiHVAgjYckdSa2InxapKCd0\"\n      }\n    }\n  ],\n  \"authentication\": [\n    \"did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1#key-1\"\n  ],\n  \"service\": [\n    {\n      \"id\": \"did:wba:localhost%3A9527:wba:user:3ea884878ea5fbb1#ad\",\n      \"type\": \"AgentDescription\",\n      \"serviceEndpoint\": \"http://localhost:9527/wba/user3ea884878ea5fbb1/ad.json\"\n    }\n  ]\n}",
+  "timestamp": 1750058472886,
+  "read": true
+}

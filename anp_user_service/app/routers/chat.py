@@ -1,4 +1,5 @@
-from anp_open_sdk.utils.log_base import logger
+import logging
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, HTTPException, status
 from anp_user_service.app.models.schemas import ChatAgentRequest, ChatResponse, LLMConfig

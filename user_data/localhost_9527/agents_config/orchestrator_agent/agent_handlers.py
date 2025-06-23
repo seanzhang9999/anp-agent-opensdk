@@ -130,6 +130,7 @@ async def discover_and_describe_agents(publisher_url):
 
 
 async def run_calculator_add_demo():
+
     caculator_did = "did:wba:localhost%3A9527:wba:user:28cddee0fade0258"
     calculator_agent = LocalAgent.from_did(caculator_did)
     # 构造 JSON-RPC 请求参数

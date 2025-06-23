@@ -104,7 +104,7 @@ class ANPSDK:
 
         @self.app.middleware("http")
         async def auth_middleware_wrapper(request, call_next):
-            return await auth_middleware(request, call_next, self.instance)
+            return await auth_middleware(request, call_next)
 
         from anp_open_sdk.service.router.router_agent import AgentRouter
         self.router = AgentRouter()

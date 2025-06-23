@@ -1,6 +1,7 @@
 import threading
 from typing import Dict
-from anp_open_sdk.utils.log_base import  logging as logger
+import  logging
+logger = logging.getLogger(__name__)
 
 
 class DemoDNSService:

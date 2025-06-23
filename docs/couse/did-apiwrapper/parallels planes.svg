@@ -1,0 +1,291 @@
+<svg viewBox="0 0 1200 700" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- 渐变定义 -->
+    <linearGradient id="businessPlaneGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#fff3e0;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ffb74d;stop-opacity:1" />
+    </linearGradient>
+    
+    <linearGradient id="upperPlaneGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#e3f2fd;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#90caf9;stop-opacity:1" />
+    </linearGradient>
+    
+    <linearGradient id="lowerPlaneGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1565c0;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0d47a1;stop-opacity:1" />
+    </linearGradient>
+    
+    <linearGradient id="sideGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#1976d2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0d47a1;stop-opacity:1" />
+    </linearGradient>
+    
+    <linearGradient id="businessSideGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ff9800;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f57c00;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- 阴影滤镜 -->
+    <filter id="dropshadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="4"/>
+      <feOffset dx="3" dy="6" result="offset" />
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.3"/>
+      </feComponentTransfer>
+      <feMerge> 
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/> 
+      </feMerge>
+    </filter>
+    
+    <!-- 箭头标记 -->
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" 
+     refX="0" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#666" />
+    </marker>
+    
+    <!-- 投影箭头标记 -->
+    <marker id="projectarrow" markerWidth="8" markerHeight="6" 
+     refX="0" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#9c27b0" />
+    </marker>
+  </defs>
+  
+  <!-- 背景 -->
+  <rect width="1200" height="700" fill="#f5f5f5"/>
+  
+  <!-- 标题 -->
+  <text x="700" y="30" text-anchor="middle" font-size="22" font-weight="bold" fill="#2c3e50">三层网络身份架构</text>
+  
+  <!-- 左侧类比说明区域 -->
+  <rect x="20" y="60" width="200" height="480" fill="#f8f9fa" stroke="#dee2e6" stroke-width="2" rx="10"/>
+  <text x="120" y="85" text-anchor="middle" font-size="16" font-weight="bold" fill="#495057">投影关系</text>
+  
+  <!-- 用户层 -->
+  <rect x="40" y="100" width="160" height="80" fill="#fff3e0" stroke="#ff9800" stroke-width="2" rx="5"/>
+  <text x="120" y="125" text-anchor="middle" font-size="14" font-weight="bold" fill="#e65100">业务用户层</text>
+  <text x="120" y="145" text-anchor="middle" font-size="12" fill="#f57c00">内外部DID-Agent</text>
+  <text x="120" y="160" text-anchor="middle" font-size="10" fill="#ff9800">• 用户A、B、C、D</text>
+  <text x="120" y="175" text-anchor="middle" font-size="10" fill="#ff9800">• 业务操作需求</text>
+  
+  <!-- DID层 -->
+  <rect x="40" y="200" width="160" height="80" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" rx="5"/>
+  <text x="120" y="225" text-anchor="middle" font-size="14" font-weight="bold" fill="#0d47a1">DID身份层</text>
+  <text x="120" y="245" text-anchor="middle" font-size="12" fill="#1565c0">Agent投影</text>
+  <text x="120" y="260" text-anchor="middle" font-size="10" fill="#1976d2">• 用户Agent</text>
+  <text x="120" y="275" text-anchor="middle" font-size="10" fill="#1976d2">• 服务Agent</text>
+  
+  <!-- 资源层 -->
+  <rect x="40" y="300" width="160" height="80" fill="#e8f5e8" stroke="#4caf50" stroke-width="2" rx="5"/>
+  <text x="120" y="325" text-anchor="middle" font-size="14" font-weight="bold" fill="#2e7d32">底层资源层</text>
+  <text x="120" y="345" text-anchor="middle" font-size="12" fill="#388e3c">Docker容器</text>
+  <text x="120" y="360" text-anchor="middle" font-size="10" fill="#4caf50">• DMZ、内网、DB</text>
+  <text x="120" y="375" text-anchor="middle" font-size="10" fill="#4caf50">• 网络分段资源</text>
+  
+  <!-- 投影关系箭头 -->
+  <line x1="200" y1="140" x2="240" y2="130" stroke="#9c27b0" stroke-width="3" marker-end="url(#projectarrow)" stroke-dasharray="5,5"/>
+
+    <line x1="200" y1="240" x2="240" y2="220" stroke="#9c27b0" stroke-width="3" marker-end="url(#projectarrow)" stroke-dasharray="5,5"/>
+  
+  <line x1="200" y1="340" x2="240" y2="380" stroke="#9c27b0" stroke-width="3" marker-end="url(#projectarrow)" stroke-dasharray="5,5"/>
+
+  
+  <!-- 业务平面 - 最上层 -->
+  <!-- 业务表面 -->
+  <polygon points="280,120 880,120 910,90 310,90" fill="url(#businessPlaneGrad)" stroke="#ff9800" stroke-width="2" filter="url(#dropshadow)"/>
+  
+  <!-- 业务层标题 -->
+  <text x="595" y="90" text-anchor="middle" font-size="16" font-weight="bold" fill="#e65100">业务用户层 (内外部DID-Agent)</text>
+  
+  <!-- 实际用户节点 -->
+  <g id="real-users">
+    <ellipse cx="370" cy="107" rx="25" ry="12" fill="#ffc107" stroke="#f57c00" stroke-width="2"/>
+    <text x="370" y="112" text-anchor="middle" font-size="9" fill="#e65100" font-weight="bold">用户A</text>
+    
+    <ellipse cx="470" cy="107" rx="25" ry="12" fill="#ffc107" stroke="#f57c00" stroke-width="2"/>
+    <text x="470" y="112" text-anchor="middle" font-size="9" fill="#e65100" font-weight="bold">用户B</text>
+    
+    <ellipse cx="670" cy="107" rx="25" ry="12" fill="#ffc107" stroke="#f57c00" stroke-width="2"/>
+    <text x="670" y="112" text-anchor="middle" font-size="9" fill="#e65100" font-weight="bold">用户C</text>
+    
+    <ellipse cx="770" cy="107" rx="25" ry="12" fill="#ffc107" stroke="#f57c00" stroke-width="2"/>
+    <text x="770" y="112" text-anchor="middle" font-size="9" fill="#e65100" font-weight="bold">用户D</text>
+    
+    <!-- 用户交互连线 -->
+    <line x1="395" y1="107" x2="445" y2="107" stroke="#ffab40" stroke-width="2" stroke-dasharray="3,3"/>
+    <line x1="495" y1="107" x2="645" y2="107" stroke="#ffab40" stroke-width="2" stroke-dasharray="3,3"/>
+    <line x1="695" y1="107" x2="745" y2="107" stroke="#ffab40" stroke-width="2" stroke-dasharray="3,3"/>
+  </g>
+  
+  <!-- DID密码学身份空间 -->
+  <!-- 上表面 -->
+  <polygon points="270,200 870,200 900,170 300,170" fill="url(#upperPlaneGrad)" stroke="#1976d2" stroke-width="2" filter="url(#dropshadow)"/>
+  
+  <!-- DID层标题 -->
+  <text x="585" y="170" text-anchor="middle" font-size="16" font-weight="bold" fill="#0d47a1">DID密码学身份空间</text>
+  
+  <!-- Agent节点 - 错开排列 -->
+  <g id="agents">
+    <!-- 用户Agent - 第一排 -->
+    <rect x="325" y="178" width="30" height="15" fill="#81c784" stroke="#388e3c" stroke-width="2" rx="3"/>
+    <text x="340" y="189" text-anchor="middle" font-size="7" fill="#1b5e20" font-weight="bold">用户Agent</text>
+    
+    <rect x="425" y="178" width="30" height="15" fill="#81c784" stroke="#388e3c" stroke-width="2" rx="3"/>
+    <text x="440" y="189" text-anchor="middle" font-size="7" fill="#1b5e20" font-weight="bold">用户Agent</text>
+    
+    <rect x="525" y="178" width="30" height="15" fill="#81c784" stroke="#388e3c" stroke-width="2" rx="3"/>
+    <text x="540" y="189" text-anchor="middle" font-size="7" fill="#1b5e20" font-weight="bold">用户Agent</text>
+    
+    <rect x="625" y="178" width="30" height="15" fill="#81c784" stroke="#388e3c" stroke-width="2" rx="3"/>
+    <text x="640" y="189" text-anchor="middle" font-size="7" fill="#1b5e20" font-weight="bold">用户Agent</text>
+    
+    <!-- 服务Agent - 第二排，错开位置 -->
+    <circle cx="380" cy="200" r="8" fill="#4fc3f7" stroke="#0277bd" stroke-width="2"/>
+    <text x="380" y="204" text-anchor="middle" font-size="6" fill="#01579b" font-weight="bold">服务A</text>
+    
+    <circle cx="480" cy="200" r="8" fill="#4fc3f7" stroke="#0277bd" stroke-width="2"/>
+    <text x="480" y="204" text-anchor="middle" font-size="6" fill="#01579b" font-weight="bold">服务B</text>
+    
+    <circle cx="580" cy="200" r="8" fill="#4fc3f7" stroke="#0277bd" stroke-width="2"/>
+    <text x="580" y="204" text-anchor="middle" font-size="6" fill="#01579b" font-weight="bold">服务C</text>
+    
+    <circle cx="680" cy="200" r="8" fill="#4fc3f7" stroke="#0277bd" stroke-width="2"/>
+    <text x="680" y="204" text-anchor="middle" font-size="6" fill="#01579b" font-weight="bold">服务D</text>
+    
+    <!-- Agent间互相识别连线 -->
+    <line x1="355" y1="185" x2="425" y2="185" stroke="#66bb6a" stroke-width="1" stroke-dasharray="2,2"/>
+    <line x1="455" y1="185" x2="525" y2="185" stroke="#66bb6a" stroke-width="1" stroke-dasharray="2,2"/>
+    <line x1="555" y1="185" x2="625" y2="185" stroke="#66bb6a" stroke-width="1" stroke-dasharray="2,2"/>
+    
+    <line x1="388" y1="200" x2="472" y2="200" stroke="#29b6f6" stroke-width="1" stroke-dasharray="2,2"/>
+    <line x1="488" y1="200" x2="572" y2="200" stroke="#29b6f6" stroke-width="1" stroke-dasharray="2,2"/>
+    <line x1="588" y1="200" x2="672" y2="200" stroke="#29b6f6" stroke-width="1" stroke-dasharray="2,2"/>
+  </g>
+  
+  <!-- 传统网络分段结构 -->
+  <!-- 下表面 -->
+  <polygon points="250,400 850,400 880,370 280,370" fill="url(#lowerPlaneGrad)" stroke="#0d47a1" stroke-width="2" filter="url(#dropshadow)"/>
+  
+  <!-- 侧面 -->
+  <polygon points="850,400 880,370 910,390 880,420" fill="url(#sideGrad)" stroke="#0d47a1" stroke-width="1"/>
+  <polygon points="880,420 910,390 910,210 880,240" fill="url(#sideGrad)" stroke="#0d47a1" stroke-width="1"/>
+  <polygon points="880,240 910,210 910,130 880,160" fill="url(#businessSideGrad)" stroke="#ff9800" stroke-width="1"/>
+  
+  <!-- 下层标题 -->
+  <text x="565" y="390" text-anchor="middle" font-size="16" font-weight="bold" fill="#e3f2fd">底层资源层</text>
+  
+  <!-- Docker容器节点 -->
+  <g id="docker-containers">
+    <!-- DMZ区域 -->
+    <rect x="300" y="410" width="100" height="50" fill="#1e88e5" stroke="#0d47a1" stroke-width="2" rx="8" opacity="0.8"/>
+    <text x="350" y="430" text-anchor="middle" font-size="11" font-weight="bold" fill="white">DMZ</text>
+    <text x="350" y="445" text-anchor="middle" font-size="9" fill="#e3f2fd">Docker-A</text>
+    
+    <!-- 内网区域 -->
+    <rect x="430" y="410" width="100" height="50" fill="#1e88e5" stroke="#0d47a1" stroke-width="2" rx="8" opacity="0.8"/>
+    <text x="480" y="430" text-anchor="middle" font-size="11" font-weight="bold" fill="white">内网</text>
+    <text x="480" y="445" text-anchor="middle" font-size="9" fill="#e3f2fd">Docker-B</text>
+    
+    <!-- 数据库区域 -->
+    <rect x="560" y="410" width="100" height="50" fill="#1e88e5" stroke="#0d47a1" stroke-width="2" rx="8" opacity="0.8"/>
+    <text x="610" y="430" text-anchor="middle" font-size="11" font-weight="bold" fill="white">DB区</text>
+    <text x="610" y="445" text-anchor="middle" font-size="9" fill="#e3f2fd">Docker-C</text>
+    
+    <!-- 管理区域 -->
+    <rect x="690" y="410" width="80" height="50" fill="#1e88e5" stroke="#0d47a1" stroke-width="2" rx="8" opacity="0.8"/>
+    <text x="730" y="430" text-anchor="middle" font-size="11" font-weight="bold" fill="white">管理</text>
+    <text x="730" y="445" text-anchor="middle" font-size="9" fill="#e3f2fd">Docker-D</text>
+  </g>
+  
+  <!-- 防火墙/网关分隔线 -->
+  <g id="firewalls">
+    <line x1="420" y1="410" x2="420" y2="460" stroke="#ff5722" stroke-width="4"/>
+    <text x="425" y="480" font-size="9" fill="#ff5722" font-weight="bold">防火墙</text>
+    
+    <line x1="550" y1="410" x2="550" y2="460" stroke="#ff5722" stroke-width="4"/>
+    <text x="555" y="480" font-size="9" fill="#ff5722" font-weight="bold">网关</text>
+    
+    <line x1="680" y1="410" x2="680" y2="460" stroke="#ff5722" stroke-width="4"/>
+    <text x="685" y="480" font-size="9" fill="#ff5722" font-weight="bold">隔离</text>
+  </g>
+  
+  <!-- 投影连接关系 -->
+  <g id="projection-connections">
+    <!-- 用户到用户Agent的投影 - 带标签 -->
+    <line x1="370" y1="119" x2="340" y2="178" stroke="#9c27b0" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#projectarrow)"/>
+    <text x="355" y="145" text-anchor="middle" font-size="8" fill="#9c27b0" font-weight="bold">用户投影</text>
+    
+    <line x1="470" y1="119" x2="440" y2="178" stroke="#9c27b0" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#projectarrow)"/>
+    <text x="455" y="145" text-anchor="middle" font-size="8" fill="#9c27b0" font-weight="bold">用户投影</text>
+    
+    <line x1="670" y1="119" x2="540" y2="178" stroke="#9c27b0" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#projectarrow)"/>
+    <text x="605" y="145" text-anchor="middle" font-size="8" fill="#9c27b0" font-weight="bold">用户投影</text>
+    
+    <line x1="770" y1="119" x2="640" y2="178" stroke="#9c27b0" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#projectarrow)"/>
+    <text x="705" y="145" text-anchor="middle" font-size="8" fill="#9c27b0" font-weight="bold">用户投影</text>
+    
+    <!-- 底层资源到服务Agent的投影 - 带标签 -->
+    <line x1="350" y1="410" x2="380" y2="208" stroke="#9c27b0" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#projectarrow)"/>
+    <text x="365" y="310" text-anchor="middle" font-size="8" fill="#9c27b0" font-weight="bold">资源投影</text>
+    
+    <line x1="480" y1="410" x2="480" y2="208" stroke="#9c27b0" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#projectarrow)"/>
+    <text x="480" y="310" text-anchor="middle" font-size="8" fill="#9c27b0" font-weight="bold">资源投影</text>
+    
+    <line x1="610" y1="410" x2="580" y2="208" stroke="#9c27b0" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#projectarrow)"/>
+    <text x="595" y="310" text-anchor="middle" font-size="8" fill="#9c27b0" font-weight="bold">资源投影</text>
+    
+    <line x1="730" y1="410" x2="680" y2="208" stroke="#9c27b0" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#projectarrow)"/>
+    <text x="705" y="310" text-anchor="middle" font-size="8" fill="#9c27b0" font-weight="bold">资源投影</text>
+    
+    <!-- Agent之间的连接 -->
+    <line x1="340" y1="193" x2="380" y2="192" stroke="#4caf50" stroke-width="2"/>
+    <line x1="440" y1="193" x2="480" y2="192" stroke="#4caf50" stroke-width="2"/>
+    <line x1="540" y1="193" x2="580" y2="192" stroke="#4caf50" stroke-width="2"/>
+    <line x1="640" y1="193" x2="680" y2="192" stroke="#4caf50" stroke-width="2"/>
+  </g>
+  
+  <!-- 连接标注 -->
+  <g id="connection-labels">
+    <text x="750" y="280" font-size="9" fill="#2e7d32" font-weight="bold">ANP DID+</text>
+    <text x="745" y="295" font-size="9" fill="#2e7d32" font-weight="bold">AuthMiddleware+</text>
+    <text x="740" y="310" font-size="9" fill="#2e7d32" font-weight="bold">API Wrapper</text>
+  </g>
+  
+  <!-- 图例说明 -->
+  <g id="legend">
+    <rect x="50" y="540" width="1100" height="140" fill="#fafafa" stroke="#ddd" stroke-width="1" rx="10"/>
+    <text x="70" y="565" font-size="14" font-weight="bold" fill="#333">三层架构投影关系说明：</text>
+    
+    <!-- 用户层说明 -->
+    <ellipse cx="86" cy="580" rx="12" ry="6" fill="#ffc107" stroke="#f57c00" stroke-width="1"/>
+    <text x="110" y="585" font-size="12" fill="#555">业务用户层：内外部DID-Agent - DID代理，代表实际用户的业务需求</text>
+    
+    <!-- DID层说明 -->
+    <rect x="80" y="595" width="12" height="6" fill="#81c784" stroke="#388e3c" stroke-width="1"/>
+    <text x="110" y="605" font-size="12" fill="#555">用户Agent：用户在DID层的投影 - 代表用户的数字身份和权限</text>
+    
+    <circle cx="86" cy="615" r="4" fill="#4fc3f7" stroke="#0277bd" stroke-width="1"/>
+    <text x="110" y="620" font-size="12" fill="#555">服务Agent：资源在DID层的投影 - 代表底层资源的服务接口和访问控制</text>
+    
+    <!-- 资源层说明 -->
+    <rect x="80" y="630" width="12" height="8" fill="#1e88e5" stroke="#0d47a1" stroke-width="1"/>
+    <text x="110" y="640" font-size="12" fill="#555">底层资源层：Docker容器 - 具体的网络资源和服务，通过网络分段进行隔离</text>
+    
+    <!-- 投影关系说明 -->
+    <line x1="80" y1="655" x2="98" y2="655" stroke="#9c27b0" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#projectarrow)"/>
+    <text x="110" y="660" font-size="12" fill="#555">投影关系：用户和资源在DID层的数字化映射，实现统一的身份认证和授权</text>
+    
+    <!-- 优势说明 -->
+    <text x="600" y="585" font-size="12" fill="#666" font-weight="bold">架构优势：</text>
+    <text x="600" y="605" font-size="11" fill="#666">• 用户层：外部DID-Agent，无需了解内部技术细节</text>
+    <text x="600" y="620" font-size="11" fill="#666">• DID层：统一身份管理，错开投影避免一对一耦合</text>
+    <text x="600" y="635" font-size="11" fill="#666">• 资源层：灵活的网络分段，安全的资源隔离</text>
+    <text x="600" y="650" font-size="11" fill="#666">• 投影机制：解耦用户与资源，支持动态权限管理</text>
+  </g>
+  
+  <!-- 立体效果增强 -->
+  <polygon points="280,120 310,90 910,90 880,120" fill="rgba(255,255,255,0.3)" stroke="none"/>
+  <polygon points="270,200 300,170 900,170 870,200" fill="rgba(255,255,255,0.3)" stroke="none"/>
+  <polygon points="850,400 880,370 880,240 850,270" fill="rgba(255,255,255,0.2)" stroke="none"/>
+</svg>

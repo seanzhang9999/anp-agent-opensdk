@@ -137,7 +137,7 @@ async def main():
         #result = await discovery_agent.run_calculator_add_demo()
         #result = await discovery_agent.run_hello_demo()
         #result = await discovery_agent.run_ai_crawler_demo()
-        #result = await discovery_agent.run_ai_root_crawler_demo()
+        result = await discovery_agent.run_ai_root_crawler_demo()
         result = await discovery_agent.run_agent_002_demo(sdk)
         print(result)
 

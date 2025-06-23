@@ -10,7 +10,8 @@ import asyncio
 import traceback
 from pathlib import Path
 
-from anp_open_sdk.utils.log_base import logger, setup_logging
+import logging
+logger = logging.getLogger(__name__), setup_logging
 import logging
 log_level_str = "INFO"
 log_level = getattr(logging, log_level_str, logging.INFO)  # 转换为 int，默认INFO

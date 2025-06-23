@@ -20,7 +20,8 @@ from typing import Dict, Any, Callable, List
 
 import nest_asyncio
 from fastapi import FastAPI, Request
-from anp_open_sdk.utils.log_base import  logging as logger
+import logging
+logger = logging.getLogger(__name__)
 from starlette.responses import JSONResponse
 
 

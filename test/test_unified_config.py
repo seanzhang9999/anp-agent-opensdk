@@ -16,7 +16,8 @@ import sys
 import tempfile
 from pathlib import Path
 
-from anp_open_sdk.utils.log_base import logger
+import logging
+logger = logging.getLogger(__name__)
 # 添加项目路径
 sys.path.insert(0, str(Path(__file__).parent.parent))
 

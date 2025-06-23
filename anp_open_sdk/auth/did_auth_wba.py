@@ -1,7 +1,7 @@
 # anp_open_sdk/auth/wba_auth.py
 
 from agent_connect.authentication import resolve_did_wba_document
-
+from anp_open_sdk.config import get_global_config
 
 from .did_auth_base import BaseDIDResolver, BaseDIDSigner, BaseAuthHeaderBuilder, BaseDIDAuthenticator, BaseAuth
 from .did_auth_wba_custom_did_resolver import resolve_local_did_document
@@ -11,7 +11,8 @@ import json
 import base64
 from typing import Optional, Dict, Any, Tuple
 import re
-from anp_open_sdk.utils.log_base import  logging as logger
+import logging
+logger = logging.getLogger(__name__)
 
 from agent_connect.authentication.did_wba import extract_auth_header_parts
 
@@ -142,7 +143,7 @@ class WBADIDAuthenticator(BaseDIDAuthenticator):
     async def authenticate_request(self, context: AuthenticationContext, credentials: DIDCredentials) -> Tuple[bool, str, Dict[str, Any]]:
         """执行WBA认证请求"""
         import aiohttp
-        from anp_open_sdk.utils.log_base import logger
+
 
         """执行WBA认证请求"""
         try:
@@ -200,8 +201,7 @@ class WBADIDAuthenticator(BaseDIDAuthenticator):
                 extract_auth_header_parts_two_way, verify_auth_header_signature_two_way, resolve_did_wba_document
             )
             from anp_open_sdk.auth.did_auth_wba_custom_did_resolver import resolve_local_did_document
-            from anp_open_sdk.config.legacy.dynamic_config import dynamic_config
-            from anp_open_sdk.utils.log_base import logger
+
 
 
             # 1. 尝试解析为两路认证
@@ -225,7 +225,8 @@ class WBADIDAuthenticator(BaseDIDAuthenticator):
                     return False, f"Authentication parsing failed: {fallback_error}"
 
             # 2. 验证时间戳
-            nonce_expire_minutes = dynamic_config.get('anp_sdk.nonce_expire_minutes')
+            config = get_global_config()
+            nonce_expire_minutes = config.anp_sdk.nonce_expire_minutes
             from datetime import datetime, timezone
             try:
                 request_time = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))

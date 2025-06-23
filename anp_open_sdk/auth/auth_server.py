@@ -230,95 +230,96 @@ class AgentAuthServer:
             logger.debug(f"Token verification error: {e}")
             raise HTTPException(status_code=401, detail=f"Token verification failed: {str(e)}")
 
-    async def generate_auth_response(self,did, is_two_way_auth, resp_did):
+async def generate_auth_response(did, is_two_way_auth, resp_did):
 
-        resp_did_agent = LocalAgent.from_did(resp_did)
+    resp_did_agent = LocalAgent.from_did(resp_did)
 
-        # 生成访问令牌
+    # 生成访问令牌
 
-        from anp_open_sdk.auth.token_nonce_auth import create_access_token
-        expiration_time = self.config.anp_sdk.token_expire_time
-        access_token = create_access_token(
-            resp_did_agent.jwt_private_key_path,
-            data={"req_did": did, "resp_did": resp_did, "comments": "open for req_did"},
-            expires_delta=expiration_time
-        )
-        resp_did_agent.contact_manager.store_token_to_remote(did, access_token, expiration_time)
-        # logger.debug(f"认证成功，已生成访问令牌")
-        # 如果resp_did存在，加载resp_did的DID文档并组装DID认证头
-        resp_did_auth_header = None
-        if resp_did and resp_did != "没收到":
-            try:
-                # 获取resp_did用户目录
-
-                did_document_path = resp_did_agent.did_document_path
-                private_key_path = resp_did_agent.private_key_path
-
-                # 检查文件是否存在
-                if Path(did_document_path).exists() and Path(private_key_path).exists():
-                    # 创建DID认证客户端
-                    resp_auth_client = DIDWbaAuthHeader(
-                        did_document_path=str(did_document_path),
-                        private_key_path=str(private_key_path)
-                    )
-
-                    # 获取认证头（用于返回给req_did进行验证,此时 req是现在的did）
-                    target_url = "http://virtual.WBAback:9999"  # 使用当前请求的域名
-                    resp_did_auth_header = resp_auth_client.get_auth_header_two_way(target_url, did)
-
-                    # 打印认证头
-                # logger.debug(f"Generated resp_did_auth_header: {resp_did_auth_header}")
-
-                # logger.debug(f"成功加载resp_did的DID文档并生成认证头")
-                else:
-                    logger.warning(f"resp_did的DID文档或私钥不存在: {did_document_path} or {private_key_path}")
-            except Exception as e:
-                logger.debug(f"加载resp_did的DID文档时出错: {e}")
-                resp_did_auth_header = None
-        if is_two_way_auth:
-            return [
-                {
-                    "access_token": access_token,
-                    "token_type": "bearer",
-                    "req_did": did,
-                    "resp_did": resp_did,
-                    "resp_did_auth_header": resp_did_auth_header
-                }
-            ]
-        else:
-            return f"bearer {access_token}"
-
-    def is_valid_server_nonce(self,nonce: str) -> bool:
-        """
-        Check if a nonce is valid and not expired.
-        Each nonce can only be used once (proper nonce behavior).
-        Args:
-            nonce: The nonce to check
-        Returns:
-            bool: Whether the nonce is valid
-        """
-        from datetime import datetime, timezone, timedelta
+    from anp_open_sdk.auth.token_nonce_auth import create_access_token
+    config = get_global_config()
+    expiration_time = config.anp_sdk.token_expire_time
+    access_token = create_access_token(
+        resp_did_agent.jwt_private_key_path,
+        data={"req_did": did, "resp_did": resp_did, "comments": "open for req_did"},
+        expires_delta=expiration_time
+    )
+    resp_did_agent.contact_manager.store_token_to_remote(did, access_token, expiration_time)
+    # logger.debug(f"认证成功，已生成访问令牌")
+    # 如果resp_did存在，加载resp_did的DID文档并组装DID认证头
+    resp_did_auth_header = None
+    if resp_did and resp_did != "没收到":
         try:
-            nonce_expire_minutes = self.config.anp_sdk.nonce_expire_minutes
-        except Exception:
-            nonce_expire_minutes = 5
+            # 获取resp_did用户目录
 
-        current_time = datetime.now(timezone.utc)
-        # Clean up expired nonces first
-        expired_nonces = [
-            n for n, t in VALID_SERVER_NONCES.items()
-            if current_time - t > timedelta(minutes=nonce_expire_minutes)
+            did_document_path = resp_did_agent.did_document_path
+            private_key_path = resp_did_agent.private_key_path
+
+            # 检查文件是否存在
+            if Path(did_document_path).exists() and Path(private_key_path).exists():
+                # 创建DID认证客户端
+                resp_auth_client = DIDWbaAuthHeader(
+                    did_document_path=str(did_document_path),
+                    private_key_path=str(private_key_path)
+                )
+
+                # 获取认证头（用于返回给req_did进行验证,此时 req是现在的did）
+                target_url = "http://virtual.WBAback:9999"  # 使用当前请求的域名
+                resp_did_auth_header = resp_auth_client.get_auth_header_two_way(target_url, did)
+
+                # 打印认证头
+            # logger.debug(f"Generated resp_did_auth_header: {resp_did_auth_header}")
+
+            # logger.debug(f"成功加载resp_did的DID文档并生成认证头")
+            else:
+                logger.warning(f"resp_did的DID文档或私钥不存在: {did_document_path} or {private_key_path}")
+        except Exception as e:
+            logger.debug(f"加载resp_did的DID文档时出错: {e}")
+            resp_did_auth_header = None
+    if is_two_way_auth:
+        return [
+            {
+                "access_token": access_token,
+                "token_type": "bearer",
+                "req_did": did,
+                "resp_did": resp_did,
+                "resp_did_auth_header": resp_did_auth_header
+            }
         ]
-        for n in expired_nonces:
-            del VALID_SERVER_NONCES[n]
-        # If nonce was already used, reject it
-        if nonce in VALID_SERVER_NONCES:
-            logger.warning(f"Nonce already used: {nonce}")
-            return False
-        # Mark nonce as used
-        VALID_SERVER_NONCES[nonce] = current_time
-        logger.debug(f"Nonce accepted and marked as used: {nonce}")
-        return True
+    else:
+        return f"bearer {access_token}"
+
+def is_valid_server_nonce(nonce: str) -> bool:
+    """
+    Check if a nonce is valid and not expired.
+    Each nonce can only be used once (proper nonce behavior).
+    Args:
+        nonce: The nonce to check
+    Returns:
+        bool: Whether the nonce is valid
+    """
+    from datetime import datetime, timezone, timedelta
+    try:
+        nonce_expire_minutes = self.config.anp_sdk.nonce_expire_minutes
+    except Exception:
+        nonce_expire_minutes = 5
+
+    current_time = datetime.now(timezone.utc)
+    # Clean up expired nonces first
+    expired_nonces = [
+        n for n, t in VALID_SERVER_NONCES.items()
+        if current_time - t > timedelta(minutes=nonce_expire_minutes)
+    ]
+    for n in expired_nonces:
+        del VALID_SERVER_NONCES[n]
+    # If nonce was already used, reject it
+    if nonce in VALID_SERVER_NONCES:
+        logger.warning(f"Nonce already used: {nonce}")
+        return False
+    # Mark nonce as used
+    VALID_SERVER_NONCES[nonce] = current_time
+    logger.debug(f"Nonce accepted and marked as used: {nonce}")
+    return True
 
 
 async def authenticate_request(request: Request, auth_server: AgentAuthServer) -> Optional[dict]:

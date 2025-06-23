@@ -1,8 +1,9 @@
 from typing import List, Optional
-from anp_open_sdk.utils.log_base import  logging as logger
+import logging
+logger = logging.getLogger(__name__)
 from anp_open_sdk.anp_sdk import ANPSDK, LocalAgent
 from anp_open_sdk.anp_sdk_user_data import LocalUserDataManager
-from anp_open_sdk.config.legacy.dynamic_config import dynamic_config
+from anp_open_sdk.config import get_global_config
 
 
 class DemoAgentLoader:
@@ -12,7 +13,8 @@ class DemoAgentLoader:
     def load_demo_agents(sdk: ANPSDK) -> List[LocalAgent]:
         """加载演示用的智能体"""
         user_data_manager: LocalUserDataManager = sdk.user_data_manager
-        agent_cfg = dynamic_config.get('anp_sdk.agent', {})
+        config = get_global_config()
+        agent_cfg = config.anp_sdk.agent
         agent_names = [
             agent_cfg.get('demo_agent1'),
             agent_cfg.get('demo_agent2'),

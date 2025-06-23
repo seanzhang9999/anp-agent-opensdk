@@ -1,0 +1,9 @@
+{
+  "message_id": "1748326599996",
+  "from_address": "test@local.com",
+  "to_address": "seanzhang9999@gmail.com",
+  "subject": "DID已申请",
+  "content": "重复的DID申请，请联系管理员",
+  "timestamp": 1748326599996,
+  "read": false
+}

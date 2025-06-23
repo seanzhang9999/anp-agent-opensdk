@@ -35,7 +35,8 @@ import argparse
 from datetime import datetime
 
 from Crypto.PublicKey import RSA
-from anp_open_sdk.utils.log_base import  logging as logger
+import logging
+logger = logging.getLogger(__name__)
 from typing import Dict, List, Optional, Any
 
 
@@ -456,7 +457,7 @@ def did_create_user(user_iput: dict, *, did_hex: bool = True, did_check_unique: 
     path_segments = [user_iput['dir'], user_iput['type']]
     if did_hex:
         path_segments.append(unique_id)
-    agent_description_url = f"http://{userdid_hostname}:{userdid_port}/{user_iput['dir']}/{user_iput['type']}{unique_id if did_hex else ''}/ad.json"
+    agent_description_url = f"http://{userdid_hostname}:{userdid_port}/{user_iput['dir']}/{user_iput['type']}/{unique_id if did_hex else ''}/ad.json"
 
     did_document, keys = create_did_wba_document(
         hostname=userdid_hostname,

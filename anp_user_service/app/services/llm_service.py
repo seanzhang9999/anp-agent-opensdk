@@ -1,4 +1,5 @@
-from anp_open_sdk.utils.log_base import logger
+import logging
+logger = logging.getLogger(__name__)
 from pathlib import Path
 from typing import Optional
 import httpx

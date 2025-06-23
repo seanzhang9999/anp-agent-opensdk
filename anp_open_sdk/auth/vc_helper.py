@@ -18,7 +18,8 @@
 提供创建和验证DID验证凭证(Verifiable Credential)的功能
 """
 
-from anp_open_sdk.utils.log_base import logger
+import logging
+logger = logging.getLogger(__name__)
 
 import base64
 from typing import Dict, Any, Optional
