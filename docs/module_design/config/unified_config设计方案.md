@@ -96,7 +96,7 @@ llm:
 # 邮件配置
 mail:
   use_local_backend: true
-  local_backend_path: "{APP_ROOT}/anp_open_sdk/simulate/mail_local_backend"
+  local_backend_path: "{APP_ROOT}/demo_data_simulate/mail_local_backend"
   smtp_server: "smtp.gmail.com"
   smtp_port: 587
 

@@ -13,7 +13,7 @@ class GroupMemberWithStorage(GroupMemberSDK):
     def __init__(self, agent_id: str, port: int, base_url: str = "http://localhost",
                  use_local_optimization: bool = True,
                  enable_storage: bool = True,
-                 storage_dir: str = "anp_sdk_demo/demo_data/member_messages"):
+                 storage_dir: str = "anp_sdk_demo/demo_data_tmp/member_messages"):
         super().__init__(agent_id, port, base_url, use_local_optimization)
 
         self.enable_storage = enable_storage
@@ -293,7 +293,7 @@ class GroupMemberComplete(GroupMemberWithStorage):
     def __init__(self, agent_id: str, port: int, base_url: str = "http://localhost",
                  use_local_optimization: bool = True,
                  enable_storage: bool = True,
-                 storage_dir: str = "anp_sdk_demo/demo_data/member_messages"):
+                 storage_dir: str = "anp_sdk_demo/demo_data_tmp/member_messages"):
         super().__init__(agent_id, port, base_url, use_local_optimization, enable_storage, storage_dir)
 
         # 添加统计功能

@@ -12,7 +12,7 @@ class FileLoggingGroupRunner(GroupRunner):
 
     def __init__(self, group_id: str):
         super().__init__(group_id)
-        self.log_dir = UnifiedConfig.resolve_path("anp_sdk_demo/demo_data/group_logs")
+        self.log_dir = UnifiedConfig.resolve_path("anp_sdk_demo/demo_data_tmp/group_logs")
         os.makedirs(self.log_dir, exist_ok=True)
         logger.debug(f"🗂️ 群组日志目录已创建: {self.log_dir}")  # 添加调试信息
 

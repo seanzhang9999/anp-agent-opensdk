@@ -1308,7 +1308,7 @@ async def run_assembled_agent_crawler_demo(crawler: ANPToolCrawler, target_wrapp
     )
     
     # 保存结果到文件
-    output_path = f"anp_sdk_demo/demo_data/{output_file}"
+    output_path = f"anp_sdk_demo/demo_data_tmp_tmp/{output_file}"
     with open(output_path, 'w', encoding='utf-8') as f:
         json.dump(result, f, ensure_ascii=False, indent=2, cls=CustomJSONEncoder)
     logger.debug(f"组装智能体测试结果已保存到 {output_path}")
@@ -1399,7 +1399,7 @@ async def run_web_agent_crawler_demo(crawler: ANPToolCrawler,
     )
     
     # 保存结果到文件
-    output_file = "anp_sdk_demo/demo_data/project_3_web_agent_crawler_result.json"
+    output_file = "anp_sdk_demo/demo_data_tmp/project_3_web_agent_crawler_result.json"
     with open(output_file, 'w', encoding='utf-8') as f:
         json.dump(result, f, ensure_ascii=False, indent=2, cls=CustomJSONEncoder)
     logger.debug(f"Web智能体查询结果已保存到 {output_file}")
