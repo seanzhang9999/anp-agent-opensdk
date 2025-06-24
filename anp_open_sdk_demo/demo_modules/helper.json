@@ -1,0 +1,34 @@
+{
+  "demo1_1_0": {
+    "zh": "准备步骤1: 初始化 SDK",
+    "en": "Welcome to ANP SDK! This guide will help you get started with the basic features of the SDK."
+  },
+  "demo1_1_1": {
+    "zh": "从配置文件加载智能体的身份文档和密钥文件夹，用于创建智能体的localagent实例",
+    "en": "The SDK configuration file contains important parameters such as host address, port number, and debug mode."
+  },
+  "demo1_1_2": {
+    "zh": "在每个智能体的localagent实例上通过装饰器/注册函数定制智能体自己的api和消息处理接口",
+    "en": "The SDK configuration file contains important parameters such as host address, port number, and debug mode."
+  },
+  "demo1_1_3": {
+    "zh": "将localagent注册到SDK服务器上,这样发向指定智能体的请求将被SDK服务器路由到智能体在localagent实例上注册的处理函数。",
+    "en": "The SDK configuration file contains important parameters such as host address, port number, and debug mode."
+  },
+  "demo1_1_4": {
+    "zh": "启动SDK服务器, 等待其他智能体的连接。",
+    "en": "SDK provides core APIs including creating agents, sending messages, and registering handlers."
+  },
+  "demo2_1_0": {
+    "zh": "我们将演示如何使用ANP SDK的基本功能。首先是创建智能体所需的身份文档和密钥文件夹。",
+    "en": "Welcome to ANP SDK! This guide will help you get started with the basic features of the SDK."
+  },
+  "demo2_1_1": {
+    "zh": "通过did_create_user函数,在anp_open_sdk/anp_users目录下创建用户目录。包含了用户的身份文档和密钥文件。",
+    "en": "The SDK configuration file contains important parameters such as host address, port number, and debug mode."
+  },
+  "3": {
+    "zh": "SDK提供创建智能体、发送消息、注册处理器等核心API。",
+    "en": "SDK provides core APIs including creating agents, sending messages, and registering handlers."
+  }
+}
