@@ -109,6 +109,65 @@ class DIDCredentials(BaseModel):
         credentials = cls(did_document=did_doc)
         credentials.add_key_pair(key_pair)
         return credentials
+    
+    @classmethod
+    def from_memory_data(cls, did_document_dict: Dict[str, Any], private_key_bytes: bytes, key_id: str = "key-1"):
+        """从内存数据创建DID凭证"""
+        # 创建DID文档对象
+        did_doc = DIDDocument(
+            did=did_document_dict.get('id', ''),
+            verification_methods=did_document_dict.get('verificationMethod', []),
+            authentication=did_document_dict.get('authentication', []),
+            service_endpoints=did_document_dict.get('service', []),
+            raw_document=did_document_dict
+        )
+        
+        # 创建密钥对对象
+        key_pair = DIDKeyPair.from_private_key_bytes(private_key_bytes, key_id)
+        
+        # 创建凭证对象
+        credentials = cls(did_document=did_doc)
+        credentials.add_key_pair(key_pair)
+        return credentials
+    
+    @classmethod
+    def from_user_data(cls, user_data):
+        """从用户数据对象创建DID凭证"""
+        # 读取私钥文件内容到内存
+        with open(user_data.did_private_key_file_path, "rb") as key_file:
+            private_key_pem = key_file.read()
+        
+        # 解析私钥
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.primitives.asymmetric import ec
+        private_key = serialization.load_pem_private_key(private_key_pem, password=None)
+        
+        # 获取私钥字节
+        if isinstance(private_key, ec.EllipticCurvePrivateKey):
+            # EC私钥（secp256k1等）
+            private_key_bytes = private_key.private_numbers().private_value.to_bytes(32, byteorder="big")
+        else:
+            # 其他类型私钥的处理 - 先尝试序列化为DER格式
+            try:
+                private_key_bytes = private_key.private_bytes(
+                    encoding=serialization.Encoding.DER,
+                    format=serialization.PrivateFormat.PKCS8,
+                    encryption_algorithm=serialization.NoEncryption()
+                )
+            except Exception:
+                # 如果失败，尝试PEM格式
+                private_key_bytes = private_key.private_bytes(
+                    encoding=serialization.Encoding.PEM,
+                    format=serialization.PrivateFormat.PKCS8,
+                    encryption_algorithm=serialization.NoEncryption()
+                )
+        
+        # 获取key_id
+        key_id = getattr(user_data, 'key_id', 'key-1')
+        if not key_id:
+            key_id = 'key-1'
+        
+        return cls.from_memory_data(user_data.did_doc, private_key_bytes, key_id)
 
 class AuthenticationContext(BaseModel):
     """认证上下文"""

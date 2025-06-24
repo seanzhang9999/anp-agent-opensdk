@@ -205,6 +205,43 @@ class LocalUserData(BaseUserData):
         self.token_to_remote_dict = {}
         self.token_from_remote_dict = {}
         self.contacts = {}
+        
+        # 新增：内存中的密钥数据
+        self._memory_credentials = None
+        self._load_memory_data()
+    
+    def _load_memory_data(self):
+        """加载密钥数据到内存"""
+        try:
+            from anp_open_sdk.auth.schemas import DIDCredentials
+            self._memory_credentials = DIDCredentials.from_user_data(self)
+        except Exception as e:
+            logger.warning(f"加载内存凭证失败: {e}")
+            self._memory_credentials = None
+    
+    def get_memory_credentials(self):
+        """获取内存中的DID凭证"""
+        if self._memory_credentials is None:
+            self._load_memory_data()
+        return self._memory_credentials
+    
+    def get_private_key_bytes(self, key_id: str = "key-1") -> Optional[bytes]:
+        """获取私钥字节数据"""
+        credentials = self.get_memory_credentials()
+        if credentials:
+            key_pair = credentials.get_key_pair(key_id)
+            if key_pair:
+                return key_pair.private_key
+        return None
+    
+    def get_public_key_bytes(self, key_id: str = "key-1") -> Optional[bytes]:
+        """获取公钥字节数据"""
+        credentials = self.get_memory_credentials()
+        if credentials:
+            key_pair = credentials.get_key_pair(key_id)
+            if key_pair:
+                return key_pair.public_key
+        return None
 
 
     @property

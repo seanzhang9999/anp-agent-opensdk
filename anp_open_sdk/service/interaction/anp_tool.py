@@ -421,7 +421,7 @@ class ANPToolCrawler:
             elif task_type == "root_query":
                 prompt_template = self._create_root_search_prompt_template()
                 agent_name = "多智能体搜索爬虫"
-                max_documents = 60
+                max_documents = 120
             elif task_type == "function_query":
                 prompt_template = self._create_function_search_prompt_template()
                 agent_name = "功能搜索爬虫"
@@ -470,7 +470,7 @@ class ANPToolCrawler:
             return LocalAgent.from_did(req_did)
 
     def _create_root_search_prompt_template(self):
-        """创建代码搜索智能体的提示模板"""
+        """创建溯源搜索智能体的提示模板"""
         current_date = datetime.now().strftime("%Y-%m-%d")
         return f"""
                  你是一个智能搜索工具。你的目标是根据用户输入要求从原始链接给出的agent列表，逐一查询agent描述文件，选择合适的agent，调用工具完成代码任务。
@@ -491,7 +491,7 @@ class ANPToolCrawler:
                  8. 该工具可以处理各种响应格式。
                  9. 阅读每个文档以找到与任务相关的信息或 API 端点。
                  10. 你需要自己决定爬取路径，不要等待用户指令。
-                 11. 注意：你最多可以爬取 6 个 agent，每个agent最多可以爬取10次，达到此限制后必须结束搜索。
+                 11. 注意：你最多可以爬取 6 个 agent，每个agent最多可以爬取20次，达到此限制后必须结束搜索。
 
                  ## 工作流程
                  1. 获取初始 URL 的内容并理解代理的功能。
@@ -507,7 +507,7 @@ class ANPToolCrawler:
                  当前日期：{current_date}
                  """
     def _create_function_search_prompt_template(self) :
-        """创建代码搜索智能体的提示模板"""
+        """创建功能搜索智能体的提示模板"""
         current_date = datetime.now().strftime("%Y-%m-%d")
         return f"""
                 你是一个智能搜索工具。你的目标是根据用户输入要求识别合适的工具，调用工具完成代码任务。
