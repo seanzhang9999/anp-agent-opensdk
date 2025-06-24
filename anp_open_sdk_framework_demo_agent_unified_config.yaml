@@ -2,13 +2,13 @@
 '# 项目根目录自动检测，支持 {APP_ROOT} 占位符': null
 
 multi_agent_mode:
-  agents_cfg_path: '{APP_ROOT}/user_data/localhost_9527/agents_config'
+  agents_cfg_path: '{APP_ROOT}/data_user/localhost_9527/agents_config'
 
 
 log_settings:
   log_level: INFO
   detail:
-    file: "{APP_ROOT}/tmp/app.log"
+    file: "{APP_ROOT}/data_tmp_log/app.log"
     max_size: 100
 
 anp_sdk:
@@ -17,8 +17,8 @@ anp_sdk:
   port: 9527
   user_did_port_1: 9527
   user_did_port_2: 9528
-  user_did_path: '{APP_ROOT}/user_data/localhost_9527/anp_users'
-  user_hosted_path: '{APP_ROOT}/user_data/localhost_9527/anp_users_hosted'
+  user_did_path: '{APP_ROOT}/data_user/localhost_9527/anp_users'
+  user_hosted_path: '{APP_ROOT}/data_user/localhost_9527/anp_users_hosted'
   auth_virtual_dir: wba/auth
   msg_virtual_dir: /agent/message
   token_expire_time: 3600
@@ -39,7 +39,7 @@ llm:
   system_prompt: 你是一个智能助手，请根据用户的提问进行专业、简洁的回复。
 mail:
   use_local_backend: true
-  local_backend_path: '{APP_ROOT}/demo_data_simulate/mail_local_backend'
+  local_backend_path: '{APP_ROOT}/data_demo_simulate/mail_local_backend'
   smtp_server: smtp.gmail.com
   smtp_port: 587
   imap_server: imap.gmail.com

@@ -33,7 +33,7 @@ class DemoStepHelper:
             lang = dynamic_config.get("anp_sdk.helper_lang", "zh")
 
         current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        helper_file = os.path.join(current_dir, 'anp_sdk_demo/helper.json')
+        helper_file = os.path.join(current_dir, 'anp_open_sdk_demo/helper.json')
 
         try:
             with open(helper_file, 'r', encoding='utf-8') as f:

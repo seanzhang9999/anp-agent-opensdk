@@ -1,0 +1,59 @@
+{
+  "generated_at": "/Users/seanzhang/seanwork/anp-agent-opensdk",
+  "total_methods": 3,
+  "methods": {
+    "did:wba:localhost%3A9527:wba:user:5fea49e183c6c211::demo_method": {
+      "name": "demo_method",
+      "description": "演示方法，返回agent信息",
+      "tags": [
+        "demo",
+        "info"
+      ],
+      "signature": "()",
+      "parameters": {},
+      "agent_did": "did:wba:localhost%3A9527:wba:user:5fea49e183c6c211",
+      "agent_name": "我的小铃木",
+      "module": "user_data.localhost_9527.agents_config.agent_002.agent_register",
+      "is_async": false
+    },
+    "did:wba:localhost%3A9527:wba:user:5fea49e183c6c211::calculate_sum": {
+      "name": "calculate_sum",
+      "description": "计算两个数的和",
+      "tags": [
+        "math",
+        "calculator"
+      ],
+      "signature": "(a: float, b: float)",
+      "parameters": {
+        "a": {
+          "type": "<class 'float'>",
+          "default": null,
+          "required": true
+        },
+        "b": {
+          "type": "<class 'float'>",
+          "default": null,
+          "required": true
+        }
+      },
+      "agent_did": "did:wba:localhost%3A9527:wba:user:5fea49e183c6c211",
+      "agent_name": "我的小铃木",
+      "module": "user_data.localhost_9527.agents_config.agent_002.agent_register",
+      "is_async": false
+    },
+    "did:wba:localhost%3A9527:wba:user:5fea49e183c6c211::async_demo": {
+      "name": "async_demo",
+      "description": "异步演示方法",
+      "tags": [
+        "demo",
+        "async"
+      ],
+      "signature": "()",
+      "parameters": {},
+      "agent_did": "did:wba:localhost%3A9527:wba:user:5fea49e183c6c211",
+      "agent_name": "我的小铃木",
+      "module": "user_data.localhost_9527.agents_config.agent_002.agent_register",
+      "is_async": true
+    }
+  }
+}

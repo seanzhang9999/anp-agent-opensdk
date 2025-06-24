@@ -122,5 +122,3 @@ def setup_logging():
     _is_logging_configured = True
     root_logger.info(f"日志系统配置完成，级别: {log_level_str}。")
 
-# 移除所有在模块导入时执行的代码
-# logging = setup_logging(...)

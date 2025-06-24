@@ -22,7 +22,7 @@
 """
 
 # 导入新的统一配置
-from .unified_config import UnifiedConfig, get_config_value, set_global_config, get_global_config
+from .unified_config import UnifiedConfig, set_global_config, get_global_config
 from . import config_types
 
 
@@ -34,6 +34,5 @@ __all__ = [
     "set_global_config",
     "get_global_config",
     "config_types",
-    "get_config_value",
 ]
 

@@ -1,7 +1,7 @@
 import json
 from typing import Dict, List, Optional
 from pathlib import Path
-from .decorators import LOCAL_METHODS_REGISTRY
+from .local_methods_decorators import LOCAL_METHODS_REGISTRY
 
 class LocalMethodsDocGenerator:
     """本地方法文档生成器"""

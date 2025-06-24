@@ -1,7 +1,7 @@
 import asyncio
 from typing import Any, Dict, Optional, List
 
-from .decorators import LOCAL_METHODS_REGISTRY
+from .local_methods_decorators import LOCAL_METHODS_REGISTRY
 from .local_methods_doc import LocalMethodsDocGenerator
 
 class LocalMethodsCaller:

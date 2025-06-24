@@ -2,7 +2,7 @@
 """
 ANP SDK Demo 自动化集成测试
 
-本脚本自动化测试 anp_sdk_demo 的主要演示功能，确保各主要流程可正常跑通。
+本脚本自动化测试 anp_open_sdk_demo 的主要演示功能，确保各主要流程可正常跑通。
 """
 
 import sys
@@ -11,23 +11,24 @@ import traceback
 from pathlib import Path
 
 import logging
-logger = logging.getLogger(__name__), setup_logging
-import logging
-log_level_str = "INFO"
-log_level = getattr(logging, log_level_str, logging.INFO)  # 转换为 int，默认INFO
-logger = setup_logging(log_level)
+from anp_open_sdk.utils.log_base import setup_logging
+from anp_open_sdk.config import UnifiedConfig,set_global_config
 
+app_config = UnifiedConfig(config_file='anp_open_sdk_framework_demo_agent_unified_config.yaml')
+set_global_config(app_config)
 
+setup_logging() # 假设 setup_logging 内部也改用 get_global_config()
+logger = logging.getLogger(__name__)
 
 # 添加项目路径
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from anp_sdk_demo.demo_modules.step_helper import DemoStepHelper
-from anp_sdk_demo.demo_modules.agent_loader import DemoAgentLoader
-from anp_sdk_demo.demo_modules.agent_registry import DemoAgentRegistry
-from anp_sdk_demo.demo_modules.demo_tasks import DemoTaskRunner
-from anp_sdk_demo.services.dns_service import DemoDNSService
-from anp_sdk_demo.services.sdk_manager import DemoSDKManager
+from anp_open_sdk_demo.demo_modules.step_helper import DemoStepHelper
+from anp_open_sdk_demo.demo_modules.agent_loader import DemoAgentLoader
+from anp_open_sdk_demo.demo_modules.agent_batch_registry import DemoAgentRegistry
+from anp_open_sdk_demo.demo_modules.demo_tasks import DemoTaskRunner
+from anp_open_sdk_demo.services.dns_service import DemoDNSService
+from anp_open_sdk_demo.services.sdk_manager import DemoSDKManager
 
 def setup_demo_env():
     """初始化演示环境，返回 DemoTaskRunner 和 agent 列表"""

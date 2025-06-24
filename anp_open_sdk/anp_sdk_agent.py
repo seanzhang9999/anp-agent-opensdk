@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 from starlette.responses import JSONResponse
 
 
-from anp_open_sdk.config import get_config_value,get_global_config
+from anp_open_sdk.config import get_global_config
 from anp_open_sdk.service.publisher.anp_sdk_publisher_mail_backend import EnhancedMailManager
 from anp_open_sdk.auth.did_auth_wba import parse_wba_did_host_port
 from anp_open_sdk.contact_manager import ContactManager
@@ -323,7 +323,9 @@ class LocalAgent:
         try:
             import re
             import json
-            use_local = get_config_value('USE_LOCAL_MAIL', False)
+            from anp_open_sdk.config import get_global_config
+            config = get_global_config()
+            use_local = config.mail.use_local_backend
             logger.debug(f"注册邮箱检查前初始化，使用本地文件邮件后端参数设置:{use_local}")
             mail_manager = EnhancedMailManager(use_local_backend=use_local)
             responses = mail_manager.get_unread_hosted_responses()
@@ -374,7 +376,9 @@ class LocalAgent:
             did_document = user_data.did_doc
             if did_document is None:
                 raise ValueError("当前 LocalAgent 未包含 did_document")
-            use_local = get_config_value('USE_LOCAL_MAIL', False)
+            from anp_open_sdk.config import get_global_config
+            config = get_global_config()
+            use_local = config.mail.use_local_backend
             logger.debug(f"注册邮箱检查前初始化，使用本地文件邮件后端参数设置:{use_local}")
             mail_manager = EnhancedMailManager(use_local_backend=use_local)
             register_email = os.environ.get('REGISTER_MAIL_USER')

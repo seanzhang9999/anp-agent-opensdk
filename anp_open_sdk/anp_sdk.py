@@ -160,8 +160,7 @@ class ANPSDK:
         from anp_open_sdk.service.publisher.anp_sdk_publisher import DIDManager
         try:
             config = get_global_config()
-
-            use_local = config.anp_sdk.u('USE_LOCAL_MAIL', False)
+            use_local = config.mail.use_local_backend
             logger.debug(f"管理邮箱检查前初始化，使用本地文件邮件后端参数设置:{use_local}")
             mail_manager = EnhancedMailManager(use_local_backend=use_local)
             did_manager = DIDManager()

@@ -22,12 +22,12 @@ from .step_helper import DemoStepHelper
 
 
 
-from anp_sdk_demo.demo_modules.customized_group_member import (
+from anp_open_sdk_demo.demo_modules.customized_group_member import (
     GroupMemberWithStorage,
     GroupMemberWithStats,
     GroupMemberComplete
 )
-from anp_sdk_demo.demo_modules.customized_group_runner import (
+from anp_open_sdk_demo.demo_modules.customized_group_runner import (
     ChatRoomRunnerWithLogging,
     ModeratedChatRunnerWithLogging
 )
@@ -879,8 +879,8 @@ class DemoTaskRunner:
             logger.debug("\n📋 显示群组运行日志:")
             logger.debug("-" * 40)
             group_log_files = [
-                UnifiedConfig.resolve_path("anp_sdk_demo/demo_data_tmp/group_logs/sample_group_messages.json"),
-                UnifiedConfig.resolve_path("anp_sdk_demo/demo_data_tmp/group_logs/moderated_group_messages.json")
+                UnifiedConfig.resolve_path("anp_open_sdk_demo/data_tmp_result/group_logs/sample_group_messages.json"),
+                UnifiedConfig.resolve_path("anp_open_sdk_demo/data_tmp_result/group_logs/moderated_group_messages.json")
             ]
             for group_name, log_file in zip(["普通群聊", "审核群聊"], group_log_files):
                 await self._show_group_logs(group_name, log_file)
@@ -903,7 +903,7 @@ class DemoTaskRunner:
 
             for agent, agent_prefix, agent_type in storage_agents:
                 if agent_type in ["GroupMemberWithStorage", "GroupMemberComplete"]:
-                    message_file = UnifiedConfig.resolve_path(f"anp_sdk_demo/demo_data_tmp/member_messages/{agent_prefix}_group_messages.json")
+                    message_file = UnifiedConfig.resolve_path(f"anp_open_sdk_demo/data_tmp_result/member_messages/{agent_prefix}_group_messages.json")
                     await self._show_received_group_messages(agent.name, message_file)
                 else:
                     logger.debug(f"\n📨 {agent.name}: 使用的是 {agent_type} 类，不具备存储功能")
@@ -942,7 +942,7 @@ class DemoTaskRunner:
         
         try:
             # 获取demo_data目录路径
-            demo_data_path = UnifiedConfig.resolve_path("anp_sdk_demo/demo_data_tmp")
+            demo_data_path = UnifiedConfig.resolve_path("anp_open_sdk_demo/data_tmp_result")
             if not os.path.exists(demo_data_path):
                 logger.warning(f"demo_data目录不存在: {demo_data_path}")
                 return

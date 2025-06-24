@@ -9,6 +9,13 @@ from pathlib import Path
 class MultiAgentModeConfig(Protocol):
     agents_cfg_path: str
 
+
+class AnpSdkAgentConfig(Protocol):
+    """ANP SDK 智能体配置协议"""
+    demo_agent1: str
+    demo_agent2: str
+    demo_agent3: str
+
 class AnpSdkConfig(Protocol):
     """ANP SDK 配置协议"""
     debug_mode: bool
@@ -23,13 +30,9 @@ class AnpSdkConfig(Protocol):
     jwt_algorithm: str
     user_did_key_id: str
     helper_lang: str
+    agent: AnpSdkAgentConfig
 
 
-class AnpSdkAgentConfig(Protocol):
-    """ANP SDK 智能体配置协议"""
-    demo_agent1: str
-    demo_agent2: str
-    demo_agent3: str
 
 
 class AnpSdkProxyConfig(Protocol):
@@ -58,6 +61,7 @@ class MailConfig(Protocol):
     hoster_mail_user: str
     sender_mail_user: str
     register_mail_user: str
+
 
 
 class ChatConfig(Protocol):

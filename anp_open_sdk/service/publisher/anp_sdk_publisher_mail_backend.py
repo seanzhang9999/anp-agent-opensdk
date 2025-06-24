@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from anp_open_sdk.config import get_config_value,get_global_config
+from anp_open_sdk.config import get_global_config
 import json
 import time
 import imaplib
@@ -171,12 +171,14 @@ class GmailBackend(MailBackend):
     
     def __init__(self):
         # 优先从 dynamic_config 获取配置，回退到环境变量
-        from anp_open_sdk.config import get_config_value
-        self.mail_user = (get_config_value('HOSTER_MAIL_USER') or
-                         get_config_value('SENDER_MAIL_USER'))
-        self.mail_pass = (get_config_value('HOSTER_MAIL_PASSWORD') or 
-                         get_config_value('SENDER_PASSWORD'))
-        
+        config = get_global_config()
+        if config.mail.hoster_mail_user is not None:
+            self.mail_user = config.mail.hoster_mail_user
+            self.mail_pass = config.secrets.hoster_mail_password
+        else:
+            self.mail_user =  config.mail.sender_mail_user
+            self.mail_pass = config.secrets.sender_mail_password
+
         if not (self.mail_user and self.mail_pass):
             raise ValueError('请在环境变量中配置邮箱用户名和密码')
         
@@ -333,9 +335,11 @@ class EnhancedMailManager:
         """发送托管DID申请邮件"""
         
         try:
+            config = get_global_config()
             body = json.dumps(did_document, ensure_ascii=False, indent=2)
-            to_address = register_email or get_config_value('REGISTER_MAIL_USER', 'admin@local.com')
-            from_address = get_config_value('SENDER_MAIL_USER')
+            to_address = register_email or config.mail.register_mail_user
+            from_address = config.mail.sender_mail_user
+
 
             logger.debug(f"发送托管DID申请邮件: {to_address}")
             return self.send_email(
@@ -364,7 +368,9 @@ class MailManager(EnhancedMailManager):
     
     def __init__(self):
         # 检查是否设置了测试模式
-        use_local = get_config_value('USE_LOCAL_MAIL', False)
+        from anp_open_sdk.config import get_global_config
+        config = get_global_config()
+        use_local = config.mail.use_local_backend
         super().__init__(use_local_backend=use_local)
 
 

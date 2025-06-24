@@ -7,14 +7,14 @@ import glob
 from anp_open_sdk.config import UnifiedConfig, set_global_config
 from anp_open_sdk.utils.log_base import setup_logging
 
-app_config = UnifiedConfig(config_file='multi_agent_unified_config.yaml')
+app_config = UnifiedConfig(config_file='anp_open_sdk_framework_demo_agent_unified_config.yaml')
 set_global_config(app_config)
 setup_logging() # 假设 setup_logging 内部也改用 get_global_config()
 logger = logging.getLogger(__name__)
 
 
 
-AGENT_YAML_PATTERN = "user_data/localhost_9527/agents_config/*/agent_mappings.yaml"
+AGENT_YAML_PATTERN = "data_user/localhost_9527/agents_config/*/agent_mappings.yaml"
 
 def get_all_agent_yaml_files():
     return glob.glob(AGENT_YAML_PATTERN)

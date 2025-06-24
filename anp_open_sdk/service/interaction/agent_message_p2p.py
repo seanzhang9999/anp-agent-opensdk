@@ -17,7 +17,7 @@
 
 from anp_open_sdk.anp_sdk_agent import LocalAgent, RemoteAgent
 from urllib.parse import urlencode, quote
-from anp_open_sdk.config.legacy.dynamic_config import dynamic_config
+from anp_open_sdk.config import get_global_config
 from anp_open_sdk.auth.auth_client import agent_auth_request, handle_response
 
 async def agent_msg_post(sdk, caller_agent: str, target_agent: str, content: str, message_type: str = "text"):
@@ -35,7 +35,8 @@ async def agent_msg_post(sdk, caller_agent: str, target_agent: str, content: str
         "message_type": message_type,
         "content": content
     }
-    msg_dir = dynamic_config.get("anp_sdk.msg_virtual_dir")
+    config = get_global_config()
+    msg_dir = config.anp_sdk.msg_virtual_dir
     url = f"http://{target_agent_obj.host}:{target_agent_obj.port}{msg_dir}/{target_agent_path}/post?{url_params}"
 
     status, response, info, is_auth_pass = await agent_auth_request(

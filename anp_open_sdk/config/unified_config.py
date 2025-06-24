@@ -476,14 +476,3 @@ class UnifiedConfig:
             return yaml.safe_load(f)
 
 
-
-def get_config_value(key: str, default: Any = None) -> Any:
-    try:
-        keys = key.split('.')
-        config = get_global_config()
-        value = config
-        for k in keys:
-            value = getattr(value, k)
-        return value
-    except (AttributeError, KeyError):
-        return default
