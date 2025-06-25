@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DID：你的数字智子身份</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #0c1426 0%, #1a2844 50%, #0c1426 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* 星空背景 */
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .star {
+            position: absolute;
+            background: #4fc3f7;
+            border-radius: 50%;
+            animation: twinkle 3s infinite;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .main-title {
+            font-size: 3em;
+            font-weight: bold;
+            margin-bottom: 20px;
+            background: linear-gradient(45deg, #4fc3f7, #29b6f6, #03a9f4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            font-size: 1.2em;
+            color: #b0bec5;
+            margin-bottom: 30px;
+        }
+
+        .did-id {
+            font-family: 'Courier New', monospace;
+            font-size: 1.1em;
+            color: #4fc3f7;
+            background: rgba(79, 195, 247, 0.1);
+            padding: 10px 20px;
+            border-radius: 25px;
+            border: 1px solid rgba(79, 195, 247, 0.3);
+            display: inline-block;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            margin-bottom: 60px;
+            align-items: center;
+        }
+
+        .analogy-section {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            border: 1px solid rgba(79, 195, 247, 0.2);
+            position: relative;
+        }
+
+        .analogy-section::before {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: -1px;
+            right: -1px;
+            bottom: -1px;
+            background: linear-gradient(45deg, #4fc3f7, transparent, #4fc3f7);
+            border-radius: 20px;
+            z-index: -1;
+            opacity: 0.3;
+        }
+
+        .section-title {
+            font-size: 1.8em;
+            margin-bottom: 25px;
+            color: #4fc3f7;
+            text-align: center;
+        }
+
+        .comparison-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(79, 195, 247, 0.05);
+            border-radius: 10px;
+            border-left: 3px solid #4fc3f7;
+        }
+
+        .icon {
+            width: 40px;
+            height: 40px;
+            margin-right: 15px;
+            background: linear-gradient(45deg, #4fc3f7, #29b6f6);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            flex-shrink: 0;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            margin-bottom: 60px;
+        }
+
+        .feature-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            border: 1px solid rgba(79, 195, 247, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(79, 195, 247, 0.1), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .feature-card:hover::before {
+            left: 100%;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(79, 195, 247, 0.2);
+        }
+
+        .feature-icon {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 20px;
+            background: linear-gradient(45deg, #4fc3f7, #29b6f6);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+        }
+
+        .feature-title {
+            font-size: 1.3em;
+            margin-bottom: 15px;
+            color: #4fc3f7;
+        }
+
+        .feature-desc {
+            color: #b0bec5;
+            line-height: 1.6;
+        }
+
+        .value-section {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            border: 1px solid rgba(79, 195, 247, 0.2);
+            text-align: center;
+        }
+
+        .value-title {
+            font-size: 2em;
+            margin-bottom: 30px;
+            color: #4fc3f7;
+        }
+
+        .value-points {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .value-point {
+            padding: 20px;
+            background: rgba(79, 195, 247, 0.05);
+            border-radius: 10px;
+            border: 1px solid rgba(79, 195, 247, 0.1);
+        }
+
+        .value-point-title {
+            font-size: 1.1em;
+            color: #4fc3f7;
+            margin-bottom: 10px;
+        }
+
+        .floating-particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #4fc3f7;
+            border-radius: 50%;
+            animation: float 6s infinite linear;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(100vh) rotate(0deg);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100px) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                gap: 30px;
+            }
+            
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .main-title {
+                font-size: 2em;
+            }
+            
+            .value-points {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="stars"></div>
+    
+    <div class="container">
+        <div class="header">
+            <h1 class="main-title">DID：你的数字智子身份</h1>
+            <p class="subtitle">就像《三体》中的智子一样，DID是属于你的数字身份粒子</p>
+            <div class="did-id">did:agent:sean-9Z1N3E</div>
+        </div>
+
+        <div class="main-content">
+            <div class="analogy-section">
+                <h2 class="section-title">📚 智子类比</h2>
+                <div class="comparison-item">
+                    <div class="icon">🔬</div>
+                    <div>
+                        <strong>制造智子</strong> = 生成你的DID<br>
+                        <small>三体人制造智子，你生成唯一的数字身份</small>
+                    </div>
+                </div>
+                <div class="comparison-item">
+                    <div class="icon">📡</div>
+                    <div>
+                        <strong>展开智子</strong> = 解析DID结构<br>
+                        <small>别人可以验证你的身份和权限</small>
+                    </div>
+                </div>
+                <div class="comparison-item">
+                    <div class="icon">🎮</div>
+                    <div>
+                        <strong>量子控制</strong> = 私钥控制权<br>
+                        <small>只有你能控制和更新你的DID</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="analogy-section">
+                <h2 class="section-title">🆚 传统账号对比</h2>
+                <div class="comparison-item">
+                    <div class="icon">❌</div>
+                    <div>
+                        <strong>传统账号</strong><br>
+                        <small>由平台控制，可能被封禁或删除</small>
+                    </div>
+                </div>
+                <div class="comparison-item">
+                    <div class="icon">✅</div>
+                    <div>
+                        <strong>DID身份</strong><br>
+                        <small>完全自主，不受任何平台控制</small>
+                    </div>
+                </div>
+                <div class="comparison-item">
+                    <div class="icon">🔐</div>
+                    <div>
+                        <strong>DID优势</strong><br>
+                        <small>一次创建，全网通用，永久有效</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🔍</div>
+                <h3 class="feature-title">唤醒</h3>
+                <p class="feature-desc">你的物理身体对应全宇宙唯一的，由你自主生成、掌控作为中心</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🔧</div>
+                <h3 class="feature-title">解析结构</h3>
+                <p class="feature-desc">你的意识通过技能展示权限、公钥与顺序条件，回问万物可读可信，但这智子的保键可法化</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">👤</div>
+                <h3 class="feature-title">权属验证</h3>
+                <p class="feature-desc">只有你的钥匙，匹配、唤醒、定制己，如问己你守望道待控制了，你的跳质统是一切到坚作的合法性</p>
+            </div>
+        </div>
+
+        <div class="value-section">
+            <h2 class="value-title">🌟 DID的核心价值</h2>
+            <div class="value-points">
+                <div class="value-point">
+                    <div class="value-point-title">🚀 自主身份</div>
+                    <p>不依赖任何中心化平台，真正属于你的数字身份</p>
+                </div>
+                <div class="value-point">
+                    <div class="value-point-title">🔐 隐私保护</div>
+                    <p>你决定分享什么信息，保护个人隐私安全</p>
+                </div>
+                <div class="value-point">
+                    <div class="value-point-title">🌐 全网通用</div>
+                    <p>一个DID可以在所有支持的平台和应用中使用</p>
+                </div>
+                <div class="value-point">
+                    <div class="value-point-title">✅ 可信验证</div>
+                    <p>通过密码学保证身份真实性，防止伪造</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 创建星空背景
+        function createStars() {
+            const starsContainer = document.querySelector('.stars');
+            const numStars = 100;
+            
+            for (let i = 0; i < numStars; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.width = Math.random() * 3 + 1 + 'px';
+                star.style.height = star.style.width;
+                star.style.animationDelay = Math.random() * 3 + 's';
+                starsContainer.appendChild(star);
+            }
+        }
+
+        // 创建浮动粒子
+        function createFloatingParticles() {
+            setInterval(() => {
+                const particle = document.createElement('div');
+                particle.className = 'floating-particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDuration = (Math.random() * 3 + 4) + 's';
+                document.body.appendChild(particle);
+                
+                setTimeout(() => {
+                    particle.remove();
+                }, 7000);
+            }, 500);
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            createStars();
+            createFloatingParticles();
+        });
+
+        // 添加鼠标悬停效果
+        document.querySelectorAll('.feature-card').forEach(card => {
+            card.addEventListener('mouseenter', () => {
+                card.style.transform = 'translateY(-10px) scale(1.02)';
+            });
+            
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = 'translateY(0) scale(1)';
+            });
+        });
+    </script>
+</body>
+</html>

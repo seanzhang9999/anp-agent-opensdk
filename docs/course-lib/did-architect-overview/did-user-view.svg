@@ -1,0 +1,195 @@
+<svg viewBox="0 0 1400 1000" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- 复用之前的渐变定义 -->
+    <linearGradient id="userPlaneGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#fff3e0;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ffb74d;stop-opacity:1" />
+    </linearGradient>
+    
+    <linearGradient id="didPlaneGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#e3f2fd;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#90caf9;stop-opacity:1" />
+    </linearGradient>
+    
+    <linearGradient id="featureGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#f3e5f5;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#e1bee7;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- 阴影滤镜 -->
+    <filter id="dropshadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+      <feOffset dx="2" dy="4" result="offset" />
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.3"/>
+      </feComponentTransfer>
+      <feMerge> 
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/> 
+      </feMerge>
+    </filter>
+    
+    <!-- 箭头标记 -->
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" 
+     refX="0" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#666" />
+    </marker>
+  </defs>
+  
+  <!-- 背景 -->
+  <rect width="1400" height="1000" fill="#f8f9fa"/>
+  
+  <!-- 标题 -->
+  <text x="700" y="40" text-anchor="middle" font-size="24" font-weight="bold" fill="#2c3e50">DID身份映射架构：基本模式与增强功能</text>
+  
+  <!-- 主体框架 -->
+  <rect x="50" y="80" width="1300" height="600" fill="#ffffff" stroke="#dee2e6" stroke-width="2" rx="15"/>
+  
+  <!-- 四种基本模式标题区 -->
+  <rect x="70" y="100" width="1260" height="50" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" rx="10"/>
+  <text x="700" y="130" text-anchor="middle" font-size="18" font-weight="bold" fill="#0d47a1">四种基本映射模式</text>
+  
+  <!-- 基本模式简化展示 -->
+  <g id="basic-modes">
+    <!-- 模式1 -->
+    <rect x="100" y="180" width="280" height="150" fill="#e8f5e9" stroke="#4caf50" stroke-width="2" rx="10" filter="url(#dropshadow)"/>
+    <text x="240" y="205" text-anchor="middle" font-size="14" font-weight="bold" fill="#2e7d32">模式1：用户持有密钥</text>
+    <text x="240" y="225" text-anchor="middle" font-size="11" fill="#388e3c">• 用户控制DID私钥</text>
+    <text x="240" y="245" text-anchor="middle" font-size="11" fill="#388e3c">• 云端仅做代理</text>
+    <text x="240" y="265" text-anchor="middle" font-size="11" fill="#388e3c">• 每次认证需签名</text>
+    <rect x="170" y="285" width="140" height="30" fill="#c8e6c9" stroke="#388e3c" stroke-width="1" rx="5"/>
+    <text x="240" y="303" text-anchor="middle" font-size="10" fill="#1b5e20">适合：技术用户</text>
+    
+    <!-- 模式2 -->
+    <rect x="410" y="180" width="280" height="150" fill="#fff3e0" stroke="#ff9800" stroke-width="2" rx="10" filter="url(#dropshadow)"/>
+    <text x="550" y="205" text-anchor="middle" font-size="14" font-weight="bold" fill="#e65100">模式2：云端托管</text>
+    <text x="550" y="225" text-anchor="middle" font-size="11" fill="#f57c00">• 云端代持私钥</text>
+    <text x="550" y="245" text-anchor="middle" font-size="11" fill="#f57c00">• 用户名密码登录</text>
+    <text x="550" y="265" text-anchor="middle" font-size="11" fill="#f57c00">• 敏感操作额外认证</text>
+    <rect x="480" y="285" width="140" height="30" fill="#ffe0b2" stroke="#ff9800" stroke-width="1" rx="5"/>
+    <text x="550" y="303" text-anchor="middle" font-size="10" fill="#e65100">适合：普通用户</text>
+    
+    <!-- 模式3 -->
+    <rect x="720" y="180" width="280" height="150" fill="#e3f2fd" stroke="#2196f3" stroke-width="2" rx="10" filter="url(#dropshadow)"/>
+    <text x="860" y="205" text-anchor="middle" font-size="14" font-weight="bold" fill="#1565c0">模式3：本地代理</text>
+    <text x="860" y="225" text-anchor="middle" font-size="11" fill="#1976d2">• 本地服务器/终端</text>
+    <text x="860" y="245" text-anchor="middle" font-size="11" fill="#1976d2">• 自主管理私钥</text>
+    <text x="860" y="265" text-anchor="middle" font-size="11" fill="#1976d2">• 本地认证处理</text>
+    <rect x="790" y="285" width="140" height="30" fill="#bbdefb" stroke="#1976d2" stroke-width="1" rx="5"/>
+    <text x="860" y="303" text-anchor="middle" font-size="10" fill="#0d47a1">适合：企业用户</text>
+    
+    <!-- 模式4 -->
+    <rect x="1030" y="180" width="280" height="150" fill="#f3e5f5" stroke="#9c27b0" stroke-width="2" rx="10" filter="url(#dropshadow)"/>
+    <text x="1170" y="205" text-anchor="middle" font-size="14" font-weight="bold" fill="#6a1b9a">模式4：多级托管</text>
+    <text x="1170" y="225" text-anchor="middle" font-size="11" fill="#7b1fa2">• 基于模式2/3</text>
+    <text x="1170" y="245" text-anchor="middle" font-size="11" fill="#7b1fa2">• 申请托管DID</text>
+    <text x="1170" y="265" text-anchor="middle" font-size="11" fill="#7b1fa2">• 增强灵活性</text>
+    <rect x="1100" y="285" width="140" height="30" fill="#e1bee7" stroke="#9c27b0" stroke-width="1" rx="5"/>
+    <text x="1170" y="303" text-anchor="middle" font-size="10" fill="#4a148c">适合：跨平台用户</text>
+  </g>
+  
+  <!-- 通用增强功能区 -->
+  <rect x="70" y="360" width="1260" height="300" fill="#fafafa" stroke="#9e9e9e" stroke-width="2" rx="10"/>
+  <rect x="90" y="375" width="200" height="40" fill="#616161" stroke="#424242" stroke-width="2" rx="8"/>
+  <text x="190" y="400" text-anchor="middle" font-size="16" font-weight="bold" fill="#ffffff">通用增强功能</text>
+  
+  <!-- 增强功能详细说明 -->
+  <g id="enhancements">
+    <!-- 混合模式 -->
+    <rect x="120" y="440" width="220" height="180" fill="url(#featureGrad)" stroke="#7b1fa2" stroke-width="2" rx="10"/>
+    <text x="230" y="465" text-anchor="middle" font-size="13" font-weight="bold" fill="#4a148c">混合模式支持</text>
+    <text x="230" y="485" text-anchor="middle" font-size="10" fill="#6a1b9a">场景化切换：</text>
+    <text x="130" y="505" font-size="9" fill="#7b1fa2">• 移动端→模式2</text>
+    <text x="130" y="520" font-size="9" fill="#7b1fa2">• PC端→模式1</text>
+    <text x="130" y="535" font-size="9" fill="#7b1fa2">• 办公室→模式3</text>
+    <rect x="140" y="550" width="180" height="50" fill="#ede7f6" stroke="#9c27b0" stroke-width="1" rx="5"/>
+    <text x="230" y="570" text-anchor="middle" font-size="9" fill="#4a148c">实现：统一身份管理器</text>
+    <text x="230" y="585" text-anchor="middle" font-size="9" fill="#4a148c">自动识别环境切换</text>
+    
+    <!-- 恢复机制 -->
+    <rect x="370" y="440" width="220" height="180" fill="url(#featureGrad)" stroke="#7b1fa2" stroke-width="2" rx="10"/>
+    <text x="480" y="465" text-anchor="middle" font-size="13" font-weight="bold" fill="#4a148c">身份恢复机制</text>
+    <text x="480" y="485" text-anchor="middle" font-size="10" fill="#6a1b9a">分模式实现：</text>
+    <text x="380" y="505" font-size="9" fill="#7b1fa2">• 模式1：助记词/密钥备份</text>
+    <text x="380" y="520" font-size="9" fill="#7b1fa2">• 模式2：账户恢复流程</text>
+    <text x="380" y="535" font-size="9" fill="#7b1fa2">• 模式3：本地备份恢复</text>
+    <text x="380" y="550" font-size="9" fill="#7b1fa2">• 模式4：主DID恢复</text>
+    <rect x="390" y="565" width="180" height="35" fill="#ede7f6" stroke="#9c27b0" stroke-width="1" rx="5"/>
+    <text x="480" y="585" text-anchor="middle" font-size="9" fill="#4a148c">统一恢复协议标准</text>
+    
+    <!-- 多签名 -->
+    <rect x="620" y="440" width="220" height="180" fill="url(#featureGrad)" stroke="#7b1fa2" stroke-width="2" rx="10"/>
+    <text x="730" y="465" text-anchor="middle" font-size="13" font-weight="bold" fill="#4a148c">多签名/阈值签名</text>
+    <text x="730" y="485" text-anchor="middle" font-size="10" fill="#6a1b9a">高价值操作保护：</text>
+    <text x="630" y="505" font-size="9" fill="#7b1fa2">• 2-of-3多签名</text>
+    <text x="630" y="520" font-size="9" fill="#7b1fa2">• 阈值签名方案</text>
+    <text x="630" y="535" font-size="9" fill="#7b1fa2">• 时间锁定</text>
+    <rect x="640" y="550" width="180" height="50" fill="#ede7f6" stroke="#9c27b0" stroke-width="1" rx="5"/>
+    <text x="730" y="570" text-anchor="middle" font-size="9" fill="#4a148c">应用场景：</text>
+    <text x="730" y="585" text-anchor="middle" font-size="9" fill="#4a148c">大额转账、权限变更</text>
+    
+    <!-- HSM -->
+    <rect x="870" y="440" width="220" height="180" fill="url(#featureGrad)" stroke="#7b1fa2" stroke-width="2" rx="10"/>
+    <text x="980" y="465" text-anchor="middle" font-size="13" font-weight="bold" fill="#4a148c">硬件安全模块</text>
+    <text x="980" y="485" text-anchor="middle" font-size="10" fill="#6a1b9a">密钥硬件保护：</text>
+    <text x="880" y="505" font-size="9" fill="#7b1fa2">• 硬件钱包集成</text>
+    <text x="880" y="520" font-size="9" fill="#7b1fa2">• TPM/TEE支持</text>
+    <text x="880" y="535" font-size="9" fill="#7b1fa2">• FIDO2认证器</text>
+    <rect x="890" y="550" width="180" height="50" fill="#ede7f6" stroke="#9c27b0" stroke-width="1" rx="5"/>
+    <text x="980" y="570" text-anchor="middle" font-size="9" fill="#4a148c">主要增强：</text>
+    <text x="980" y="585" text-anchor="middle" font-size="9" fill="#4a148c">模式1和模式3</text>
+    
+    <!-- 社交恢复 -->
+    <rect x="1120" y="440" width="180" height="180" fill="url(#featureGrad)" stroke="#7b1fa2" stroke-width="2" rx="10"/>
+    <text x="1210" y="465" text-anchor="middle" font-size="13" font-weight="bold" fill="#4a148c">社交恢复</text>
+    <text x="1210" y="485" text-anchor="middle" font-size="10" fill="#6a1b9a">信任网络：</text>
+    <text x="1130" y="505" font-size="9" fill="#7b1fa2">• 预设恢复人</text>
+    <text x="1130" y="520" font-size="9" fill="#7b1fa2">• M-of-N恢复</text>
+    <text x="1130" y="535" font-size="9" fill="#7b1fa2">• 时间延迟</text>
+    <rect x="1130" y="550" width="160" height="50" fill="#ede7f6" stroke="#9c27b0" stroke-width="1" rx="5"/>
+    <text x="1210" y="570" text-anchor="middle" font-size="9" fill="#4a148c">优势：</text>
+    <text x="1210" y="585" text-anchor="middle" font-size="9" fill="#4a148c">去中心化恢复</text>
+  </g>
+  
+  <!-- 增强功能与基本模式的关系箭头 -->
+  <g id="relationships">
+    <!-- 从增强功能指向各模式的虚线 -->
+    <line x1="230" y1="440" x2="240" y2="330" stroke="#9c27b0" stroke-width="1" stroke-dasharray="3,3" opacity="0.6"/>
+    <line x1="480" y1="440" x2="550" y2="330" stroke="#9c27b0" stroke-width="1" stroke-dasharray="3,3" opacity="0.6"/>
+    <line x1="730" y1="440" x2="860" y2="330" stroke="#9c27b0" stroke-width="1" stroke-dasharray="3,3" opacity="0.6"/>
+    <line x1="980" y1="440" x2="1170" y2="330" stroke="#9c27b0" stroke-width="1" stroke-dasharray="3,3" opacity="0.6"/>
+  </g>
+  
+  <!-- 底部总结 -->
+  <rect x="50" y="700" width="1300" height="280" fill="#eceff1" stroke="#607d8b" stroke-width="2" rx="15"/>
+  <text x="700" y="730" text-anchor="middle" font-size="18" font-weight="bold" fill="#37474f">架构总结</text>
+  
+  <!-- 总结内容 -->
+  <g id="summary">
+    <!-- 左侧：基本模式 -->
+    <rect x="80" y="750" width="600" height="200" fill="#ffffff" stroke="#90a4ae" stroke-width="1" rx="10"/>
+    <text x="380" y="775" text-anchor="middle" font-size="14" font-weight="bold" fill="#455a64">基本模式特征</text>
+    
+    <text x="100" y="800" font-size="11" fill="#546e7a">• 四种模式覆盖了密钥管理的主要方式</text>
+    <text x="100" y="820" font-size="11" fill="#546e7a">• 每种模式都是完整的身份映射方案</text>
+    <text x="100" y="840" font-size="11" fill="#546e7a">• 根据用户技术能力和安全需求选择</text>
+    <text x="100" y="860" font-size="11" fill="#546e7a">• 模式之间可以迁移和转换</text>
+    
+    <rect x="100" y="880" width="560" height="50" fill="#e0f2f1" stroke="#4db6ac" stroke-width="1" rx="5"/>
+    <text x="380" y="900" text-anchor="middle" font-size="12" font-weight="bold" fill="#00695c">核心原则：</text>
+    <text x="380" y="915" text-anchor="middle" font-size="11" fill="#00796b">保持架构简洁，通过增强功能提供灵活性</text>
+    
+    <!-- 右侧：增强功能 -->
+    <rect x="720" y="750" width="600" height="200" fill="#ffffff" stroke="#90a4ae" stroke-width="1" rx="10"/>
+    <text x="1020" y="775" text-anchor="middle" font-size="14" font-weight="bold" fill="#455a64">增强功能定位</text>
+    
+    <text x="740" y="800" font-size="11" fill="#546e7a">• 作为可选的附加功能，不是独立模式</text>
+    <text x="740" y="820" font-size="11" fill="#546e7a">• 可跨模式使用，提供通用能力</text>
+    <text x="740" y="840" font-size="11" fill="#546e7a">• 根据具体需求灵活组合</text>
+    <text x="740" y="860" font-size="11" fill="#546e7a">• 不增加基础架构的复杂度</text>
+    
+    <rect x="740" y="880" width="560" height="50" fill="#fce4ec" stroke="#f48fb1" stroke-width="1" rx="5"/>
+    <text x="1020" y="900" text-anchor="middle" font-size="12" font-weight="bold" fill="#880e4f">实施建议：</text>
+    <text x="1020" y="915" text-anchor="middle" font-size="11" fill="#ad1457">先实现基本模式，再按需添加增强功能</text>
+  </g>
+</svg>

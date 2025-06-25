@@ -1,0 +1,249 @@
+<svg viewBox="0 0 1200 1600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- 渐变定义 -->
+    <radialGradient id="bgGradient" cx="50%" cy="30%">
+      <stop offset="0%" style="stop-color:#1a2844;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0c1426;stop-opacity:1" />
+    </radialGradient>
+    
+    <linearGradient id="titleGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4fc3f7" />
+      <stop offset="50%" style="stop-color:#29b6f6" />
+      <stop offset="100%" style="stop-color:#03a9f4" />
+    </linearGradient>
+    
+    <linearGradient id="cardGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:rgba(79,195,247,0.1)" />
+      <stop offset="100%" style="stop-color:rgba(41,182,246,0.05)" />
+    </linearGradient>
+    
+    <!-- 发光效果 -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge> 
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    
+    <!-- 星星动画 -->
+    <animate id="twinkle" attributeName="opacity" values="0.3;1;0.3" dur="3s" repeatCount="indefinite"/>
+  </defs>
+
+  <!-- 背景 -->
+  <rect width="1200" height="1600" fill="url(#bgGradient)"/>
+  
+  <!-- 星空背景 -->
+  <g opacity="0.6">
+    <circle cx="100" cy="150" r="1" fill="#4fc3f7">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="200" cy="200" r="1.5" fill="#4fc3f7">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="3s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="300" cy="120" r="1" fill="#4fc3f7">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="2.5s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="450" cy="180" r="1" fill="#4fc3f7">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="3.5s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="650" cy="140" r="1.5" fill="#4fc3f7">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="2.8s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="800" cy="190" r="1" fill="#4fc3f7">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="3.2s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="950" cy="130" r="1" fill="#4fc3f7">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="2.3s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="1100" cy="170" r="1.5" fill="#4fc3f7">
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="3.8s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+  
+  <!-- 中央智子球体 -->
+  <g transform="translate(600,120)">
+    <circle cx="0" cy="0" r="40" fill="none" stroke="#4fc3f7" stroke-width="2" opacity="0.3">
+      <animate attributeName="r" values="35;45;35" dur="4s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="0" cy="0" r="25" fill="#4fc3f7" opacity="0.8" filter="url(#glow)">
+      <animate attributeName="opacity" values="0.6;1;0.6" dur="3s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="0" cy="0" r="15" fill="#29b6f6" opacity="0.9"/>
+  </g>
+  
+  <!-- 标题区域 -->
+  <text x="600" y="250" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="48" font-weight="bold" fill="url(#titleGradient)">DID：你的数字智子身份</text>
+  
+  <text x="600" y="280" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="18" fill="#b0bec5">就像《三体》中的智子一样，DID是属于你的数字身份粒子</text>
+  
+  <!-- DID标识符 -->
+  <rect x="450" y="300" width="300" height="40" rx="20" fill="rgba(79,195,247,0.1)" stroke="rgba(79,195,247,0.3)" stroke-width="1"/>
+  <text x="600" y="325" text-anchor="middle" font-family="Courier New, monospace" font-size="16" fill="#4fc3f7">did:agent:sean-9Z1N3E</text>
+  
+  <!-- 智子类比区域 -->
+  <g transform="translate(100,380)">
+    <rect width="450" height="320" rx="20" fill="url(#cardGradient)" stroke="rgba(79,195,247,0.2)" stroke-width="1"/>
+    <text x="225" y="40" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="24" font-weight="bold" fill="#4fc3f7">📚 智子类比</text>
+    
+    <!-- 类比项目1 -->
+    <circle cx="40" cy="80" r="20" fill="url(#titleGradient)"/>
+    <text x="40" y="87" text-anchor="middle" font-family="sans-serif" font-size="16" fill="white">🔬</text>
+    <text x="80" y="75" font-family="Microsoft YaHei, sans-serif" font-size="16" font-weight="bold" fill="white">制造智子 = 生成你的DID</text>
+    <text x="80" y="95" font-family="Microsoft YaHei, sans-serif" font-size="14" fill="#b0bec5">三体人制造智子，你生成唯一的数字身份</text>
+    
+    <!-- 类比项目2 -->
+    <circle cx="40" cy="150" r="20" fill="url(#titleGradient)"/>
+    <text x="40" y="157" text-anchor="middle" font-family="sans-serif" font-size="16" fill="white">📡</text>
+    <text x="80" y="145" font-family="Microsoft YaHei, sans-serif" font-size="16" font-weight="bold" fill="white">展开智子 = 解析DID结构</text>
+    <text x="80" y="165" font-family="Microsoft YaHei, sans-serif" font-size="14" fill="#b0bec5">别人可以验证你的身份和权限</text>
+    
+    <!-- 类比项目3 -->
+    <circle cx="40" cy="220" r="20" fill="url(#titleGradient)"/>
+    <text x="40" y="227" text-anchor="middle" font-family="sans-serif" font-size="16" fill="white">🎮</text>
+    <text x="80" y="215" font-family="Microsoft YaHei, sans-serif" font-size="16" font-weight="bold" fill="white">量子控制 = 私钥控制权</text>
+    <text x="80" y="235" font-family="Microsoft YaHei, sans-serif" font-size="14" fill="#b0bec5">只有你能控制和更新你的DID</text>
+    
+    <!-- 传统对比 -->
+    <line x1="0" y1="270" x2="450" y2="270" stroke="rgba(79,195,247,0.3)" stroke-width="1"/>
+    <text x="225" y="295" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="16" fill="#4fc3f7">VS 传统账号：平台控制 → DID：完全自主</text>
+  </g>
+  
+  <!-- 对比区域 -->
+  <g transform="translate(650,380)">
+    <rect width="450" height="320" rx="20" fill="url(#cardGradient)" stroke="rgba(79,195,247,0.2)" stroke-width="1"/>
+    <text x="225" y="40" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="24" font-weight="bold" fill="#4fc3f7">🆚 核心区别</text>
+    
+    <!-- 传统账号 -->
+    <circle cx="40" cy="80" r="20" fill="#ff5252"/>
+    <text x="40" y="87" text-anchor="middle" font-family="sans-serif" font-size="16" fill="white">❌</text>
+    <text x="80" y="75" font-family="Microsoft YaHei, sans-serif" font-size="16" font-weight="bold" fill="white">传统账号</text>
+    <text x="80" y="95" font-family="Microsoft YaHei, sans-serif" font-size="14" fill="#b0bec5">由平台控制，可能被封禁或删除</text>
+    
+    <!-- DID身份 -->
+    <circle cx="40" cy="150" r="20" fill="#4caf50"/>
+    <text x="40" y="157" text-anchor="middle" font-family="sans-serif" font-size="16" fill="white">✅</text>
+    <text x="80" y="145" font-family="Microsoft YaHei, sans-serif" font-size="16" font-weight="bold" fill="white">DID身份</text>
+    <text x="80" y="165" font-family="Microsoft YaHei, sans-serif" font-size="14" fill="#b0bec5">完全自主，不受任何平台控制</text>
+    
+    <!-- DID优势 -->
+    <circle cx="40" cy="220" r="20" fill="url(#titleGradient)"/>
+    <text x="40" y="227" text-anchor="middle" font-family="sans-serif" font-size="16" fill="white">🔐</text>
+    <text x="80" y="215" font-family="Microsoft YaHei, sans-serif" font-size="16" font-weight="bold" fill="white">DID优势</text>
+    <text x="80" y="235" font-family="Microsoft YaHei, sans-serif" font-size="14" fill="#b0bec5">一次创建，全网通用，永久有效</text>
+    
+    <text x="225" y="295" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="16" fill="#4fc3f7">🌟 真正属于你的数字身份</text>
+  </g>
+  
+  <!-- 三大功能 -->
+  <text x="600" y="770" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="32" font-weight="bold" fill="url(#titleGradient)">三大核心功能</text>
+  
+  <!-- 功能卡片1：唤醒 -->
+  <g transform="translate(150,800)">
+    <rect width="280" height="200" rx="15" fill="url(#cardGradient)" stroke="rgba(79,195,247,0.2)" stroke-width="1"/>
+    <circle cx="140" cy="50" r="25" fill="url(#titleGradient)"/>
+    <text x="140" y="58" text-anchor="middle" font-family="sans-serif" font-size="20" fill="white">🔍</text>
+    <text x="140" y="90" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="20" font-weight="bold" fill="#4fc3f7">唤醒</text>
+    <text x="140" y="115" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="14" fill="#b0bec5">生成全球唯一的数字身份</text>
+    <text x="140" y="135" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="14" fill="#b0bec5">由你自主掌控的身份中心</text>
+    <text x="140" y="170" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#90a4ae">如同制造专属智子</text>
+  </g>
+  
+  <!-- 功能卡片2：解析 -->
+  <g transform="translate(460,800)">
+    <rect width="280" height="200" rx="15" fill="url(#cardGradient)" stroke="rgba(79,195,247,0.2)" stroke-width="1"/>
+    <circle cx="140" cy="50" r="25" fill="url(#titleGradient)"/>
+    <text x="140" y="58" text-anchor="middle" font-family="sans-serif" font-size="20" fill="white">🔧</text>
+    <text x="140" y="90" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="20" font-weight="bold" fill="#4fc3f7">解析结构</text>
+    <text x="140" y="115" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="14" fill="#b0bec5">展示权限、公钥与服务</text>
+    <text x="140" y="135" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="14" fill="#b0bec5">让他人可读可信可验证</text>
+    <text x="140" y="170" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#90a4ae">如同展开智子维度</text>
+  </g>
+  
+  <!-- 功能卡片3：验证 -->
+  <g transform="translate(770,800)">
+    <rect width="280" height="200" rx="15" fill="url(#cardGradient)" stroke="rgba(79,195,247,0.2)" stroke-width="1"/>
+    <circle cx="140" cy="50" r="25" fill="url(#titleGradient)"/>
+    <text x="140" y="58" text-anchor="middle" font-family="sans-serif" font-size="20" fill="white">👤</text>
+    <text x="140" y="90" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="20" font-weight="bold" fill="#4fc3f7">权属验证</text>
+    <text x="140" y="115" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="14" fill="#b0bec5">只有你的私钥能控制</text>
+    <text x="140" y="135" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="14" fill="#b0bec5">确保身份归属权威性</text>
+    <text x="140" y="170" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#90a4ae">如同量子纠缠控制</text>
+  </g>
+  
+  <!-- 核心价值区域 -->
+  <g transform="translate(100,1050)">
+    <rect width="1000" height="480" rx="20" fill="url(#cardGradient)" stroke="rgba(79,195,247,0.2)" stroke-width="1"/>
+    <text x="500" y="50" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="32" font-weight="bold" fill="url(#titleGradient)">🌟 DID的核心价值</text>
+    
+    <!-- 价值点1 -->
+    <g transform="translate(50,100)">
+      <rect width="200" height="150" rx="10" fill="rgba(79,195,247,0.05)" stroke="rgba(79,195,247,0.1)" stroke-width="1"/>
+      <text x="100" y="30" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="18" font-weight="bold" fill="#4fc3f7">🚀 自主身份</text>
+      <text x="100" y="55" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="14" fill="#b0bec5">不依赖任何中心化平台</text>
+      <text x="100" y="75" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="14" fill="#b0bec5">真正属于你的数字身份</text>
+      <text x="100" y="110" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#90a4ae">永远掌控在你手中</text>
+    </g>
+    
+    <!-- 价值点2 -->
+    <g transform="translate(270,100)">
+      <rect width="200" height="150" rx="10" fill="rgba(79,195,247,0.05)" stroke="rgba(79,195,247,0.1)" stroke-width="1"/>
+      <text x="100" y="30" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="18" font-weight="bold" fill="#4fc3f7">🔐 隐私保护</text>
+      <text x="100" y="55" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="14" fill="#b0bec5">你决定分享什么信息</text>
+      <text x="100" y="75" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="14" fill="#b0bec5">保护个人隐私安全</text>
+      <text x="100" y="110" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#90a4ae">选择性披露权限</text>
+    </g>
+    
+    <!-- 价值点3 -->
+    <g transform="translate(490,100)">
+      <rect width="200" height="150" rx="10" fill="rgba(79,195,247,0.05)" stroke="rgba(79,195,247,0.1)" stroke-width="1"/>
+      <text x="100" y="30" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="18" font-weight="bold" fill="#4fc3f7">🌐 全网通用</text>
+      <text x="100" y="55" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="14" fill="#b0bec5">一个DID处处可用</text>
+      <text x="100" y="75" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="14" fill="#b0bec5">跨平台互操作性</text>
+      <text x="100" y="110" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#90a4ae">消除平台壁垒</text>
+    </g>
+    
+    <!-- 价值点4 -->
+    <g transform="translate(710,100)">
+      <rect width="200" height="150" rx="10" fill="rgba(79,195,247,0.05)" stroke="rgba(79,195,247,0.1)" stroke-width="1"/>
+      <text x="100" y="30" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="18" font-weight="bold" fill="#4fc3f7">✅ 可信验证</text>
+      <text x="100" y="55" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="14" fill="#b0bec5">密码学保证真实性</text>
+      <text x="100" y="75" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="14" fill="#b0bec5">防止身份伪造</text>
+      <text x="100" y="110" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="12" fill="#90a4ae">数学级安全保障</text>
+    </g>
+    
+    <!-- 总结 -->
+    <g transform="translate(0,280)">
+      <rect width="1000" height="120" rx="15" fill="rgba(79,195,247,0.08)" stroke="rgba(79,195,247,0.15)" stroke-width="1"/>
+      <text x="500" y="40" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="24" font-weight="bold" fill="#4fc3f7">💡 简单理解：DID就像你的数字智子</text>
+      <text x="500" y="70" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="16" fill="#b0bec5">✨ 全宇宙唯一 • 🎮 完全自控 • 🔍 公开可验证 • 🛡️ 永不失效</text>
+      <text x="500" y="95" text-anchor="middle" font-family="Microsoft YaHei, sans-serif" font-size="14" fill="#90a4ae">从此告别"账号被封"，拥抱真正的数字自由</text>
+    </g>
+  </g>
+  
+  <!-- 装饰性连接线 -->
+  <g opacity="0.3">
+    <line x1="600" y1="160" x2="325" y2="380" stroke="#4fc3f7" stroke-width="1" stroke-dasharray="5,5">
+      <animate attributeName="stroke-dashoffset" values="0;10" dur="2s" repeatCount="indefinite"/>
+    </line>
+    <line x1="600" y1="160" x2="875" y2="380" stroke="#4fc3f7" stroke-width="1" stroke-dasharray="5,5">
+      <animate attributeName="stroke-dashoffset" values="0;10" dur="2s" repeatCount="indefinite"/>
+    </line>
+  </g>
+  
+  <!-- 浮动光点 -->
+  <g opacity="0.8">
+    <circle cx="200" cy="900" r="3" fill="#4fc3f7">
+      <animateTransform attributeName="transform" type="translate" values="0,0; 20,-10; 0,0" dur="4s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.3;1;0.3" dur="4s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="800" cy="950" r="2" fill="#29b6f6">
+      <animateTransform attributeName="transform" type="translate" values="0,0; -15,8; 0,0" dur="3s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.4;1;0.4" dur="3s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="1000" cy="900" r="2.5" fill="#4fc3f7">
+      <animateTransform attributeName="transform" type="translate" values="0,0; 10,15; 0,0" dur="5s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.2;0.9;0.2" dur="5s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+</svg>

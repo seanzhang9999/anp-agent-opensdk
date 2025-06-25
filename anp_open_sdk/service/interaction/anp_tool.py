@@ -13,7 +13,7 @@ from anp_open_sdk.anp_sdk_user_data import LocalUserDataManager
 import logging
 logger = logging.getLogger(__name__)
 
-from agent_connect.authentication import DIDWbaAuthHeader
+from anp_open_sdk.agent_connect_hotpatch.authentication.did_wba_auth_header import DIDWbaAuthHeader
 from anp_open_sdk.auth.auth_client import agent_auth_request
 
 
@@ -140,6 +140,7 @@ class ANPTool:
         # 添加 DID 认证
         if self.auth_client:
             try:
+
                 auth_headers = self.auth_client.get_auth_header(url)
                 headers.update(auth_headers)
             except Exception as e:
