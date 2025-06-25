@@ -1,1627 +1,792 @@
- Agent Manager 与 Contact Manager 完整分析                                                                                                                                                                                     ┃
-┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
-
-
-目录                                                                                                                                                                                                                             
-
- • 1. 系统架构概述                                                                                                                                                                                                               
- • 2. LocalAgentManager详解                                                                                                                                                                                                      
- • 3. ContactManager详解                                                                                                                                                                                                         
- • 4. 两个管理器的协作关系                                                                                                                                                                                                       
- • 5. Agent加载生命周期                                                                                                                                                                                                          
- • 6. 联系人与Token管理                                                                                                                                                                                                          
- • 7. 性能优化策略                                                                                                                                                                                                               
- • 8. 使用场景与最佳实践                                                                                                                                                                                                         
-
-
-1. 系统架构概述                                                                                                                                                                                                                  
-
-1.1 管理器层次结构                                                                                                                                                                                                               
-
-                                                                                                                                                                                                                                 
-graph TD                                                                                                                                                                                                                         
-    A[ANPSDK] --> B[LocalAgentManager]                                                                                                                                                                                           
-    A --> C[AgentRouter]                                                                                                                                                                                                         
-    C --> D[LocalAgent实例]                                                                                                                                                                                                      
-    D --> E[ContactManager]                                                                                                                                                                                                      
-                                                                                                                                                                                                                                 
-    B --> F[Agent加载器]                                                                                                                                                                                                         
-    B --> G[OpenAPI生成器]                                                                                                                                                                                                       
-    B --> H[接口文件管理器]                                                                                                                                                                                                      
-                                                                                                                                                                                                                                 
-    E --> I[联系人存储]                                                                                                                                                                                                          
-    E --> J[Token管理器]                                                                                                                                                                                                         
-    E --> K[关系维护器]                                                                                                                                                                                                          
-                                                                                                                                                                                                                                 
-    F --> L[YAML配置解析]                                                                                                                                                                                                        
-    F --> M[模块动态加载]                                                                                                                                                                                                        
-    F --> N[Handler注册]                                                                                                                                                                                                         
-                                                                                                                                                                                                                                 
-    J --> O[Token缓存]                                                                                                                                                                                                           
-    J --> P[过期管理]                                                                                                                                                                                                            
-    J --> Q[撤销机制]                                                                                                                                                                                                            
-                                                                                                                                                                                                                                 
-
-1.2 数据流向图                                                                                                                                                                                                                   
-
-                                                                                                                                                                                                                                 
-sequenceDiagram                                                                                                                                                                                                                  
-    participant Config as YAML配置                                                                                                                                                                                               
-    participant LAM as LocalAgentManager                                                                                                                                                                                         
-    participant LA as LocalAgent                                                                                                                                                                                                 
-    participant CM as ContactManager                                                                                                                                                                                             
-    participant UD as UserData                                                                                                                                                                                                   
-    participant Cache as 缓存层                                                                                                                                                                                                  
-                                                                                                                                                                                                                                 
-    Config->>LAM: 加载Agent配置                                                                                                                                                                                                  
-    LAM->>LAM: 解析模块路径                                                                                                                                                                                                      
-    LAM->>LAM: 动态导入Handler                                                                                                                                                                                                   
-    LAM->>LA: 创建LocalAgent实例                                                                                                                                                                                                 
-    LA->>UD: 获取用户数据                                                                                                                                                                                                        
-    LA->>CM: 初始化ContactManager                                                                                                                                                                                                
-    CM->>Cache: 加载联系人缓存                                                                                                                                                                                                   
-    CM->>Cache: 加载Token缓存                                                                                                                                                                                                    
-    LAM->>LAM: 生成OpenAPI文档                                                                                                                                                                                                   
-    LAM->>LAM: 保存接口文件                                                                                                                                                                                                      
-                                                                                                                                                                                                                                 
-
-
-2. LocalAgentManager详解                                                                                                                                                                                                         
-
-2.1 核心功能架构                                                                                                                                                                                                                 
-
-                                                                                                                                                                                                                                 
-class LocalAgentManager:                                                                                                                                                                                                         
-    """本地 Agent 管理器，负责加载、注册和生成接口文档"""                                                                                                                                                                        
-                                                                                                                                                                                                                                 
-    # 三大核心功能：                                                                                                                                                                                                             
-    # 1. Agent模块加载                                                                                                                                                                                                           
-    # 2. OpenAPI文档生成                                                                                                                                                                                                         
-    # 3. 接口文件管理                                                                                                                                                                                                            
-                                                                                                                                                                                                                                 
-
-2.2 Agent加载机制详解                                                                                                                                                                                                            
-
-2.2.1 三种Agent加载模式                                                                                                                                                                                                          
-
-                                                                                                                                                                                                                                 
-@staticmethod                                                                                                                                                                                                                    
-def load_agent_from_module(yaml_path: str) -> Tuple[Optional[LocalAgent], Optional[Any]]:                                                                                                                                        
-    """从模块路径加载 Agent 实例 - 支持三种模式"""                                                                                                                                                                               
-                                                                                                                                                                                                                                 
-    plugin_dir = os.path.dirname(yaml_path)                                                                                                                                                                                      
-    handler_script_path = os.path.join(plugin_dir, "agent_handlers.py")                                                                                                                                                          
-    register_script_path = os.path.join(plugin_dir, "agent_register.py")                                                                                                                                                         
-                                                                                                                                                                                                                                 
-    # 检查必要文件                                                                                                                                                                                                               
-    if not os.path.exists(handler_script_path):                                                                                                                                                                                  
-        logger.debug(f"⚠️  Skipping: No 'agent_handlers.py' found in {plugin_dir}")                                                                                                                                              
-        return None, None                                                                                                                                                                                                        
-                                                                                                                                                                                                                                 
-    # 动态导入模块                                                                                                                                                                                                               
-    module_path_prefix = os.path.dirname(plugin_dir).replace(os.sep, ".")                                                                                                                                                        
-    base_module_name = f"{module_path_prefix}.{os.path.basename(plugin_dir)}"                                                                                                                                                    
-    base_module_name = base_module_name.replace("/", ".")                                                                                                                                                                        
-    handlers_module = importlib.import_module(f"{base_module_name}.agent_handlers")                                                                                                                                              
-                                                                                                                                                                                                                                 
-    # 加载YAML配置                                                                                                                                                                                                               
-    with open(yaml_path, "r", encoding="utf-8") as f:                                                                                                                                                                            
-        cfg = yaml.safe_load(f)                                                                                                                                                                                                  
-                                                                                                                                                                                                                                 
-    # 模式1: 自定义注册模式 (agent_002)                                                                                                                                                                                          
-    if os.path.exists(register_script_path):                                                                                                                                                                                     
-        register_module = importlib.import_module(f"{base_module_name}.agent_register")                                                                                                                                          
-        agent = LocalAgent.from_did(cfg["did"])                                                                                                                                                                                  
-        agent.name = cfg["name"]                                                                                                                                                                                                 
-        agent.api_config = cfg.get("api", [])                                                                                                                                                                                    
-        logger.info(f"-> self register agent : {agent.name}")                                                                                                                                                                    
-        register_module.register(agent)  # 调用自定义注册函数                                                                                                                                                                    
-        return agent, None                                                                                                                                                                                                       
-                                                                                                                                                                                                                                 
-    # 模式2: 初始化函数模式 (agent_llm)                                                                                                                                                                                          
-    if hasattr(handlers_module, "initialize_agent"):                                                                                                                                                                             
-        logger.debug(f"- Calling 'initialize_agent' in module: {base_module_name}.agent_handlers")                                                                                                                               
-        agent = LocalAgent.from_did(cfg["did"])                                                                                                                                                                                  
-        agent.name = cfg["name"]                                                                                                                                                                                                 
-        agent.api_config = cfg.get("api", [])                                                                                                                                                                                    
-        logger.info(f"- pre-init agent: {agent.name}")                                                                                                                                                                           
-        return agent, handlers_module  # 返回模块供后续初始化                                                                                                                                                                    
-                                                                                                                                                                                                                                 
-    # 模式3: 配置驱动模式 (agent_001 / agent_calculator)                                                                                                                                                                         
-    agent = LocalAgent.from_did(cfg["did"])                                                                                                                                                                                      
-    agent.name = cfg["name"]                                                                                                                                                                                                     
-    agent.api_config = cfg.get("api", [])                                                                                                                                                                                        
-    logger.debug(f"-> Self-created agent instance: {agent.name}")                                                                                                                                                                
-                                                                                                                                                                                                                                 
-    # 自动注册API                                                                                                                                                                                                                
-    for api in cfg.get("api", []):                                                                                                                                                                                               
-        handler_func = getattr(handlers_module, api["handler"])                                                                                                                                                                  
-        sig = inspect.signature(handler_func)                                                                                                                                                                                    
-        params = list(sig.parameters.keys())                                                                                                                                                                                     
-                                                                                                                                                                                                                                 
-        # 检查是否需要包装                                                                                                                                                                                                       
-        if params != ["request", "request_data"]:                                                                                                                                                                                
-            handler_func = wrap_business_handler(handler_func)                                                                                                                                                                   
-                                                                                                                                                                                                                                 
-        agent.expose_api(api["path"], handler_func, methods=[api["method"]])                                                                                                                                                     
-        logger.info(f"- config register agent: {agent.name}，api:{api}")                                                                                                                                                         
-                                                                                                                                                                                                                                 
-    return agent, None                                                                                                                                                                                                           
-                                                                                                                                                                                                                                 
-
-2.2.2 模块结构示例                                                                                                                                                                                                               
-
-                                                                                                                                                                                                                                 
-agent_plugins/                                                                                                                                                                                                                   
-├── agent_001/                    # 配置驱动模式                                                                                                                                                                                 
-│   ├── agent_config.yaml                                                                                                                                                                                                        
-│   └── agent_handlers.py                                                                                                                                                                                                        
-├── agent_002/                    # 自定义注册模式                                                                                                                                                                               
-│   ├── agent_config.yaml                                                                                                                                                                                                        
-│   ├── agent_handlers.py                                                                                                                                                                                                        
-│   └── agent_register.py         # 自定义注册逻辑                                                                                                                                                                               
-├── agent_llm/                    # 初始化函数模式                                                                                                                                                                               
-│   ├── agent_config.yaml                                                                                                                                                                                                        
-│   └── agent_handlers.py         # 包含initialize_agent函数                                                                                                                                                                     
-└── agent_calculator/             # 配置驱动模式                                                                                                                                                                                 
-    ├── agent_config.yaml                                                                                                                                                                                                        
-    └── agent_handlers.py                                                                                                                                                                                                        
-                                                                                                                                                                                                                                 
-
-2.2.3 YAML配置格式                                                                                                                                                                                                               
-
-                                                                                                                                                                                                                                 
-# agent_config.yaml 示例                                                                                                                                                                                                         
-did: "did:wba:localhost%3A9527:wba:user:calculator"                                                                                                                                                                              
-name: "计算器代理"                                                                                                                                                                                                               
-type: "service"                                                                                                                                                                                                                  
-api:                                                                                                                                                                                                                             
-  - path: "/add"                                                                                                                                                                                                                 
-    method: "POST"                                                                                                                                                                                                               
-    handler: "handle_add"                                                                                                                                                                                                        
-    summary: "加法运算"                                                                                                                                                                                                          
-    params:                                                                                                                                                                                                                      
-      a: {"type": "number", "description": "第一个数"}                                                                                                                                                                           
-      b: {"type": "number", "description": "第二个数"}                                                                                                                                                                           
-    result:                                                                                                                                                                                                                      
-      sum: {"type": "number", "description": "计算结果"}                                                                                                                                                                         
-  - path: "/multiply"                                                                                                                                                                                                            
-    method: "POST"                                                                                                                                                                                                               
-    handler: "handle_multiply"                                                                                                                                                                                                   
-    summary: "乘法运算"                                                                                                                                                                                                          
-                                                                                                                                                                                                                                 
-
-2.3 OpenAPI文档生成                                                                                                                                                                                                              
-
-2.3.1 文档生成流程                                                                                                                                                                                                               
-
-                                                                                                                                                                                                                                 
-@staticmethod                                                                                                                                                                                                                    
-def generate_custom_openapi_from_router(agent: LocalAgent, sdk) -> Dict:                                                                                                                                                         
-    """根据 Agent 的路由生成自定义的 OpenAPI 规范"""                                                                                                                                                                             
-                                                                                                                                                                                                                                 
-    # 1. 基础OpenAPI结构                                                                                                                                                                                                         
-    openapi = {                                                                                                                                                                                                                  
-        "openapi": "3.0.0",                                                                                                                                                                                                      
-        "info": {                                                                                                                                                                                                                
-            "title": f"{agent.name}Agent API",                                                                                                                                                                                   
-            "version": "1.0.0"                                                                                                                                                                                                   
-        },                                                                                                                                                                                                                       
-        "paths": {}                                                                                                                                                                                                              
-    }                                                                                                                                                                                                                            
-                                                                                                                                                                                                                                 
-    # 2. 从SDK的API注册表获取摘要信息                                                                                                                                                                                            
-    api_registry = getattr(sdk, "api_registry", {}).get(agent.id, [])                                                                                                                                                            
-    summary_map = {                                                                                                                                                                                                              
-        item["path"].replace(f"/agent/api/{agent.id}", ""): item["summary"]                                                                                                                                                      
-        for item in api_registry                                                                                                                                                                                                 
-    }                                                                                                                                                                                                                            
-                                                                                                                                                                                                                                 
-    # 3. 遍历Agent的API路由                                                                                                                                                                                                      
-    for path, handler in agent.api_routes.items():                                                                                                                                                                               
-        # 4. 分析函数签名                                                                                                                                                                                                        
-        sig = inspect.signature(handler)                                                                                                                                                                                         
-        param_names = [p for p in sig.parameters if p not in ("request_data", "request")]                                                                                                                                        
-        properties = {name: {"type": "string"} for name in param_names}                                                                                                                                                          
-                                                                                                                                                                                                                                 
-        # 5. 获取API摘要                                                                                                                                                                                                         
-        summary = summary_map.get(path, handler.__doc__ or f"{agent.name}的{path}接口")                                                                                                                                          
-                                                                                                                                                                                                                                 
-        # 6. 构建OpenAPI路径定义                                                                                                                                                                                                 
-        openapi["paths"][path] = {                                                                                                                                                                                               
-            "post": {                                                                                                                                                                                                            
-                "summary": summary,                                                                                                                                                                                              
-                "requestBody": {                                                                                                                                                                                                 
-                    "required": True,                                                                                                                                                                                            
-                    "content": {                                                                                                                                                                                                 
-                        "application/json": {                                                                                                                                                                                    
-                            "schema": {                                                                                                                                                                                          
-                                "type": "object",                                                                                                                                                                                
-                                "properties": properties                                                                                                                                                                         
-                            }                                                                                                                                                                                                    
-                        }                                                                                                                                                                                                        
-                    }                                                                                                                                                                                                            
-                },                                                                                                                                                                                                               
-                "responses": {                                                                                                                                                                                                   
-                    "200": {                                                                                                                                                                                                     
-                        "description": "返回结果",                                                                                                                                                                               
-                        "content": {                                                                                                                                                                                             
-                            "application/json": {                                                                                                                                                                                
-                                "schema": {"type": "object"}                                                                                                                                                                     
-                            }                                                                                                                                                                                                    
-                        }                                                                                                                                                                                                        
-                    }                                                                                                                                                                                                            
-                }                                                                                                                                                                                                                
-            }                                                                                                                                                                                                                    
-        }                                                                                                                                                                                                                        
-                                                                                                                                                                                                                                 
-    return openapi                                                                                                                                                                                                               
-                                                                                                                                                                                                                                 
-
-2.3.2 接口文件生成与保存                                                                                                                                                                                                         
-
-                                                                                                                                                                                                                                 
-@staticmethod                                                                                                                                                                                                                    
-async def generate_and_save_agent_interfaces(agent: LocalAgent, sdk):                                                                                                                                                            
-    """为指定的 agent 生成并保存 OpenAPI (YAML) 和 JSON-RPC 接口文件"""                                                                                                                                                          
-                                                                                                                                                                                                                                 
-    logger.debug(f"开始为 agent '{agent.name}' ({agent.id}) 生成接口文件...")                                                                                                                                                    
-                                                                                                                                                                                                                                 
-    # 1. 获取用户数据和路径                                                                                                                                                                                                      
-    user_data_manager = LocalUserDataManager()                                                                                                                                                                                   
-    user_data = user_data_manager.get_user_data(agent.id)                                                                                                                                                                        
-    if not user_data:                                                                                                                                                                                                            
-        logger.error(f"无法找到 agent '{agent.name}' 的用户数据，无法保存接口文件。")                                                                                                                                            
-        return                                                                                                                                                                                                                   
-    user_full_path = user_data.user_dir                                                                                                                                                                                          
-                                                                                                                                                                                                                                 
-    # 2. 生成并保存 OpenAPI YAML 文件                                                                                                                                                                                            
-    try:                                                                                                                                                                                                                         
-        openapi_data = LocalAgentManager.generate_custom_openapi_from_router(agent, sdk)                                                                                                                                         
-        await save_interface_files(                                                                                                                                                                                              
-            user_full_path=user_full_path,                                                                                                                                                                                       
-            interface_data=openapi_data,                                                                                                                                                                                         
-            inteface_file_name=f"api_interface.yaml",                                                                                                                                                                            
-            interface_file_type="YAML"                                                                                                                                                                                           
-        )                                                                                                                                                                                                                        
-    except Exception as e:                                                                                                                                                                                                       
-        logger.error(f"为 agent '{agent.name}' 生成 OpenAPI YAML 文件失败: {e}")                                                                                                                                                 
-                                                                                                                                                                                                                                 
-    # 3. 生成并保存 JSON-RPC 文件                                                                                                                                                                                                
-    try:                                                                                                                                                                                                                         
-        jsonrpc_data = {                                                                                                                                                                                                         
-            "jsonrpc": "2.0",                                                                                                                                                                                                    
-            "info": {                                                                                                                                                                                                            
-                "title": f"{agent.name} JSON-RPC Interface",                                                                                                                                                                     
-                "version": "0.1.0",                                                                                                                                                                                              
-                "description": f"Methods offered by {agent.name}"                                                                                                                                                                
-            },                                                                                                                                                                                                                   
-            "methods": []                                                                                                                                                                                                        
-        }                                                                                                                                                                                                                        
-                                                                                                                                                                                                                                 
-        # 4. 从API配置生成JSON-RPC方法                                                                                                                                                                                           
-        for api in getattr(agent, "api_config", []):                                                                                                                                                                             
-            path = api["path"]                                                                                                                                                                                                   
-            method_name = path.strip('/').replace('/', '.')                                                                                                                                                                      
-            params = api.get("params")                                                                                                                                                                                           
-            result = api.get("result")                                                                                                                                                                                           
-                                                                                                                                                                                                                                 
-            # 如果没有预定义参数，从函数签名推断                                                                                                                                                                                 
-            if params is None:                                                                                                                                                                                                   
-                sig = inspect.signature(agent.api_routes[path])                                                                                                                                                                  
-                params = {                                                                                                                                                                                                       
-                    name: {                                                                                                                                                                                                      
-                        "type": param.annotation.__name__                                                                                                                                                                        
-                        if (param.annotation != inspect._empty and hasattr(param.annotation, "__name__"))                                                                                                                        
-                        else "Any"                                                                                                                                                                                               
-                    }                                                                                                                                                                                                            
-                    for name, param in sig.parameters.items()                                                                                                                                                                    
-                    if name != "self"                                                                                                                                                                                            
-                }                                                                                                                                                                                                                
-                                                                                                                                                                                                                                 
-            # 构建方法对象                                                                                                                                                                                                       
-            method_obj = {                                                                                                                                                                                                       
-                "name": method_name,                                                                                                                                                                                             
-                "summary": api.get("summary", api.get("handler", "")),                                                                                                                                                           
-                "params": params                                                                                                                                                                                                 
-            }                                                                                                                                                                                                                    
-                                                                                                                                                                                                                                 
-            if result is not None:                                                                                                                                                                                               
-                method_obj["result"] = result                                                                                                                                                                                    
-                                                                                                                                                                                                                                 
-            # 添加元数据                                                                                                                                                                                                         
-            method_obj["meta"] = {                                                                                                                                                                                               
-                "openapi": api.get("openapi_version", "3.0.0"),                                                                                                                                                                  
-                "info": {                                                                                                                                                                                                        
-                    "title": api.get("title", "ANP Agent API"),                                                                                                                                                                  
-                    "version": api.get("version", "1.0.0")                                                                                                                                                                       
-                },                                                                                                                                                                                                               
-                "httpMethod": api.get("method", "POST"),                                                                                                                                                                         
-                "endpoint": api.get("path")                                                                                                                                                                                      
-            }                                                                                                                                                                                                                    
-                                                                                                                                                                                                                                 
-            jsonrpc_data["methods"].append(method_obj)                                                                                                                                                                           
-                                                                                                                                                                                                                                 
-        # 5. 保存JSON-RPC文件                                                                                                                                                                                                    
-        await save_interface_files(                                                                                                                                                                                              
-            user_full_path=user_full_path,                                                                                                                                                                                       
-            interface_data=jsonrpc_data,                                                                                                                                                                                         
-            inteface_file_name="api_interface.json",                                                                                                                                                                             
-            interface_file_type="JSON"                                                                                                                                                                                           
-        )                                                                                                                                                                                                                        
-                                                                                                                                                                                                                                 
-    except Exception as e:                                                                                                                                                                                                       
-        logger.error(f"为 agent '{agent.name}' 生成 JSON-RPC 文件失败: {e}")                                                                                                                                                     
-                                                                                                                                                                                                                                 
-
-
-3. ContactManager详解                                                                                                                                                                                                            
-
-3.1 核心数据结构                                                                                                                                                                                                                 
-
-                                                                                                                                                                                                                                 
-class ContactManager:                                                                                                                                                                                                            
-    def __init__(self, user_data):                                                                                                                                                                                               
-        self.user_data = user_data  # BaseUserData 实例                                                                                                                                                                          
-                                                                                                                                                                                                                                 
-        # 核心数据结构                                                                                                                                                                                                           
-        self._contacts = {}              # did -> contact dict                                                                                                                                                                   
-        self._token_to_remote = {}       # did -> token dict (发给远程的token)                                                                                                                                                   
-        self._token_from_remote = {}     # did -> token dict (从远程收到的token)                                                                                                                                                 
-                                                                                                                                                                                                                                 
-        # 初始化时加载数据                                                                                                                                                                                                       
-        self._load_contacts()                                                                                                                                                                                                    
-                                                                                                                                                                                                                                 
-
-3.2 联系人管理功能                                                                                                                                                                                                               
-
-3.2.1 联系人缓存机制                                                                                                                                                                                                             
-
-                                                                                                                                                                                                                                 
-def _load_contacts(self):                                                                                                                                                                                                        
-    """加载联系人和 token 信息到缓存"""                                                                                                                                                                                          
-    # 1. 加载所有联系人                                                                                                                                                                                                          
-    for contact in self.user_data.list_contacts():                                                                                                                                                                               
-        did = contact['did']                                                                                                                                                                                                     
-        self._contacts[did] = contact                                                                                                                                                                                            
-                                                                                                                                                                                                                                 
-        # 2. 加载对应的token信息                                                                                                                                                                                                 
-        token_to = self.user_data.get_token_to_remote(did)                                                                                                                                                                       
-        if token_to:                                                                                                                                                                                                             
-            self._token_to_remote[did] = token_to                                                                                                                                                                                
-                                                                                                                                                                                                                                 
-        token_from = self.user_data.get_token_from_remote(did)                                                                                                                                                                   
-        if token_from:                                                                                                                                                                                                           
-            self._token_from_remote[did] = token_from                                                                                                                                                                            
-                                                                                                                                                                                                                                 
-def add_contact(self, contact: dict):                                                                                                                                                                                            
-    """添加联系人（内存+持久化）"""                                                                                                                                                                                              
-    did = contact['did']                                                                                                                                                                                                         
-    # 1. 更新内存缓存                                                                                                                                                                                                            
-    self._contacts[did] = contact                                                                                                                                                                                                
-    # 2. 持久化到用户数据                                                                                                                                                                                                        
-    self.user_data.add_contact(contact)                                                                                                                                                                                          
-                                                                                                                                                                                                                                 
-def get_contact(self, did: str):                                                                                                                                                                                                 
-    """从缓存获取联系人"""                                                                                                                                                                                                       
-    return self._contacts.get(did)                                                                                                                                                                                               
-                                                                                                                                                                                                                                 
-def list_contacts(self):                                                                                                                                                                                                         
-    """列出所有联系人"""                                                                                                                                                                                                         
-    return list(self._contacts.values())                                                                                                                                                                                         
-                                                                                                                                                                                                                                 
-
-3.2.2 Token管理机制                                                                                                                                                                                                              
-
-                                                                                                                                                                                                                                 
-# Token发送管理 (to_remote)                                                                                                                                                                                                      
-def store_token_to_remote(self, remote_did: str, token: str, expires_delta: int):                                                                                                                                                
-    """存储发给远程的token"""                                                                                                                                                                                                    
-    # 1. 持久化存储                                                                                                                                                                                                              
-    self.user_data.store_token_to_remote(remote_did, token, expires_delta)                                                                                                                                                       
-    # 2. 更新内存缓存                                                                                                                                                                                                            
-    self._token_to_remote[remote_did] = self.user_data.get_token_to_remote(remote_did)                                                                                                                                           
-                                                                                                                                                                                                                                 
-def get_token_to_remote(self, remote_did: str):                                                                                                                                                                                  
-    """获取发给远程的token"""                                                                                                                                                                                                    
-    return self._token_to_remote.get(remote_did)                                                                                                                                                                                 
-                                                                                                                                                                                                                                 
-def revoke_token_to_remote(self, remote_did: str):                                                                                                                                                                               
-    """撤销发给远程的token"""                                                                                                                                                                                                    
-    # 1. 持久化撤销                                                                                                                                                                                                              
-    self.user_data.revoke_token_to_remote(remote_did)                                                                                                                                                                            
-    # 2. 清除内存缓存                                                                                                                                                                                                            
-    self._token_to_remote.pop(remote_did, None)                                                                                                                                                                                  
-                                                                                                                                                                                                                                 
-# Token接收管理 (from_remote)                                                                                                                                                                                                    
-def store_token_from_remote(self, remote_did: str, token: str):                                                                                                                                                                  
-    """存储从远程收到的token"""                                                                                                                                                                                                  
-    # 1. 持久化存储                                                                                                                                                                                                              
-    self.user_data.store_token_from_remote(remote_did, token)                                                                                                                                                                    
-    # 2. 更新内存缓存                                                                                                                                                                                                            
-    self._token_from_remote[remote_did] = self.user_data.get_token_from_remote(remote_did)                                                                                                                                       
-                                                                                                                                                                                                                                 
-def get_token_from_remote(self, remote_did: str):                                                                                                                                                                                
-    """获取从远程收到的token"""                                                                                                                                                                                                  
-    return self._token_from_remote.get(remote_did)                                                                                                                                                                               
-                                                                                                                                                                                                                                 
-def revoke_token_from_remote(self, target_did: str):                                                                                                                                                                             
-    """撤销与目标DID相关的本地token"""                                                                                                                                                                                           
-    if target_did in self._token_from_remote:                                                                                                                                                                                    
-        self._token_from_remote[target_did]["is_revoked"] = True                                                                                                                                                                 
-                                                                                                                                                                                                                                 
-
-3.3 Token生命周期管理                                                                                                                                                                                                            
-
-                                                                                                                                                                                                                                 
-stateDiagram-v2                                                                                                                                                                                                                  
-    [*] --> Created: store_token_to_remote()                                                                                                                                                                                     
-    Created --> Active: token生效                                                                                                                                                                                                
-    Active --> Expired: 超过expires_delta                                                                                                                                                                                        
-    Active --> Revoked: revoke_token_to_remote()                                                                                                                                                                                 
-    Expired --> [*]                                                                                                                                                                                                              
-    Revoked --> [*]                                                                                                                                                                                                              
-                                                                                                                                                                                                                                 
-    state Active {                                                                                                                                                                                                               
-        [*] --> InMemory: 加载到缓存                                                                                                                                                                                             
-        InMemory --> Persistent: 持久化存储                                                                                                                                                                                      
-    }                                                                                                                                                                                                                            
-                                                                                                                                                                                                                                 
-
-
-4. 两个管理器的协作关系                                                                                                                                                                                                          
-
-4.1 协作流程图                                                                                                                                                                                                                   
-
-                                                                                                                                                                                                                                 
-sequenceDiagram                                                                                                                                                                                                                  
-    participant App as 应用程序                                                                                                                                                                                                  
-    participant LAM as LocalAgentManager                                                                                                                                                                                         
-    participant LA as LocalAgent                                                                                                                                                                                                 
-    participant CM as ContactManager                                                                                                                                                                                             
-    participant UD as UserData                                                                                                                                                                                                   
-    participant FS as 文件系统                                                                                                                                                                                                   
-                                                                                                                                                                                                                                 
-    App->>LAM: 加载Agent模块                                                                                                                                                                                                     
-    LAM->>LAM: 解析YAML配置                                                                                                                                                                                                      
-    LAM->>LAM: 动态导入Handler                                                                                                                                                                                                   
-    LAM->>LA: 创建LocalAgent实例                                                                                                                                                                                                 
-                                                                                                                                                                                                                                 
-    LA->>UD: 获取用户数据                                                                                                                                                                                                        
-    LA->>CM: 初始化ContactManager                                                                                                                                                                                                
-    CM->>UD: 加载联系人数据                                                                                                                                                                                                      
-    CM->>CM: 构建内存缓存                                                                                                                                                                                                        
-                                                                                                                                                                                                                                 
-    LAM->>LAM: 注册API路由                                                                                                                                                                                                       
-    LAM->>LAM: 生成OpenAPI文档                                                                                                                                                                                                   
-    LAM->>FS: 保存接口文件                                                                                                                                                                                                       
-                                                                                                                                                                                                                                 
-    Note over LA,CM: 运行时协作                                                                                                                                                                                                  
-    LA->>CM: 添加联系人                                                                                                                                                                                                          
-    LA->>CM: 管理Token                                                                                                                                                                                                           
-    CM->>UD: 持久化数据                                                                                                                                                                                                          
-                                                                                                                                                                                                                                 
-
-4.2 数据流转关系                                                                                                                                                                                                                 
-
-                                                                                                                                                                                                                                 
-# 1. Agent加载时的数据流                                                                                                                                                                                                         
-def load_and_initialize_agent():                                                                                                                                                                                                 
-    # LocalAgentManager负责                                                                                                                                                                                                      
-    agent, module = LocalAgentManager.load_agent_from_module(yaml_path)                                                                                                                                                          
-                                                                                                                                                                                                                                 
-    # LocalAgent初始化时自动创建ContactManager                                                                                                                                                                                   
-    # 在LocalAgent.__init__中：                                                                                                                                                                                                  
-    self.contact_manager = ContactManager(self.user_data)                                                                                                                                                                        
-                                                                                                                                                                                                                                 
-    # ContactManager自动加载缓存                                                                                                                                                                                                 
-    # 在ContactManager.__init__中：                                                                                                                                                                                              
-    self._load_contacts()                                                                                                                                                                                                        
-                                                                                                                                                                                                                                 
-# 2. 运行时的数据协作                                                                                                                                                                                                            
-def runtime_collaboration():                                                                                                                                                                                                     
-    # Agent处理认证请求时                                                                                                                                                                                                        
-    token_info = agent.contact_manager.get_token_to_remote(remote_did)                                                                                                                                                           
-                                                                                                                                                                                                                                 
-    # Agent添加新联系人时                                                                                                                                                                                                        
-    agent.add_contact(remote_agent)  # 调用ContactManager                                                                                                                                                                        
-                                                                                                                                                                                                                                 
-    # Agent管理Token时                                                                                                                                                                                                           
-    agent.store_token_from_remote(remote_did, token)  # 调用ContactManager                                                                                                                                                       
-                                                                                                                                                                                                                                 
-# 3. 文档生成时的协作                                                                                                                                                                                                            
-def document_generation():                                                                                                                                                                                                       
-    # LocalAgentManager生成文档                                                                                                                                                                                                  
-    openapi_data = LocalAgentManager.generate_custom_openapi_from_router(agent, sdk)                                                                                                                                             
-                                                                                                                                                                                                                                 
-    # 使用Agent的路由信息                                                                                                                                                                                                        
-    for path, handler in agent.api_routes.items():                                                                                                                                                                               
-        # 生成API文档...                                                                                                                                                                                                         
-                                                                                                                                                                                                                                 
-    # 保存到Agent的用户目录                                                                                                                                                                                                      
-    await LocalAgentManager.generate_and_save_agent_interfaces(agent, sdk)                                                                                                                                                       
-                                                                                                                                                                                                                                 
-
-4.3 生命周期同步                                                                                                                                                                                                                 
-
-                                                                                                                                                                                                                                 
-# Agent生命周期与ContactManager同步                                                                                                                                                                                              
-class LocalAgent:                                                                                                                                                                                                                
-    def __init__(self, user_data, name: str = "未命名", agent_type: str = "personal"):                                                                                                                                           
-        # 1. 基础初始化                                                                                                                                                                                                          
-        self.user_data = user_data                                                                                                                                                                                               
-        self.id = self.user_data.did                                                                                                                                                                                             
-                                                                                                                                                                                                                                 
-        # 2. ContactManager初始化（依赖user_data）                                                                                                                                                                               
-        self.contact_manager = ContactManager(self.user_data)                                                                                                                                                                    
-                                                                                                                                                                                                                                 
-        # 3. 其他组件初始化...                                                                                                                                                                                                   
-                                                                                                                                                                                                                                 
-    def __del__(self):                                                                                                                                                                                                           
-        """Agent销毁时的资源清理"""                                                                                                                                                                                              
-        try:                                                                                                                                                                                                                     
-            # ContactManager会随Agent一起销毁                                                                                                                                                                                    
-            # 但持久化数据保留在UserData中                                                                                                                                                                                       
-            pass                                                                                                                                                                                                                 
-        except Exception:                                                                                                                                                                                                        
-            pass                                                                                                                                                                                                                 
-                                                                                                                                                                                                                                 
-
-
-5. Agent加载生命周期                                                                                                                                                                                                             
-
-5.1 完整加载流程                                                                                                                                                                                                                 
-
-                                                                                                                                                                                                                                 
-graph TD                                                                                                                                                                                                                         
-    A[扫描Agent目录] --> B[发现YAML配置]                                                                                                                                                                                         
-    B --> C[解析配置文件]                                                                                                                                                                                                        
-    C --> D[检查Handler文件]                                                                                                                                                                                                     
-    D --> E{模式判断}                                                                                                                                                                                                            
-                                                                                                                                                                                                                                 
-    E -->|自定义注册| F[加载agent_register.py]                                                                                                                                                                                   
-    E -->|初始化函数| G[检查initialize_agent]                                                                                                                                                                                    
-    E -->|配置驱动| H[自动注册API]                                                                                                                                                                                               
-                                                                                                                                                                                                                                 
-    F --> I[调用register函数]                                                                                                                                                                                                    
-    G --> J[返回模块供初始化]                                                                                                                                                                                                    
-    H --> K[包装Handler函数]                                                                                                                                                                                                     
-                                                                                                                                                                                                                                 
-    I --> L[创建LocalAgent]                                                                                                                                                                                                      
-    J --> L                                                                                                                                                                                                                      
-    K --> L                                                                                                                                                                                                                      
-                                                                                                                                                                                                                                 
-    L --> M[初始化ContactManager]                                                                                                                                                                                                
-    M --> N[加载联系人缓存]                                                                                                                                                                                                      
-    N --> O[生成OpenAPI文档]                                                                                                                                                                                                     
-    O --> P[保存接口文件]                                                                                                                                                                                                        
-    P --> Q[注册到SDK]                                                                                                                                                                                                           
-                                                                                                                                                                                                                                 
-
-5.2 错误处理机制                                                                                                                                                                                                                 
-
-                                                                                                                                                                                                                                 
-@staticmethod                                                                                                                                                                                                                    
-def load_agent_from_module(yaml_path: str) -> Tuple[Optional[LocalAgent], Optional[Any]]:                                                                                                                                        
-    """带完整错误处理的Agent加载"""                                                                                                                                                                                              
-    try:                                                                                                                                                                                                                         
-        plugin_dir = os.path.dirname(yaml_path)                                                                                                                                                                                  
-        handler_script_path = os.path.join(plugin_dir, "agent_handlers.py")                                                                                                                                                      
-                                                                                                                                                                                                                                 
-        # 1. 检查必要文件                                                                                                                                                                                                        
-        if not os.path.exists(handler_script_path):                                                                                                                                                                              
-            logger.debug(f"⚠️  Skipping: No 'agent_handlers.py' found in {plugin_dir}")                                                                                                                                          
-            return None, None                                                                                                                                                                                                    
-                                                                                                                                                                                                                                 
-        # 2. 动态导入模块（可能失败）                                                                                                                                                                                            
-        try:                                                                                                                                                                                                                     
-            module_path_prefix = os.path.dirname(plugin_dir).replace(os.sep, ".")                                                                                                                                                
-            base_module_name = f"{module_path_prefix}.{os.path.basename(plugin_dir)}"                                                                                                                                            
-            handlers_module = importlib.import_module(f"{base_module_name}.agent_handlers")                                                                                                                                      
-        except ImportError as e:                                                                                                                                                                                                 
-            logger.error(f"Failed to import handlers module: {e}")                                                                                                                                                               
-            return None, None                                                                                                                                                                                                    
-                                                                                                                                                                                                                                 
-        # 3. 解析YAML配置（可能失败）                                                                                                                                                                                            
-        try:                                                                                                                                                                                                                     
-            with open(yaml_path, "r", encoding="utf-8") as f:                                                                                                                                                                    
-                cfg = yaml.safe_load(f)                                                                                                                                                                                          
-        except (yaml.YAMLError, FileNotFoundError) as e:                                                                                                                                                                         
-            logger.error(f"Failed to load YAML config: {e}")                                                                                                                                                                     
-            return None, None                                                                                                                                                                                                    
-                                                                                                                                                                                                                                 
-        # 4. 创建Agent（可能失败）                                                                                                                                                                                               
-        try:                                                                                                                                                                                                                     
-            agent = LocalAgent.from_did(cfg["did"])                                                                                                                                                                              
-            agent.name = cfg["name"]                                                                                                                                                                                             
-            agent.api_config = cfg.get("api", [])                                                                                                                                                                                
-        except Exception as e:                                                                                                                                                                                                   
-            logger.error(f"Failed to create LocalAgent: {e}")                                                                                                                                                                    
-            return None, None                                                                                                                                                                                                    
-                                                                                                                                                                                                                                 
-        # 5. 根据模式处理...                                                                                                                                                                                                     
-                                                                                                                                                                                                                                 
-    except Exception as e:                                                                                                                                                                                                       
-        logger.error(f"Unexpected error loading agent from {yaml_path}: {e}")                                                                                                                                                    
-        return None, None                                                                                                                                                                                                        
-                                                                                                                                                                                                                                 
-
-5.3 性能优化策略                                                                                                                                                                                                                 
-
-                                                                                                                                                                                                                                 
-# 1. 延迟加载策略                                                                                                                                                                                                                
-class LazyAgentLoader:                                                                                                                                                                                                           
-    def __init__(self):                                                                                                                                                                                                          
-        self._loaded_modules = {}  # 模块缓存                                                                                                                                                                                    
-        self._agent_configs = {}   # 配置缓存                                                                                                                                                                                    
-                                                                                                                                                                                                                                 
-    def load_agent_lazy(self, yaml_path: str):                                                                                                                                                                                   
-        """延迟加载Agent"""                                                                                                                                                                                                      
-        if yaml_path in self._loaded_modules:                                                                                                                                                                                    
-            return self._loaded_modules[yaml_path]                                                                                                                                                                               
-                                                                                                                                                                                                                                 
-        # 只有在真正需要时才加载                                                                                                                                                                                                 
-        agent, module = LocalAgentManager.load_agent_from_module(yaml_path)                                                                                                                                                      
-        self._loaded_modules[yaml_path] = (agent, module)                                                                                                                                                                        
-        return agent, module                                                                                                                                                                                                     
-                                                                                                                                                                                                                                 
-# 2. 批量加载优化                                                                                                                                                                                                                
-class BatchAgentLoader:                                                                                                                                                                                                          
-    @staticmethod                                                                                                                                                                                                                
-    def load_agents_batch(yaml_paths: List[str]) -> List[Tuple[Optional[LocalAgent], Optional[Any]]]:                                                                                                                            
-        """批量加载多个Agent"""                                                                                                                                                                                                  
-        results = []                                                                                                                                                                                                             
-        for yaml_path in yaml_paths:                                                                                                                                                                                             
-            try:                                                                                                                                                                                                                 
-                result = LocalAgentManager.load_agent_from_module(yaml_path)                                                                                                                                                     
-                results.append(result)                                                                                                                                                                                           
-            except Exception as e:                                                                                                                                                                                               
-                logger.error(f"Failed to load agent from {yaml_path}: {e}")                                                                                                                                                      
-                results.append((None, None))                                                                                                                                                                                     
-        return results                                                                                                                                                                                                           
-                                                                                                                                                                                                                                 
-
-
-6. 联系人与Token管理                                                                                                                                                                                                             
-
-6.1 联系人数据结构                                                                                                                                                                                                               
-
-                                                                                                                                                                                                                                 
-# 联系人数据格式                                                                                                                                                                                                                 
-contact_data = {                                                                                                                                                                                                                 
-    "did": "did:wba:example.com:user:alice",                                                                                                                                                                                     
-    "name": "Alice",                                                                                                                                                                                                             
-    "host": "example.com",                                                                                                                                                                                                       
-    "port": 443,                                                                                                                                                                                                                 
-    "metadata": {                                                                                                                                                                                                                
-        "description": "Alice的代理",                                                                                                                                                                                            
-        "capabilities": ["chat", "calculation"],                                                                                                                                                                                 
-        "last_seen": "2024-01-01T12:00:00Z"                                                                                                                                                                                      
-    }                                                                                                                                                                                                                            
-}                                                                                                                                                                                                                                
-                                                                                                                                                                                                                                 
-# Token数据格式 (to_remote)                                                                                                                                                                                                      
-token_to_remote = {                                                                                                                                                                                                              
-    "token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",                                                                                                                                                                          
-    "created_at": "2024-01-01T12:00:00Z",                                                                                                                                                                                        
-    "expires_at": "2024-01-01T13:00:00Z",                                                                                                                                                                                        
-    "is_revoked": False,                                                                                                                                                                                                         
-    "req_did": "did:wba:example.com:user:alice"                                                                                                                                                                                  
-}                                                                                                                                                                                                                                
-                                                                                                                                                                                                                                 
-# Token数据格式 (from_remote)                                                                                                                                                                                                    
-token_from_remote = {                                                                                                                                                                                                            
-    "token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",                                                                                                                                                                          
-    "created_at": "2024-01-01T12:00:00Z",                                                                                                                                                                                        
-    "req_did": "did:wba:example.com:user:alice"                                                                                                                                                                                  
-}                                                                                                                                                                                                                                
-                                                                                                                                                                                                                                 
-
-6.2 Token管理策略                                                                                                                                                                                                                
-
-6.2.1 Token过期管理                                                                                                                                                                                                              
-
-                                                                                                                                                                                                                                 
-def check_token_expiry(self):                                                                                                                                                                                                    
-    """检查并清理过期Token"""                                                                                                                                                                                                    
-    from datetime import datetime, timezone                                                                                                                                                                                      
-    current_time = datetime.now(timezone.utc)                                                                                                                                                                                    
-                                                                                                                                                                                                                                 
-    # 检查发出的Token                                                                                                                                                                                                            
-    expired_to_remote = []                                                                                                                                                                                                       
-    for did, token_info in self._token_to_remote.items():                                                                                                                                                                        
-        if isinstance(token_info.get("expires_at"), str):                                                                                                                                                                        
-            expires_at = datetime.fromisoformat(token_info["expires_at"])                                                                                                                                                        
-        else:                                                                                                                                                                                                                    
-            expires_at = token_info.get("expires_at")                                                                                                                                                                            
-                                                                                                                                                                                                                                 
-        if expires_at and current_time > expires_at:                                                                                                                                                                             
-            expired_to_remote.append(did)                                                                                                                                                                                        
-                                                                                                                                                                                                                                 
-    # 清理过期Token                                                                                                                                                                                                              
-    for did in expired_to_remote:                                                                                                                                                                                                
-        logger.debug(f"清理过期Token (to_remote): {did}")                                                                                                                                                                        
-        self._token_to_remote.pop(did, None)                                                                                                                                                                                     
-                                                                                                                                                                                                                                 
-def is_token_valid(self, remote_did: str, direction: str = "to_remote") -> bool:                                                                                                                                                 
-    """检查Token是否有效"""                                                                                                                                                                                                      
-    if direction == "to_remote":                                                                                                                                                                                                 
-        token_info = self._token_to_remote.get(remote_did)                                                                                                                                                                       
-    else:                                                                                                                                                                                                                        
-        token_info = self._token_from_remote.get(remote_did)                                                                                                                                                                     
-                                                                                                                                                                                                                                 
-    if not token_info:                                                                                                                                                                                                           
-        return False                                                                                                                                                                                                             
-                                                                                                                                                                                                                                 
-    # 检查撤销状态                                                                                                                                                                                                               
-    if token_info.get("is_revoked", False):                                                                                                                                                                                      
-        return False                                                                                                                                                                                                             
-                                                                                                                                                                                                                                 
-    # 检查过期时间                                                                                                                                                                                                               
-    if "expires_at" in token_info:                                                                                                                                                                                               
-        from datetime import datetime, timezone                                                                                                                                                                                  
-        current_time = datetime.now(timezone.utc)                                                                                                                                                                                
-        expires_at = token_info["expires_at"]                                                                                                                                                                                    
-        if isinstance(expires_at, str):                                                                                                                                                                                          
-            expires_at = datetime.fromisoformat(expires_at)                                                                                                                                                                      
-        if current_time > expires_at:                                                                                                                                                                                            
-            return False                                                                                                                                                                                                         
-                                                                                                                                                                                                                                 
-    return True                                                                                                                                                                                                                  
-                                                                                                                                                                                                                                 
-
-6.2.2 Token安全管理                                                                                                                                                                                                              
-
-                                                                                                                                                                                                                                 
-def secure_token_storage(self, remote_did: str, token: str, expires_delta: int):                                                                                                                                                 
-    """安全的Token存储"""                                                                                                                                                                                                        
-    from datetime import datetime, timezone, timedelta                                                                                                                                                                           
-                                                                                                                                                                                                                                 
-    # 1. 验证Token格式                                                                                                                                                                                                           
-    if not self._validate_token_format(token):                                                                                                                                                                                   
-        raise ValueError("Invalid token format")                                                                                                                                                                                 
-                                                                                                                                                                                                                                 
-    # 2. 计算过期时间                                                                                                                                                                                                            
-    now = datetime.now(timezone.utc)                                                                                                                                                                                             
-    expires_at = now + timedelta(seconds=expires_delta)                                                                                                                                                                          
-                                                                                                                                                                                                                                 
-    # 3. 构建Token信息                                                                                                                                                                                                           
-    token_info = {                                                                                                                                                                                                               
-        "token": token,                                                                                                                                                                                                          
-        "created_at": now.isoformat(),                                                                                                                                                                                           
-        "expires_at": expires_at.isoformat(),                                                                                                                                                                                    
-        "is_revoked": False,                                                                                                                                                                                                     
-        "req_did": remote_did,                                                                                                                                                                                                   
-        "security_hash": self._generate_token_hash(token)  # 安全哈希                                                                                                                                                            
-    }                                                                                                                                                                                                                            
-                                                                                                                                                                                                                                 
-    # 4. 存储（持久化+缓存）                                                                                                                                                                                                     
-    self.user_data.store_token_to_remote(remote_did, token, expires_delta)                                                                                                                                                       
-    self._token_to_remote[remote_did] = token_info                                                                                                                                                                               
-                                                                                                                                                                                                                                 
-def _validate_token_format(self, token: str) -> bool:                                                                                                                                                                            
-    """验证Token格式"""                                                                                                                                                                                                          
-    try:                                                                                                                                                                                                                         
-        import jwt                                                                                                                                                                                                               
-        # 不验证签名，只检查格式                                                                                                                                                                                                 
-        jwt.decode(token, options={"verify_signature": False})                                                                                                                                                                   
-        return True                                                                                                                                                                                                              
-    except jwt.InvalidTokenError:                                                                                                                                                                                                
-        return False                                                                                                                                                                                                             
-                                                                                                                                                                                                                                 
-def _generate_token_hash(self, token: str) -> str:                                                                                                                                                                               
-    """生成Token安全哈希"""                                                                                                                                                                                                      
-    import hashlib                                                                                                                                                                                                               
-    return hashlib.sha256(token.encode()).hexdigest()[:16]                                                                                                                                                                       
-                                                                                                                                                                                                                                 
-
-6.3 联系人关系管理                                                                                                                                                                                                               
-
-                                                                                                                                                                                                                                 
-def manage_contact_relationship(self, remote_did: str, relationship_type: str = "peer"):                                                                                                                                         
-    """管理联系人关系"""                                                                                                                                                                                                         
-    contact = self.get_contact(remote_did)                                                                                                                                                                                       
-    if contact:                                                                                                                                                                                                                  
-        # 更新关系类型                                                                                                                                                                                                           
-        contact.setdefault("metadata", {})["relationship"] = relationship_type                                                                                                                                                   
-        contact["metadata"]["last_updated"] = datetime.now().isoformat()                                                                                                                                                         
-                                                                                                                                                                                                                                 
-        # 更新缓存和持久化                                                                                                                                                                                                       
-        self._contacts[remote_did] = contact                                                                                                                                                                                     
-        self.user_data.add_contact(contact)                                                                                                                                                                                      
-                                                                                                                                                                                                                                 
-def get_contacts_by_relationship(self, relationship_type: str) -> List[Dict]:                                                                                                                                                    
-    """按关系类型获取联系人"""                                                                                                                                                                                                   
-    return [                                                                                                                                                                                                                     
-        contact for contact in self._contacts.values()                                                                                                                                                                           
-        if contact.get("metadata", {}).get("relationship") == relationship_type                                                                                                                                                  
-    ]                                                                                                                                                                                                                            
-                                                                                                                                                                                                                                 
-def update_contact_activity(self, remote_did: str, activity_type: str = "interaction"):                                                                                                                                          
-    """更新联系人活动记录"""                                                                                                                                                                                                     
-    contact = self.get_contact(remote_did)                                                                                                                                                                                       
-    if contact:                                                                                                                                                                                                                  
-        contact.setdefault("metadata", {})                                                                                                                                                                                       
-        contact["metadata"]["last_activity"] = datetime.now().isoformat()                                                                                                                                                        
-        contact["metadata"]["activity_type"] = activity_type                                                                                                                                                                     
-                                                                                                                                                                                                                                 
-        # 增加交互计数                                                                                                                                                                                                           
-        contact["metadata"]["interaction_count"] = contact["metadata"].get("interaction_count", 0) + 1                                                                                                                           
-                                                                                                                                                                                                                                 
-        self._contacts[remote_did] = contact                                                                                                                                                                                     
-        self.user_data.add_contact(contact)                                                                                                                                                                                      
-                                                                                                                                                                                                                                 
-
-
-7. 性能优化策略                                                                                                                                                                                                                  
-
-7.1 缓存优化                                                                                                                                                                                                                     
-
-                                                                                                                                                                                                                                 
-class OptimizedContactManager(ContactManager):                                                                                                                                                                                   
-    def __init__(self, user_data):                                                                                                                                                                                               
-        super().__init__(user_data)                                                                                                                                                                                              
-                                                                                                                                                                                                                                 
-        # 增强缓存                                                                                                                                                                                                               
-        self._contact_index = {}        # 按名称索引                                                                                                                                                                             
-        self._relationship_index = {}   # 按关系类型索引                                                                                                                                                                         
-        self._activity_index = {}       # 按活动时间索引                                                                                                                                                                         
-                                                                                                                                                                                                                                 
-        self._build_indexes()                                                                                                                                                                                                    
-                                                                                                                                                                                                                                 
-    def _build_indexes(self):                                                                                                                                                                                                    
-        """构建索引以提高查询性能"""                                                                                                                                                                                             
-        for did, contact in self._contacts.items():                                                                                                                                                                              
-            # 名称索引                                                                                                                                                                                                           
-            name = contact.get("name")                                                                                                                                                                                           
-            if name:                                                                                                                                                                                                             
-                self._contact_index[name] = did                                                                                                                                                                                  
-                                                                                                                                                                                                                                 
-            # 关系索引                                                                                                                                                                                                           
-            relationship = contact.get("metadata", {}).get("relationship", "peer")                                                                                                                                               
-            self._relationship_index.setdefault(relationship, set()).add(did)                                                                                                                                                    
-                                                                                                                                                                                                                                 
-            # 活动索引                                                                                                                                                                                                           
-            last_activity = contact.get("metadata", {}).get("last_activity")                                                                                                                                                     
-            if last_activity:                                                                                                                                                                                                    
-                self._activity_index[did] = last_activity                                                                                                                                                                        
-                                                                                                                                                                                                                                 
-    def find_contact_by_name(self, name: str) -> Optional[Dict]:                                                                                                                                                                 
-        """通过名称快速查找联系人"""                                                                                                                                                                                             
-        did = self._contact_index.get(name)                                                                                                                                                                                      
-        return self._contacts.get(did) if did else None                                                                                                                                                                          
-                                                                                                                                                                                                                                 
-    def get_recent_contacts(self, limit: int = 10) -> List[Dict]:                                                                                                                                                                
-        """获取最近活跃的联系人"""                                                                                                                                                                                               
-        sorted_contacts = sorted(                                                                                                                                                                                                
-            self._activity_index.items(),                                                                                                                                                                                        
-            key=lambda x: x[1],                                                                                                                                                                                                  
-            reverse=True                                                                                                                                                                                                         
-        )                                                                                                                                                                                                                        
-                                                                                                                                                                                                                                 
-        recent_dids = [did for did, _ in sorted_contacts[:limit]]                                                                                                                                                                
-        return [self._contacts[did] for did in recent_dids if did in self._contacts]                                                                                                                                             
-                                                                                                                                                                                                                                 
-
-7.2 批量操作优化                                                                                                                                                                                                                 
-
-                                                                                                                                                                                                                                 
-class BatchContactManager(ContactManager):                                                                                                                                                                                       
-    def add_contacts_batch(self, contacts: List[Dict]):                                                                                                                                                                          
-        """批量添加联系人"""                                                                                                                                                                                                     
-        for contact in contacts:                                                                                                                                                                                                 
-            did = contact['did']                                                                                                                                                                                                 
-            self._contacts[did] = contact                                                                                                                                                                                        
-                                                                                                                                                                                                                                 
-        # 批量持久化                                                                                                                                                                                                             
-        for contact in contacts:                                                                                                                                                                                                 
-            self.user_data.add_contact(contact)                                                                                                                                                                                  
-                                                                                                                                                                                                                                 
-    def update_tokens_batch(self, token_updates: List[Dict]):                                                                                                                                                                    
-        """批量更新Token"""                                                                                                                                                                                                      
-        for update in token_updates:                                                                                                                                                                                             
-            remote_did = update['remote_did']                                                                                                                                                                                    
-            token = update['token']                                                                                                                                                                                              
-            expires_delta = update['expires_delta']                                                                                                                                                                              
-                                                                                                                                                                                                                                 
-            # 批量更新缓存                                                                                                                                                                                                       
-            self.store_token_to_remote(remote_did, token, expires_delta)                                                                                                                                                         
-                                                                                                                                                                                                                                 
-
-7.3 内存管理优化                                                                                                                                                                                                                 
-
-                                                                                                                                                                                                                                 
-def cleanup_expired_data(self):                                                                                                                                                                                                  
-    """清理过期数据以释放内存"""                                                                                                                                                                                                 
-    from datetime import datetime, timezone, timedelta                                                                                                                                                                           
-    current_time = datetime.now(timezone.utc)                                                                                                                                                                                    
-    cleanup_threshold = current_time - timedelta(days=30)  # 30天前的数据                                                                                                                                                        
-                                                                                                                                                                                                                                 
-    # 清理过期Token                                                                                                                                                                                                              
-    expired_tokens = []                                                                                                                                                                                                          
-    for did, token_info in self._token_to_remote.items():                                                                                                                                                                        
-        expires_at = token_info.get("expires_at")                                                                                                                                                                                
-        if expires_at:                                                                                                                                                                                                           
-            if isinstance(expires_at, str):                                                                                                                                                                                      
-                expires_at = datetime.fromisoformat(expires_at)                                                                                                                                                                  
-            if expires_at < cleanup_threshold:                                                                                                                                                                                   
-                expired_tokens.append(did)                                                                                                                                                                                       
-                                                                                                                                                                                                                                 
-    for did in expired_tokens:                                                                                                                                                                                                   
-        self._token_to_remote.pop(did, None)                                                                                                                                                                                     
-        logger.debug(f"清理过期Token: {did}")                                                                                                                                                                                    
-                                                                                                                                                                                                                                 
-    # 清理不活跃联系人的缓存（保留持久化数据）                                                                                                                                                                                   
-    inactive_contacts = []                                                                                                                                                                                                       
-    for did, contact in self._contacts.items():                                                                                                                                                                                  
-        last_activity = contact.get("metadata", {}).get("last_activity")                                                                                                                                                         
-        if last_activity:                                                                                                                                                                                                        
-            if isinstance(last_activity, str):                                                                                                                                                                                   
-                last_activity = datetime.fromisoformat(last_activity)                                                                                                                                                            
-            if last_activity < cleanup_threshold:                                                                                                                                                                                
-                inactive_contacts.append(did)                                                                                                                                                                                    
-                                                                                                                                                                                                                                 
-    logger.debug(f"发现 {len(inactive_contacts)} 个不活跃联系人，保留持久化数据但清理缓存")                                                                                                                                      
-                                                                                                                                                                                                                                 
-
-
-8. 使用场景与最佳实践                                                                                                                                                                                                            
-
-8.1 Agent开发最佳实践                                                                                                                                                                                                            
-
-8.1.1 配置驱动模式（推荐）                                                                                                                                                                                                       
-
-                                                                                                                                                                                                                                 
-# agent_config.yaml                                                                                                                                                                                                              
-did: "did:wba:localhost%3A9527:wba:user:calculator"                                                                                                                                                                              
-name: "计算器代理"                                                                                                                                                                                                               
-type: "service"                                                                                                                                                                                                                  
-api:                                                                                                                                                                                                                             
-  - path: "/add"                                                                                                                                                                                                                 
-    method: "POST"                                                                                                                                                                                                               
-    handler: "handle_add"                                                                                                                                                                                                        
-    summary: "执行加法运算"                                                                                                                                                                                                      
-    params:                                                                                                                                                                                                                      
-      a: {"type": "number", "description": "第一个加数"}                                                                                                                                                                         
-      b: {"type": "number", "description": "第二个加数"}                                                                                                                                                                         
-    result:                                                                                                                                                                                                                      
-      sum: {"type": "number", "description": "计算结果"}                                                                                                                                                                         
-                                                                                                                                                                                                                                 
-
-                                                                                                                                                                                                                                 
-# agent_handlers.py                                                                                                                                                                                                              
-async def handle_add(a: float, b: float) -> dict:                                                                                                                                                                                
-    """执行加法运算"""                                                                                                                                                                                                           
-    try:                                                                                                                                                                                                                         
-        result = a + b                                                                                                                                                                                                           
-        return {                                                                                                                                                                                                                 
-            "success": True,                                                                                                                                                                                                     
-            "sum": result,                                                                                                                                                                                                       
-            "operation": f"{a} + {b} = {result}"                                                                                                                                                                                 
-        }                                                                                                                                                                                                                        
-    except Exception as e:                                                                                                                                                                                                       
-        return {                                                                                                                                                                                                                 
-            "success": False,                                                                                                                                                                                                    
-            "error": str(e)                                                                                                                                                                                                      
-        }                                                                                                                                                                                                                        
-                                                                                                                                                                                                                                 
-
-8.1.2 自定义注册模式（高级）                                                                                                                                                                                                     
-
-                                                                                                                                                                                                                                 
-# agent_register.py                                                                                                                                                                                                              
-def register(agent):                                                                                                                                                                                                             
-    """自定义Agent注册逻辑"""                                                                                                                                                                                                    
-                                                                                                                                                                                                                                 
-    # 1. 注册基础API                                                                                                                                                                                                             
-    @agent.expose_api("/calculate", ["POST"])                                                                                                                                                                                    
-    async def calculate(request_data, request):                                                                                                                                                                                  
-        operation = request_data.get("operation")                                                                                                                                                                                
-        operands = request_data.get("operands", [])                                                                                                                                                                              
-                                                                                                                                                                                                                                 
-        if operation == "add":                                                                                                                                                                                                   
-            result = sum(operands)                                                                                                                                                                                               
-        elif operation == "multiply":                                                                                                                                                                                            
-            result = 1                                                                                                                                                                                                           
-            for num in operands:                                                                                                                                                                                                 
-                result *= num                                                                                                                                                                                                    
-        else:                                                                                                                                                                                                                    
-            return {"error": "Unsupported operation"}                                                                                                                                                                            
-                                                                                                                                                                                                                                 
-        return {"result": result}                                                                                                                                                                                                
-                                                                                                                                                                                                                                 
-    # 2. 注册消息处理器                                                                                                                                                                                                          
-    @agent.register_message_handler("calculation_request")                                                                                                                                                                       
-    async def handle_calculation_message(message_data):                                                                                                                                                                          
-        # 处理计算请求消息                                                                                                                                                                                                       
-        return {"status": "processed"}                                                                                                                                                                                           
-                                                                                                                                                                                                                                 
-    # 3. 注册群组事件处理器                                                                                                                                                                                                      
-    @agent.register_group_event_handler                                                                                                                                                                                          
-    async def handle_group_events(group_id, event_type, event_data):                                                                                                                                                             
-        if event_type == "member_join":                                                                                                                                                                                          
-            # 欢迎新成员                                                                                                                                                                                                         
-            return {"welcome_message": f"欢迎加入计算群组 {group_id}"}                                                                                                                                                           
-                                                                                                                                                                                                                                 
-
-8.2 联系人管理最佳实践                                                                                                                                                                                                           
-
-8.2.1 智能联系人管理                                                                                                                                                                                                             
-
-                                                                                                                                                                                                                                 
-class SmartContactManager(ContactManager):                                                                                                                                                                                       
-    def add_contact_smart(self, remote_agent):                                                                                                                                                                                   
-        """智能添加联系人"""                                                                                                                                                                                                     
-        # 1. 标准化联系人数据                                                                                                                                                                                                    
-        if isinstance(remote_agent, dict):                                                                                                                                                                                       
-            contact = remote_agent                                                                                                                                                                                               
-        else:                                                                                                                                                                                                                    
-            contact = {                                                                                                                                                                                                          
-                "did": remote_agent.id,                                                                                                                                                                                          
-                "name": getattr(remote_agent, "name", None),                                                                                                                                                                     
-                "host": getattr(remote_agent, "host", None),                                                                                                                                                                     
-                "port": getattr(remote_agent, "port", None),                                                                                                                                                                     
-                "metadata": {                                                                                                                                                                                                    
-                    "added_at": datetime.now().isoformat(),                                                                                                                                                                      
-                    "source": "smart_add",                                                                                                                                                                                       
-                    "capabilities": getattr(remote_agent, "capabilities", [])                                                                                                                                                    
-                }                                                                                                                                                                                                                
-            }                                                                                                                                                                                                                    
-                                                                                                                                                                                                                                 
-        # 2. 检查是否已存在                                                                                                                                                                                                      
-        existing = self.get_contact(contact["did"])                                                                                                                                                                              
-        if existing:                                                                                                                                                                                                             
-            # 合并元数据                                                                                                                                                                                                         
-            existing["metadata"].update(contact.get("metadata", {}))                                                                                                                                                             
-            contact = existing                                                                                                                                                                                                   
-                                                                                                                                                                                                                                 
-        # 3. 添加联系人                                                                                                                                                                                                          
-        self.add_contact(contact)                                                                                                                                                                                                
-                                                                                                                                                                                                                                 
-        # 4. 记录关系                                                                                                                                                                                                            
-        self.manage_contact_relationship(contact["did"], "peer")                                                                                                                                                                 
-                                                                                                                                                                                                                                 
-        return contact                                                                                                                                                                                                           
-                                                                                                                                                                                                                                 
-    def get_trusted_contacts(self) -> List[Dict]:                                                                                                                                                                                
-        """获取可信联系人"""                                                                                                                                                                                                     
-        return self.get_contacts_by_relationship("trusted")                                                                                                                                                                      
-                                                                                                                                                                                                                                 
-    def promote_to_trusted(self, remote_did: str):                                                                                                                                                                               
-        """提升为可信联系人"""                                                                                                                                                                                                   
-        contact = self.get_contact(remote_did)                                                                                                                                                                                   
-        if contact:                                                                                                                                                                                                              
-            interaction_count = contact.get("metadata", {}).get("interaction_count", 0)                                                                                                                                          
-            if interaction_count >= 10:  # 交互次数阈值                                                                                                                                                                          
-                self.manage_contact_relationship(remote_did, "trusted")                                                                                                                                                          
-                return True                                                                                                                                                                                                      
-        return False                                                                                                                                                                                                             
-                                                                                                                                                                                                                                 
-
-8.2.2 Token生命周期管理                                                                                                                                                                                                          
-
-                                                                                                                                                                                                                                 
-class TokenLifecycleManager:                                                                                                                                                                                                     
-    def __init__(self, contact_manager):                                                                                                                                                                                         
-        self.contact_manager = contact_manager                                                                                                                                                                                   
-                                                                                                                                                                                                                                 
-    def refresh_token_if_needed(self, remote_did: str) -> bool:                                                                                                                                                                  
-        """如果需要则刷新Token"""                                                                                                                                                                                                
-        if not self.contact_manager.is_token_valid(remote_did, "to_remote"):                                                                                                                                                     
-            # Token无效，需要重新认证                                                                                                                                                                                            
-            return self._request_new_token(remote_did)                                                                                                                                                                           
-                                                                                                                                                                                                                                 
-        # 检查是否即将过期（提前5分钟刷新）                                                                                                                                                                                      
-        token_info = self.contact_manager.get_token_to_remote(remote_did)                                                                                                                                                        
-        if token_info:                                                                                                                                                                                                           
-            expires_at = token_info.get("expires_at")                                                                                                                                                                            
-            if expires_at:                                                                                                                                                                                                       
-                from datetime import datetime, timezone, timedelta                                                                                                                                                               
-                expires_at = datetime.fromisoformat(expires_at)                                                                                                                                                                  
-                refresh_threshold = expires_at - timedelta(minutes=5)                                                                                                                                                            
-                if datetime.now(timezone.utc) > refresh_threshold:                                                                                                                                                               
-                    return self._request_new_token(remote_did)                                                                                                                                                                   
-                                                                                                                                                                                                                                 
-        return True                                                                                                                                                                                                              
-                                                                                                                                                                                                                                 
-    def _request_new_token(self, remote_did: str) -> bool:                                                                                                                                                                       
-        """请求新Token"""                                                                                                                                                                                                        
-        try:                                                                                                                                                                                                                     
-            # 这里应该实现重新认证逻辑                                                                                                                                                                                           
-            # 例如发起DID认证请求                                                                                                                                                                                                
-            logger.debug(f"请求新Token for {remote_did}")                                                                                                                                                                        
-            return True                                                                                                                                                                                                          
-        except Exception as e:                                                                                                                                                                                                   
-            logger.error(f"请求新Token失败: {e}")                                                                                                                                                                                
-            return False                                                                                                                                                                                                         
-                                                                                                                                                                                                                                 
-
-8.3 集成使用示例                                                                                                                                                                                                                 
-
-                                                                                                                                                                                                                                 
-async def complete_agent_lifecycle_example():                                                                                                                                                                                    
-    """完整的Agent生命周期示例"""                                                                                                                                                                                                
-                                                                                                                                                                                                                                 
-    # 1. 加载Agent                                                                                                                                                                                                               
-    agent, module = LocalAgentManager.load_agent_from_module("path/to/agent_config.yaml")                                                                                                                                        
-    if not agent:                                                                                                                                                                                                                
-        logger.error("Agent加载失败")                                                                                                                                                                                            
-        return                                                                                                                                                                                                                   
-                                                                                                                                                                                                                                 
-    # 2. 如果有初始化模块，调用初始化                                                                                                                                                                                            
-    if module and hasattr(module, "initialize_agent"):                                                                                                                                                                           
-        await module.initialize_agent(agent)                                                                                                                                                                                     
-                                                                                                                                                                                                                                 
-    # 3. 生成接口文档                                                                                                                                                                                                            
-    sdk = ANPSDK.get_instance(9527)                                                                                                                                                                                              
-    await LocalAgentManager.generate_and_save_agent_interfaces(agent, sdk)                                                                                                                                                       
-                                                                                                                                                                                                                                 
-    # 4. 注册到SDK                                                                                                                                                                                                               
-    sdk.register_agent(agent)                                                                                                                                                                                                    
-                                                                                                                                                                                                                                 
-    # 5. 添加联系人                                                                                                                                                                                                              
-    remote_agent_info = {                                                                                                                                                                                                        
-        "did": "did:wba:example.com:user:alice",                                                                                                                                                                                 
-        "name": "Alice",                                                                                                                                                                                                         
-        "host": "example.com",                                                                                                                                                                                                   
-        "port": 443                                                                                                                                                                                                              
-    }                                                                                                                                                                                                                            
-    agent.add_contact(remote_agent_info)                                                                                                                                                                                         
-                                                                                                                                                                                                                                 
-    # 6. 管理Token                                                                                                                                                                                                               
-    token = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."                                                                                                                                                                            
-    agent.contact_manager.store_token_from_remote("did:wba:example.com:user:alice", token)                                                                                                                                       
-                                                                                                                                                                                                                                 
-    # 7. 检查联系人状态                                                                                                                                                                                                          
-    contacts = agent.list_contacts()                                                                                                                                                                                             
-    logger.info(f"Agent {agent.name} 有 {len(contacts)} 个联系人")                                                                                                                                                               
-                                                                                                                                                                                                                                 
-    # 8. 清理过期数据                                                                                                                                                                                                            
-    agent.contact_manager.cleanup_expired_data()                                                                                                                                                                                 
-                                                                                                                                                                                                                                 
-    logger.info(f"Agent {agent.name} 初始化完成")                                                                                                                                                                                
-                                                                                                                                                                                                                                 
-
-
-8.4 自定义注册模式深度解析                                                                                                                                                                                                       
-
-基于 agent_002/agent_register.py 的实际实现，我们可以看到自定义注册模式的强大功能：                                                                                                                                              
-
-8.4.1 完整的自定义注册实现                                                                                                                                                                                                       
-
-                                                                                                                                                                                                                                 
-# data_user/localhost_9527/agents_config/agent_002/agent_register.py                                                                                                                                                             
-import asyncio                                                                                                                                                                                                                   
-from anp_open_sdk.service.router.router_agent import wrap_business_handler                                                                                                                                                       
-from anp_open_sdk_framework.local_methods.local_methods_decorators import local_method, register_local_methods_to_agent                                                                                                          
-                                                                                                                                                                                                                                 
-def register(agent):                                                                                                                                                                                                             
-    """                                                                                                                                                                                                                          
-    自定义注册脚本：为 agent 注册任意 API、消息、事件等                                                                                                                                                                          
-    """                                                                                                                                                                                                                          
-    from .agent_handlers import hello_handler, info_handler                                                                                                                                                                      
-                                                                                                                                                                                                                                 
-    # 1. 注册多种HTTP方法的API                                                                                                                                                                                                   
-    agent.expose_api("/hello", wrap_business_handler(hello_handler), methods=["POST","GET"])                                                                                                                                     
-    agent.expose_api("/info", info_handler, methods=["POST"])                                                                                                                                                                    
-                                                                                                                                                                                                                                 
-    # 2. 注册自定义消息处理器                                                                                                                                                                                                    
-    @agent.register_message_handler("text")                                                                                                                                                                                      
-    async def custom_text_handler(msg):                                                                                                                                                                                          
-        return {"reply": f"自定义注册收到消息: {msg.get('content')}"}                                                                                                                                                            
-                                                                                                                                                                                                                                 
-    # 3. 注册本地方法（使用装饰器）                                                                                                                                                                                              
-    @local_method(description="演示方法，返回agent信息", tags=["demo", "info"])                                                                                                                                                  
-    def demo_method():                                                                                                                                                                                                           
-        return f"这是来自 {agent.name} 的演示方法"                                                                                                                                                                               
-                                                                                                                                                                                                                                 
-    @local_method(description="计算两个数的和", tags=["math", "calculator"])                                                                                                                                                     
-    def calculate_sum(a: float, b: float):                                                                                                                                                                                       
-        return {"result": a + b, "operation": "add"}                                                                                                                                                                             
-                                                                                                                                                                                                                                 
-    @local_method(description="异步演示方法", tags=["demo", "async"])                                                                                                                                                            
-    async def async_demo():                                                                                                                                                                                                      
-        await asyncio.sleep(0.1)                                                                                                                                                                                                 
-        return "异步方法结果"                                                                                                                                                                                                    
-                                                                                                                                                                                                                                 
-    # 4. 自动注册所有标记的本地方法                                                                                                                                                                                              
-    register_local_methods_to_agent(agent, locals())                                                                                                                                                                             
-                                                                                                                                                                                                                                 
-    return agent                                                                                                                                                                                                                 
-                                                                                                                                                                                                                                 
-
-8.4.2 自定义注册模式的优势分析                                                                                                                                                                                                   
-
-                                                                                                                                                                                                                                 
-graph TD                                                                                                                                                                                                                         
-    A[自定义注册模式] --> B[灵活的API注册]                                                                                                                                                                                       
-    A --> C[多种处理器支持]                                                                                                                                                                                                      
-    A --> D[本地方法集成]                                                                                                                                                                                                        
-    A --> E[装饰器模式]                                                                                                                                                                                                          
-                                                                                                                                                                                                                                 
-    B --> B1[支持多HTTP方法]                                                                                                                                                                                                     
-    B --> B2[业务处理器包装]                                                                                                                                                                                                     
-    B --> B3[路径自定义]                                                                                                                                                                                                         
-                                                                                                                                                                                                                                 
-    C --> C1[消息处理器]                                                                                                                                                                                                         
-    C --> C2[群组事件处理器]                                                                                                                                                                                                     
-    C --> C3[权限校验器]                                                                                                                                                                                                         
-                                                                                                                                                                                                                                 
-    D --> D1[local_method装饰器]                                                                                                                                                                                                 
-    D --> D2[自动方法注册]                                                                                                                                                                                                       
-    D --> D3[标签分类]                                                                                                                                                                                                           
-                                                                                                                                                                                                                                 
-    E --> E1[函数式编程]                                                                                                                                                                                                         
-    E --> E2[声明式配置]                                                                                                                                                                                                         
-    E --> E3[代码复用]                                                                                                                                                                                                           
-                                                                                                                                                                                                                                 
-
-8.4.3 与其他模式的对比                                                                                                                                                                                                           
-
-                                                                                                                                                                                                                                 
-# 模式对比表                                                                                                                                                                                                                     
-AGENT_LOADING_MODES = {                                                                                                                                                                                                          
-    "配置驱动模式": {                                                                                                                                                                                                            
-        "适用场景": "简单的CRUD API，标准化业务逻辑",                                                                                                                                                                            
-        "配置复杂度": "低",                                                                                                                                                                                                      
-        "灵活性": "中",                                                                                                                                                                                                          
-        "示例": "agent_001, agent_calculator",                                                                                                                                                                                   
-        "优势": ["配置简单", "标准化", "易维护"],                                                                                                                                                                                
-        "劣势": ["灵活性有限", "复杂逻辑难实现"]                                                                                                                                                                                 
-    },                                                                                                                                                                                                                           
-                                                                                                                                                                                                                                 
-    "自定义注册模式": {                                                                                                                                                                                                          
-        "适用场景": "复杂业务逻辑，多种处理器，高度定制",                                                                                                                                                                        
-        "配置复杂度": "中",                                                                                                                                                                                                      
-        "灵活性": "高",                                                                                                                                                                                                          
-        "示例": "agent_002",                                                                                                                                                                                                     
-        "优势": ["高度灵活", "支持复杂逻辑", "可扩展性强"],                                                                                                                                                                      
-        "劣势": ["需要编程知识", "配置相对复杂"]                                                                                                                                                                                 
-    },                                                                                                                                                                                                                           
-                                                                                                                                                                                                                                 
-    "初始化函数模式": {                                                                                                                                                                                                          
-        "适用场景": "需要复杂初始化逻辑的Agent",                                                                                                                                                                                 
-        "配置复杂度": "高",                                                                                                                                                                                                      
-        "灵活性": "最高",                                                                                                                                                                                                        
-        "示例": "agent_llm",                                                                                                                                                                                                     
-        "优势": ["完全控制初始化", "支持异步初始化"],                                                                                                                                                                            
-        "劣势": ["复杂度最高", "需要深度定制"]                                                                                                                                                                                   
-    }                                                                                                                                                                                                                            
-}                                                                                                                                                                                                                                
-                                                                                                                                                                                                                                 
-
-8.5 本地方法系统集成                                                                                                                                                                                                             
-
-8.5.1 本地方法装饰器系统                                                                                                                                                                                                         
-
-                                                                                                                                                                                                                                 
-# 从agent_register.py中可以看到本地方法的使用                                                                                                                                                                                    
-from anp_open_sdk_framework.local_methods.local_methods_decorators import local_method, register_local_methods_to_agent                                                                                                          
-                                                                                                                                                                                                                                 
-# 本地方法注册流程                                                                                                                                                                                                               
-def local_method_registration_flow():                                                                                                                                                                                            
-    # 1. 使用装饰器标记方法                                                                                                                                                                                                      
-    @local_method(description="演示方法，返回agent信息", tags=["demo", "info"])                                                                                                                                                  
-    def demo_method():                                                                                                                                                                                                           
-        return f"这是来自 {agent.name} 的演示方法"                                                                                                                                                                               
-                                                                                                                                                                                                                                 
-    # 2. 支持参数化方法                                                                                                                                                                                                          
-    @local_method(description="计算两个数的和", tags=["math", "calculator"])                                                                                                                                                     
-    def calculate_sum(a: float, b: float):                                                                                                                                                                                       
-        return {"result": a + b, "operation": "add"}                                                                                                                                                                             
-                                                                                                                                                                                                                                 
-    # 3. 支持异步方法                                                                                                                                                                                                            
-    @local_method(description="异步演示方法", tags=["demo", "async"])                                                                                                                                                            
-    async def async_demo():                                                                                                                                                                                                      
-        await asyncio.sleep(0.1)                                                                                                                                                                                                 
-        return "异步方法结果"                                                                                                                                                                                                    
-                                                                                                                                                                                                                                 
-    # 4. 批量注册到Agent                                                                                                                                                                                                         
-    register_local_methods_to_agent(agent, locals())                                                                                                                                                                             
-                                                                                                                                                                                                                                 
-
-8.5.2 本地方法系统架构                                                                                                                                                                                                           
-
-                                                                                                                                                                                                                                 
-graph TD                                                                                                                                                                                                                         
-    A[local_method装饰器] --> B[LOCAL_METHODS_REGISTRY]                                                                                                                                                                          
-    B --> C[register_local_methods_to_agent]                                                                                                                                                                                     
-    C --> D[Agent.expose_api]                                                                                                                                                                                                    
-    D --> E[API路由注册]                                                                                                                                                                                                         
-                                                                                                                                                                                                                                 
-    F[方法元数据] --> F1[description]                                                                                                                                                                                            
-    F --> F2[tags]                                                                                                                                                                                                               
-    F --> F3[参数类型]                                                                                                                                                                                                           
-    F --> F4[返回类型]                                                                                                                                                                                                           
-                                                                                                                                                                                                                                 
-    A --> F                                                                                                                                                                                                                      
-                                                                                                                                                                                                                                 
-    G[自动发现机制] --> G1[扫描locals()]                                                                                                                                                                                         
-    G --> G2[过滤装饰器方法]                                                                                                                                                                                                     
-    G --> G3[批量注册]                                                                                                                                                                                                           
-                                                                                                                                                                                                                                 
-    C --> G                                                                                                                                                                                                                      
-                                                                                                                                                                                                                                 
-
-8.6 业务处理器包装机制                                                                                                                                                                                                           
-
-8.6.1 处理器包装分析                                                                                                                                                                                                             
-
-                                                                                                                                                                                                                                 
-# 从agent_register.py可以看到两种处理器注册方式                                                                                                                                                                                  
-                                                                                                                                                                                                                                 
-# 方式1：使用wrap_business_handler包装                                                                                                                                                                                           
-agent.expose_api("/hello", wrap_business_handler(hello_handler), methods=["POST","GET"])                                                                                                                                         
-                                                                                                                                                                                                                                 
-# 方式2：直接注册（已经符合标准接口）                                                                                                                                                                                            
-agent.expose_api("/info", info_handler, methods=["POST"])                                                                                                                                                                        
-                                                                                                                                                                                                                                 
-# wrap_business_handler的作用分析                                                                                                                                                                                                
-def analyze_wrapper_usage():                                                                                                                                                                                                     
-    """                                                                                                                                                                                                                          
-    wrap_business_handler的作用：                                                                                                                                                                                                
-    1. 将业务函数的参数签名转换为标准的(request_data, request)接口                                                                                                                                                               
-    2. 自动从request_data中提取参数                                                                                                                                                                                              
-    3. 支持从params字段中解析JSON参数                                                                                                                                                                                            
-    4. 处理异常并返回错误信息                                                                                                                                                                                                    
-    """                                                                                                                                                                                                                          
-                                                                                                                                                                                                                                 
-    # 原始业务函数（需要包装）                                                                                                                                                                                                   
-    async def hello_handler(message, request):                                                                                                                                                                                   
-        return {"greeting": f"Hello, {message}!"}                                                                                                                                                                                
-                                                                                                                                                                                                                                 
-    # 包装后的函数签名变为                                                                                                                                                                                                       
-    async def wrapped_hello_handler(request_data, request):                                                                                                                                                                      
-        # 自动提取参数                                                                                                                                                                                                           
-        message = request_data.get("message")                                                                                                                                                                                    
-        # 调用原始函数                                                                                                                                                                                                           
-        return await hello_handler(message, request)                                                                                                                                                                             
-                                                                                                                                                                                                                                 
-
-8.6.2 参数提取机制                                                                                                                                                                                                               
-
-                                                                                                                                                                                                                                 
-# 基于router_agent.py中的wrap_business_handler实现                                                                                                                                                                               
-def parameter_extraction_analysis():                                                                                                                                                                                             
-    """参数提取机制分析"""                                                                                                                                                                                                       
-                                                                                                                                                                                                                                 
-    # 1. 直接从request_data提取                                                                                                                                                                                                  
-    kwargs = {k: request_data.get(k) for k in param_names if k in request_data}                                                                                                                                                  
-                                                                                                                                                                                                                                 
-    # 2. 从params字段提取（支持JSON格式）                                                                                                                                                                                        
-    if "params" in request_data:                                                                                                                                                                                                 
-        params = request_data["params"]                                                                                                                                                                                          
-        if isinstance(params, str):                                                                                                                                                                                              
-            params = json.loads(params)  # 解析JSON字符串                                                                                                                                                                        
-        for k in param_names:                                                                                                                                                                                                    
-            if k in params:                                                                                                                                                                                                      
-                kwargs[k] = params[k]                                                                                                                                                                                            
-                                                                                                                                                                                                                                 
-    # 3. 智能调用                                                                                                                                                                                                                
-    if 'request' in sig.parameters:                                                                                                                                                                                              
-        return await business_func(request, **kwargs)                                                                                                                                                                            
-    else:                                                                                                                                                                                                                        
-        return await business_func(**kwargs)                                                                                                                                                                                     
-                                                                                                                                                                                                                                 
-
-8.7 完整的Agent注册流程更新                                                                                                                                                                                                      
-
-8.7.1 增强的加载流程                                                                                                                                                                                                             
-
-                                                                                                                                                                                                                                 
-sequenceDiagram                                                                                                                                                                                                                  
-    participant LAM as LocalAgentManager                                                                                                                                                                                         
-    participant Config as YAML配置                                                                                                                                                                                               
-    participant Handlers as agent_handlers.py                                                                                                                                                                                    
-    participant Register as agent_register.py                                                                                                                                                                                    
-    participant Agent as LocalAgent                                                                                                                                                                                              
-    participant LM as LocalMethods                                                                                                                                                                                               
-    participant SDK as ANPSDK                                                                                                                                                                                                    
-                                                                                                                                                                                                                                 
-    LAM->>Config: 读取配置文件                                                                                                                                                                                                   
-    LAM->>Handlers: 动态导入handlers模块                                                                                                                                                                                         
-                                                                                                                                                                                                                                 
-    alt 自定义注册模式                                                                                                                                                                                                           
-        LAM->>Register: 检测到agent_register.py                                                                                                                                                                                  
-        LAM->>Register: 导入注册模块                                                                                                                                                                                             
-        LAM->>Agent: 创建LocalAgent实例                                                                                                                                                                                          
-        Register->>Handlers: 导入业务处理器                                                                                                                                                                                      
-        Register->>Agent: 注册API (expose_api)                                                                                                                                                                                   
-        Register->>Agent: 注册消息处理器                                                                                                                                                                                         
-        Register->>LM: 使用local_method装饰器                                                                                                                                                                                    
-        Register->>LM: register_local_methods_to_agent                                                                                                                                                                           
-        LM->>Agent: 批量注册本地方法                                                                                                                                                                                             
-        Register->>LAM: 返回配置完成的Agent                                                                                                                                                                                      
-    end                                                                                                                                                                                                                          
-                                                                                                                                                                                                                                 
-    LAM->>SDK: 注册Agent到SDK                                                                                                                                                                                                    
-    LAM->>LAM: 生成OpenAPI文档                                                                                                                                                                                                   
-    LAM->>LAM: 保存接口文件                                                                                                                                                                                                      
-                                                                                                                                                                                                                                 
-
-8.7.2 自定义注册的完整能力                                                                                                                                                                                                       
-
-                                                                                                                                                                                                                                 
-def complete_custom_registration_capabilities():                                                                                                                                                                                 
-    """自定义注册模式的完整能力展示"""                                                                                                                                                                                           
-                                                                                                                                                                                                                                 
-    def register(agent):                                                                                                                                                                                                         
-        # 1. API注册能力                                                                                                                                                                                                         
-        # 支持多种HTTP方法                                                                                                                                                                                                       
-        agent.expose_api("/multi-method", handler_func, methods=["GET", "POST", "PUT"])                                                                                                                                          
-                                                                                                                                                                                                                                 
-        # 支持路径参数                                                                                                                                                                                                           
-        agent.expose_api("/users/{user_id}", user_handler, methods=["GET"])                                                                                                                                                      
-                                                                                                                                                                                                                                 
-        # 支持业务处理器包装                                                                                                                                                                                                     
-        agent.expose_api("/wrapped", wrap_business_handler(business_func), methods=["POST"])                                                                                                                                     
-                                                                                                                                                                                                                                 
-        # 2. 消息处理器注册                                                                                                                                                                                                      
-        @agent.register_message_handler("text")                                                                                                                                                                                  
-        async def text_handler(msg):                                                                                                                                                                                             
-            return {"processed": True}                                                                                                                                                                                           
-                                                                                                                                                                                                                                 
-        @agent.register_message_handler("image")                                                                                                                                                                                 
-        async def image_handler(msg):                                                                                                                                                                                            
-            return {"image_processed": True}                                                                                                                                                                                     
-                                                                                                                                                                                                                                 
-        # 3. 群组事件处理器注册                                                                                                                                                                                                  
-        @agent.register_group_event_handler                                                                                                                                                                                      
-        async def group_handler(group_id, event_type, event_data):                                                                                                                                                               
-            if event_type == "member_join":                                                                                                                                                                                      
-                return {"welcome": f"Welcome to {group_id}"}                                                                                                                                                                     
-                                                                                                                                                                                                                                 
-        # 4. 本地方法注册                                                                                                                                                                                                        
-        @local_method(description="高级计算", tags=["math", "advanced"])                                                                                                                                                         
-        def advanced_calculation(formula: str, variables: dict):                                                                                                                                                                 
-            # 复杂计算逻辑                                                                                                                                                                                                       
-            return {"result": "calculated"}                                                                                                                                                                                      
-                                                                                                                                                                                                                                 
-        # 5. 权限和中间件（可扩展）                                                                                                                                                                                              
-        def add_permission_check():                                                                                                                                                                                              
-            # 可以添加权限检查逻辑                                                                                                                                                                                               
-            pass                                                                                                                                                                                                                 
-                                                                                                                                                                                                                                 
-        # 6. 定时任务（可扩展）                                                                                                                                                                                                  
-        def add_scheduled_tasks():                                                                                                                                                                                               
-            # 可以添加定时任务                                                                                                                                                                                                   
-            pass                                                                                                                                                                                                                 
-                                                                                                                                                                                                                                 
-        # 7. 自动注册本地方法                                                                                                                                                                                                    
-        register_local_methods_to_agent(agent, locals())                                                                                                                                                                         
-                                                                                                                                                                                                                                 
-        return agent                                                                                                                                                                                                             
-                                                                                                                                                                                                                                 
-
-8.8 最佳实践更新                                                                                                                                                                                                                 
-
-8.8.1 推荐的Agent开发流程                                                                                                                                                                                                        
-
-                                                                                                                                                                                                                                 
-# 推荐的Agent开发流程                                                                                                                                                                                                            
-def recommended_agent_development_flow():                                                                                                                                                                                        
-    """                                                                                                                                                                                                                          
-    1. 简单Agent -> 配置驱动模式                                                                                                                                                                                                 
-    2. 中等复杂度 -> 自定义注册模式                                                                                                                                                                                              
-    3. 高度复杂 -> 初始化函数模式                                                                                                                                                                                                
-    """                                                                                                                                                                                                                          
-                                                                                                                                                                                                                                 
-    # 阶段1：原型开发（配置驱动）                                                                                                                                                                                                
-    prototype_config = {                                                                                                                                                                                                         
-        "快速原型": "使用YAML配置快速搭建",                                                                                                                                                                                      
-        "基础功能": "实现核心API",                                                                                                                                                                                               
-        "测试验证": "验证业务逻辑"                                                                                                                                                                                               
-    }                                                                                                                                                                                                                            
-                                                                                                                                                                                                                                 
-    # 阶段2：功能扩展（自定义注册）                                                                                                                                                                                              
-    feature_expansion = {                                                                                                                                                                                                        
-        "复杂逻辑": "使用自定义注册实现复杂业务",                                                                                                                                                                                
-        "多种处理器": "添加消息、群组处理器",                                                                                                                                                                                    
-        "本地方法": "集成本地方法系统"                                                                                                                                                                                           
-    }                                                                                                                                                                                                                            
-                                                                                                                                                                                                                                 
-    # 阶段3：高级定制（初始化函数）                                                                                                                                                                                              
-    advanced_customization = {                                                                                                                                                                                                   
-        "深度定制": "完全控制初始化过程",                                                                                                                                                                                        
-        "异步初始化": "支持复杂的异步初始化",                                                                                                                                                                                    
-        "集成外部系统": "与外部系统深度集成"                                                                                                                                                                                     
-    }                                                                                                                                                                                                                            
-                                                                                                                                                                                                                                 
-
-8.8.2 自定义注册模式模板                                                                                                                                                                                                         
-
-                                                                                                                                                                                                                                 
-# 自定义注册模式的标准模板                                                                                                                                                                                                       
-def register(agent):                                                                                                                                                                                                             
-    """                                                                                                                                                                                                                          
-    标准的自定义注册模板                                                                                                                                                                                                         
-    """                                                                                                                                                                                                                          
-    # 导入业务处理器                                                                                                                                                                                                             
-    from .agent_handlers import (                                                                                                                                                                                                
-        primary_handler,                                                                                                                                                                                                         
-        secondary_handler,                                                                                                                                                                                                       
-        message_handler                                                                                                                                                                                                          
-    )                                                                                                                                                                                                                            
-                                                                                                                                                                                                                                 
-    # 1. 注册主要API                                                                                                                                                                                                             
-    agent.expose_api("/primary", wrap_business_handler(primary_handler), methods=["POST"])                                                                                                                                       
-    agent.expose_api("/secondary", secondary_handler, methods=["GET", "POST"])                                                                                                                                                   
-                                                                                                                                                                                                                                 
-    # 2. 注册消息处理器                                                                                                                                                                                                          
-    @agent.register_message_handler("custom_message")                                                                                                                                                                            
-    async def custom_message_handler(msg):                                                                                                                                                                                       
-        return await message_handler(msg)                                                                                                                                                                                        
-                                                                                                                                                                                                                                 
-    # 3. 注册群组事件处理器（如需要）                                                                                                                                                                                            
-    @agent.register_group_event_handler                                                                                                                                                                                          
-    async def group_event_handler(group_id, event_type, event_data):                                                                                                                                                             
-        # 处理群组事件                                                                                                                                                                                                           
-        return {"status": "handled"}                                                                                                                                                                                             
-                                                                                                                                                                                                                                 
-    # 4. 定义本地方法                                                                                                                                                                                                            
-    @local_method(description="核心业务方法", tags=["core", "business"])                                                                                                                                                         
-    def core_business_method(param1: str, param2: int):                                                                                                                                                                          
-        return {"processed": True, "param1": param1, "param2": param2}                                                                                                                                                           
-                                                                                                                                                                                                                                 
-    @local_method(description="异步业务方法", tags=["async", "business"])                                                                                                                                                        
-    async def async_business_method(data: dict):                                                                                                                                                                                 
-        await asyncio.sleep(0.1)  # 模拟异步操作                                                                                                                                                                                 
-        return {"async_result": data}                                                                                                                                                                                            
-                                                                                                                                                                                                                                 
-    # 5. 批量注册本地方法                                                                                                                                                                                                        
-    register_local_methods_to_agent(agent, locals())                                                                                                                                                                             
-                                                                                                                                                                                                                                 
-    # 6. 可选：添加初始化逻辑                                                                                                                                                                                                    
-    def initialize_agent_data():                                                                                                                                                                                                 
-        # 初始化Agent特定数据                                                                                                                                                                                                    
-        pass                                                                                                                                                                                                                     
-                                                                                                                                                                                                                                 
-    initialize_agent_data()                                                                                                                                                                                                      
-                                                                                                                                                                                                                                 
-    return agent                                                                                                                                                                                                                 
-                                                                                                                                                                                                                                 
-
-
-总结更新                                                                                                                                                                                                                         
-
-通过分析 agent_002/agent_register.py 的实际实现，我们可以看到自定义注册模式的强大功能：                                                                                                                                          
-
-新增优势                                                                                                                                                                                                                         
-
- 1 本地方法系统集成：通过装饰器模式优雅地注册本地方法                                                                                                                                                                            
- 2 业务处理器智能包装：自动适配不同的函数签名                                                                                                                                                                                    
- 3 多种处理器支持：API、消息、群组事件的统一注册                                                                                                                                                                                 
- 4 声明式编程：通过装饰器实现声明式的功能注册                                                                                                                                                                                    
- 5 批量操作优化：register_local_methods_to_agent 实现批量注册                                                                                                                                                                    
-
-关键特性增强                                                                                                                                                                                                                     
-
- 1 三层注册机制：API注册 + 消息处理器 + 本地方法                                                                                                                                                                                 
- 2 智能参数提取：支持多种参数传递方式                                                                                                                                                                                            
- 3 异步方法支持：完整的异步编程支持                                                                                                                                                                                              
- 4 标签分类系统：通过tags实现方法分类管理                                                                                                                                                                                        
- 5 自动发现机制：通过locals()自动发现并注册方法                                                                                                                                                                                  
-
-这个实际的实现展示了ANP SDK Agent系统的高度灵活性和可扩展性，为开发者提供了从简单到复杂的完整解决方案。   
-
-总结                                                                                                                                                                                                                             
-
-Agent Manager 和 Contact Manager 构成了ANP SDK的核心管理基础设施：                                                                                                                                                               
-
-核心优势                                                                                                                                                                                                                         
-
- 1 模块化设计：清晰的职责分离，易于维护和扩展                                                                                                                                                                                    
- 2 灵活的加载机制：支持多种Agent开发模式                                                                                                                                                                                         
- 3 智能缓存策略：内存缓存+持久化存储的双重保障                                                                                                                                                                                   
- 4 完整的生命周期管理：从加载到销毁的全流程管理                                                                                                                                                                                  
- 5 强大的文档生成：自动生成OpenAPI和JSON-RPC文档                                                                                                                                                                                 
-
-关键特性                                                                                                                                                                                                                         
-
- 1 三种Agent加载模式：配置驱动、自定义注册、初始化函数                                                                                                                                                                           
- 2 双向Token管理：to_remote和from_remote的完整管理                                                                                                                                                                               
- 3 智能联系人管理：关系管理、活动跟踪、信任评级                                                                                                                                                                                  
- 4 性能优化：索引构建、批量操作、内存清理                                                                                                                                                                                        
- 5 安全保障：Token验证、过期管理、撤销机制                                                                                                                                                                                       
-
-这两个管理器为ANP SDK提供了稳定、高效、安全的Agent和联系人管理能力，是构建复杂分布式代理网络的重要基础。        
+# Agent Manager 与 Contact Manager 完整分析
+
+## 目录
+
+- 1. 系统架构概述
+- 2. LocalAgentManager详解
+- 3. ContactManager详解
+- 4. 两个管理器的协作关系
+- 5. Agent加载生命周期
+- 6. 联系人与Token管理
+- 7. 性能优化策略
+- 8. 使用场景与最佳实践
+
+## 1. 系统架构概述
+
+### 1.1 管理器层次结构
+
+```mermaid
+graph TD
+    A[ANPSDK] --> B[LocalAgentManager]
+    A --> C[AgentRouter]
+    C --> D[LocalAgent实例]
+    D --> E[ContactManager]
+
+    B --> F[Agent加载器]
+    B --> G[OpenAPI生成器]
+    B --> H[接口文件管理器]
+
+    E --> I[联系人存储]
+    E --> J[Token管理器]
+    E --> K[关系维护器]
+
+    F --> L[YAML配置解析]
+    F --> M[模块动态加载]
+    F --> N[Handler注册]
+
+    J --> O[Token缓存]
+    J --> P[过期管理]
+    J --> Q[撤销机制]
+```
+
+### 1.2 数据流向图
+
+```mermaid
+sequenceDiagram
+    participant Config as YAML配置
+    participant LAM as LocalAgentManager
+    participant LA as LocalAgent
+    participant CM as ContactManager
+    participant UD as UserData
+    participant Cache as 缓存层
+
+    Config->>LAM: 加载Agent配置
+    LAM->>LAM: 解析模块路径
+    LAM->>LAM: 动态导入Handler
+    LAM->>LA: 创建LocalAgent实例
+    LA->>UD: 获取用户数据
+    LA->>CM: 初始化ContactManager
+    CM->>Cache: 加载联系人缓存
+    CM->>Cache: 加载Token缓存
+    LAM->>LAM: 生成OpenAPI文档
+    LAM->>LAM: 保存接口文件
+```
+
+## 2. LocalAgentManager详解
+
+### 2.1 核心功能架构
+
+```python
+class LocalAgentManager:
+    """本地 Agent 管理器，负责加载、注册和生成接口文档"""
+
+    # 三大核心功能：
+    # 1. Agent模块加载
+    # 2. OpenAPI文档生成
+    # 3. 接口文件管理
+```
+
+### 2.2 Agent加载机制详解
+
+#### 2.2.1 三种Agent加载模式
+
+```python
+@staticmethod
+def load_agent_from_module(yaml_path: str) -> Tuple[Optional[LocalAgent], Optional[Any]]:
+    """从模块路径加载 Agent 实例 - 支持三种模式"""
+
+    plugin_dir = os.path.dirname(yaml_path)
+    handler_script_path = os.path.join(plugin_dir, "agent_handlers.py")
+    register_script_path = os.path.join(plugin_dir, "agent_register.py")
+
+    # 检查必要文件
+    if not os.path.exists(handler_script_path):
+        logger.debug(f"⚠️  Skipping: No 'agent_handlers.py' found in {plugin_dir}")
+        return None, None
+
+    # 动态导入模块
+    module_path_prefix = os.path.dirname(plugin_dir).replace(os.sep, ".")
+    base_module_name = f"{module_path_prefix}.{os.path.basename(plugin_dir)}"
+    base_module_name = base_module_name.replace("/", ".")
+    handlers_module = importlib.import_module(f"{base_module_name}.agent_handlers")
+
+    # 加载YAML配置
+    with open(yaml_path, "r", encoding="utf-8") as f:
+        cfg = yaml.safe_load(f)
+
+    # 模式1: 自定义注册模式 (agent_002)
+    if os.path.exists(register_script_path):
+        register_module = importlib.import_module(f"{base_module_name}.agent_register")
+        agent = LocalAgent.from_did(cfg["did"])
+        agent.name = cfg["name"]
+        agent.api_config = cfg.get("api", [])
+        logger.info(f"-> self register agent : {agent.name}")
+        register_module.register(agent)  # 调用自定义注册函数
+        return agent, None
+
+    # 模式2: 初始化函数模式 (agent_llm)
+    if hasattr(handlers_module, "initialize_agent"):
+        logger.debug(f"- Calling 'initialize_agent' in module: {base_module_name}.agent_handlers")
+        agent = LocalAgent.from_did(cfg["did"])
+        agent.name = cfg["name"]
+        agent.api_config = cfg.get("api", [])
+        logger.info(f"- pre-init agent: {agent.name}")
+        return agent, handlers_module  # 返回模块供后续初始化
+
+    # 模式3: 配置驱动模式 (agent_001 / agent_calculator)
+    agent = LocalAgent.from_did(cfg["did"])
+    agent.name = cfg["name"]
+    agent.api_config = cfg.get("api", [])
+    logger.debug(f"-> Self-created agent instance: {agent.name}")
+
+    # 自动注册API
+    for api in cfg.get("api", []):
+        handler_func = getattr(handlers_module, api["handler"])
+        sig = inspect.signature(handler_func)
+        params = list(sig.parameters.keys())
+
+        # 检查是否需要包装
+        if params != ["request", "request_data"]:
+            handler_func = wrap_business_handler(handler_func)
+
+        agent.expose_api(api["path"], handler_func, methods=[api["method"]])
+        logger.info(f"- config register agent: {agent.name}，api:{api}")
+
+    return agent, None
+```
+
+#### 2.2.2 模块结构示例
+
+```
+agent_plugins/
+├── agent_001/                    # 配置驱动模式
+│   ├── agent_config.yaml
+│   └── agent_handlers.py
+├── agent_002/                    # 自定义注册模式
+│   ├── agent_config.yaml
+│   ├── agent_handlers.py
+│   └── agent_register.py         # 自定义注册逻辑
+├── agent_llm/                    # 初始化函数模式
+│   ├── agent_config.yaml
+│   └── agent_handlers.py         # 包含initialize_agent函数
+└── agent_calculator/             # 配置驱动模式
+    ├── agent_config.yaml
+    └── agent_handlers.py
+```
+
+#### 2.2.3 YAML配置格式
+
+```yaml
+# agent_config.yaml 示例
+did: "did:wba:localhost%3A9527:wba:user:calculator"
+name: "计算器代理"
+type: "service"
+api:
+  - path: "/add"
+    method: "POST"
+    handler: "handle_add"
+    summary: "加法运算"
+    params:
+      a: {"type": "number", "description": "第一个数"}
+      b: {"type": "number", "description": "第二个数"}
+    result:
+      sum: {"type": "number", "description": "计算结果"}
+  - path: "/multiply"
+    method: "POST"
+    handler: "handle_multiply"
+    summary: "乘法运算"
+```
+
+### 2.3 OpenAPI文档生成
+
+#### 2.3.1 文档生成流程
+
+```python
+@staticmethod
+def generate_custom_openapi_from_router(agent: LocalAgent, sdk) -> Dict:
+    """根据 Agent 的路由生成自定义的 OpenAPI 规范"""
+
+    # 1. 基础OpenAPI结构
+    openapi = {
+        "openapi": "3.0.0",
+        "info": {
+            "title": f"{agent.name}Agent API",
+            "version": "1.0.0"
+        },
+        "paths": {}
+    }
+
+    # 2. 从SDK的API注册表获取摘要信息
+    api_registry = getattr(sdk, "api_registry", {}).get(agent.id, [])
+    summary_map = {
+        item["path"].replace(f"/agent/api/{agent.id}", ""): item["summary"]
+        for item in api_registry
+    }
+
+    # 3. 遍历Agent的API路由
+    for path, handler in agent.api_routes.items():
+        # 4. 分析函数签名
+        sig = inspect.signature(handler)
+        param_names = [p for p in sig.parameters if p not in ("request_data", "request")]
+        properties = {name: {"type": "string"} for name in param_names}
+
+        # 5. 获取API摘要
+        summary = summary_map.get(path, handler.__doc__ or f"{agent.name}的{path}接口")
+
+        # 6. 构建OpenAPI路径定义
+        openapi["paths"][path] = {
+            "post": {
+                "summary": summary,
+                "requestBody": {
+                    "required": True,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": properties
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "返回结果",
+                        "content": {
+                            "application/json": {
+                                "schema": {"type": "object"}
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+    return openapi
+```
+
+#### 2.3.2 接口文件生成与保存
+
+```python
+@staticmethod
+async def generate_and_save_agent_interfaces(agent: LocalAgent, sdk):
+    """为指定的 agent 生成并保存 OpenAPI (YAML) 和 JSON-RPC 接口文件"""
+
+    logger.debug(f"开始为 agent '{agent.name}' ({agent.id}) 生成接口文件...")
+
+    # 1. 获取用户数据和路径
+    user_data_manager = LocalUserDataManager()
+    user_data = user_data_manager.get_user_data(agent.id)
+    if not user_data:
+        logger.error(f"无法找到 agent '{agent.name}' 的用户数据，无法保存接口文件。")
+        return
+    user_full_path = user_data.user_dir
+
+    # 2. 生成并保存 OpenAPI YAML 文件
+    try:
+        openapi_data = LocalAgentManager.generate_custom_openapi_from_router(agent, sdk)
+        await save_interface_files(
+            user_full_path=user_full_path,
+            interface_data=openapi_data,
+            inteface_file_name=f"api_interface.yaml",
+            interface_file_type="YAML"
+        )
+    except Exception as e:
+        logger.error(f"为 agent '{agent.name}' 生成 OpenAPI YAML 文件失败: {e}")
+
+    # 3. 生成并保存 JSON-RPC 文件
+    try:
+        jsonrpc_data = {
+            "jsonrpc": "2.0",
+            "info": {
+                "title": f"{agent.name} JSON-RPC Interface",
+                "version": "0.1.0",
+                "description": f"Methods offered by {agent.name}"
+            },
+            "methods": []
+        }
+
+        # 4. 从API配置生成JSON-RPC方法
+        for api in getattr(agent, "api_config", []):
+            path = api["path"]
+            method_name = path.strip('/').replace('/', '.')
+            params = api.get("params")
+            result = api.get("result")
+
+            # 如果没有预定义参数，从函数签名推断
+            if params is None:
+                sig = inspect.signature(agent.api_routes[path])
+                params = {
+                    name: {
+                        "type": param.annotation.__name__
+                        if (param.annotation != inspect._empty and hasattr(param.annotation, "__name__"))
+                        else "Any"
+                    }
+                    for name, param in sig.parameters.items()
+                    if name != "self"
+                }
+
+            # 构建方法对象
+            method_obj = {
+                "name": method_name,
+                "summary": api.get("summary", api.get("handler", "")),
+                "params": params
+            }
+
+            if result is not None:
+                method_obj["result"] = result
+
+            # 添加元数据
+            method_obj["meta"] = {
+                "openapi": api.get("openapi_version", "3.0.0"),
+                "info": {
+                    "title": api.get("title", "ANP Agent API"),
+                    "version": api.get("version", "1.0.0")
+                },
+                "httpMethod": api.get("method", "POST"),
+                "endpoint": api.get("path")
+            }
+
+            jsonrpc_data["methods"].append(method_obj)
+
+        # 5. 保存JSON-RPC文件
+        await save_interface_files(
+            user_full_path=user_full_path,
+            interface_data=jsonrpc_data,
+            inteface_file_name="api_interface.json",
+            interface_file_type="JSON"
+        )
+
+    except Exception as e:
+        logger.error(f"为 agent '{agent.name}' 生成 JSON-RPC 文件失败: {e}")
+```
+
+## 3. ContactManager详解
+
+### 3.1 核心数据结构
+
+```python
+class ContactManager:
+    def __init__(self, user_data):
+        self.user_data = user_data  # BaseUserData 实例
+
+        # 核心数据结构
+        self._contacts = {}              # did -> contact dict
+        self._token_to_remote = {}       # did -> token dict (发给远程的token)
+        self._token_from_remote = {}     # did -> token dict (从远程收到的token)
+
+        # 初始化时加载数据
+        self._load_contacts()
+```
+
+### 3.2 联系人管理功能
+
+#### 3.2.1 联系人缓存机制
+
+```python
+def _load_contacts(self):
+    """加载联系人和 token 信息到缓存"""
+    # 1. 加载所有联系人
+    for contact in self.user_data.list_contacts():
+        did = contact['did']
+        self._contacts[did] = contact
+
+        # 2. 加载对应的token信息
+        token_to = self.user_data.get_token_to_remote(did)
+        if token_to:
+            self._token_to_remote[did] = token_to
+
+        token_from = self.user_data.get_token_from_remote(did)
+        if token_from:
+            self._token_from_remote[did] = token_from
+
+def add_contact(self, contact: dict):
+    """添加联系人（内存+持久化）"""
+    did = contact['did']
+    # 1. 更新内存缓存
+    self._contacts[did] = contact
+    # 2. 持久化到用户数据
+    self.user_data.add_contact(contact)
+
+def get_contact(self, did: str):
+    """从缓存获取联系人"""
+    return self._contacts.get(did)
+
+def list_contacts(self):
+    """列出所有联系人"""
+    return list(self._contacts.values())
+```
+
+#### 3.2.2 Token管理机制
+
+```python
+# Token发送管理 (to_remote)
+def store_token_to_remote(self, remote_did: str, token: str, expires_delta: int):
+    """存储发给远程的token"""
+    # 1. 持久化存储
+    self.user_data.store_token_to_remote(remote_did, token, expires_delta)
+    # 2. 更新内存缓存
+    self._token_to_remote[remote_did] = self.user_data.get_token_to_remote(remote_did)
+
+def get_token_to_remote(self, remote_did: str):
+    """获取发给远程的token"""
+    return self._token_to_remote.get(remote_did)
+
+def revoke_token_to_remote(self, remote_did: str):
+    """撤销发给远程的token"""
+    # 1. 持久化撤销
+    self.user_data.revoke_token_to_remote(remote_did)
+    # 2. 清除内存缓存
+    self._token_to_remote.pop(remote_did, None)
+
+# Token接收管理 (from_remote)
+def store_token_from_remote(self, remote_did: str, token: str):
+    """存储从远程收到的token"""
+    # 1. 持久化存储
+    self.user_data.store_token_from_remote(remote_did, token)
+    # 2. 更新内存缓存
+    self._token_from_remote[remote_did] = self.user_data.get_token_from_remote(remote_did)
+
+def get_token_from_remote(self, remote_did: str):
+    """获取从远程收到的token"""
+    return self._token_from_remote.get(remote_did)
+
+def revoke_token_from_remote(self, target_did: str):
+    """撤销与目标DID相关的本地token"""
+    if target_did in self._token_from_remote:
+        self._token_from_remote[target_did]["is_revoked"] = True
+```
+
+### 3.3 Token生命周期管理
+
+```mermaid
+stateDiagram-v2
+    [*] --> Created: store_token_to_remote()
+    Created --> Active: token生效
+    Active --> Expired: 超过expires_delta
+    Active --> Revoked: revoke_token_to_remote()
+    Expired --> [*]
+    Revoked --> [*]
+
+    state Active {
+        [*] --> InMemory: 加载到缓存
+        InMemory --> Persistent: 持久化存储
+    }
+```
+
+## 4. 两个管理器的协作关系
+
+### 4.1 协作流程图
+
+```mermaid
+sequenceDiagram
+    participant App as 应用程序
+    participant LAM as LocalAgentManager
+    participant LA as LocalAgent
+    participant CM as ContactManager
+    participant UD as UserData
+    participant FS as 文件系统
+
+    App->>LAM: 加载Agent模块
+    LAM->>LAM: 解析YAML配置
+    LAM->>LAM: 动态导入Handler
+    LAM->>LA: 创建LocalAgent实例
+
+    LA->>UD: 获取用户数据
+    LA->>CM: 初始化ContactManager
+    CM->>UD: 加载联系人数据
+    CM->>CM: 构建内存缓存
+
+    LAM->>LAM: 注册API路由
+    LAM->>LAM: 生成OpenAPI文档
+    LAM->>FS: 保存接口文件
+
+    Note over LA,CM: 运行时协作
+    LA->>CM: 添加联系人
+    LA->>CM: 管理Token
+    CM->>UD: 持久化数据
+```
+
+### 4.2 数据流转关系
+
+```python
+# 1. Agent加载时的数据流
+def load_and_initialize_agent():
+    # LocalAgentManager负责
+    agent, module = LocalAgentManager.load_agent_from_module(yaml_path)
+
+    # LocalAgent初始化时自动创建ContactManager
+    # 在LocalAgent.__init__中：
+    self.contact_manager = ContactManager(self.user_data)
+
+    # ContactManager自动加载缓存
+    # 在ContactManager.__init__中：
+    self._load_contacts()
+
+# 2. 运行时的数据协作
+def runtime_collaboration():
+    # Agent处理认证请求时
+    token_info = agent.contact_manager.get_token_to_remote(remote_did)
+
+    # Agent添加新联系人时
+    agent.add_contact(remote_agent)  # 调用ContactManager
+
+    # Agent管理Token时
+    agent.store_token_from_remote(remote_did, token)  # 调用ContactManager
+
+# 3. 文档生成时的协作
+def document_generation():
+    # LocalAgentManager生成文档
+    openapi_data = LocalAgentManager.generate_custom_openapi_from_router(agent, sdk)
+
+    # 使用Agent的路由信息
+    for path, handler in agent.api_routes.items():
+        # 生成API文档...
+
+    # 保存到Agent的用户目录
+    await LocalAgentManager.generate_and_save_agent_interfaces(agent, sdk)
+```
+
+### 4.3 生命周期同步
+
+```python
+# Agent生命周期与ContactManager同步
+class LocalAgent:
+    def __init__(self, user_data, name: str = "未命名", agent_type: str = "personal"):
+        # 1. 基础初始化
+        self.user_data = user_data
+        self.id = self.user_data.did
+
+        # 2. ContactManager初始化（依赖user_data）
+        self.contact_manager = ContactManager(self.user_data)
+
+        # 3. 其他组件初始化...
+
+    def __del__(self):
+        """Agent销毁时的资源清理"""
+        try:
+            # ContactManager会随Agent一起销毁
+            # 但持久化数据保留在UserData中
+            pass
+        except Exception:
+            pass
+```
+
+## 5. Agent加载生命周期
+
+### 5.1 完整加载流程
+
+```mermaid
+graph TD
+    A[扫描Agent目录] --> B[发现YAML配置]
+    B --> C[解析配置文件]
+    C --> D[检查Handler文件]
+    D --> E{模式判断}
+
+    E -->|自定义注册| F[加载agent_register.py]
+    E -->|初始化函数| G[检查initialize_agent]
+    E -->|配置驱动| H[自动注册API]
+
+    F --> I[调用register函数]
+    G --> J[返回模块供初始化]
+    H --> K[包装Handler函数]
+
+    I --> L[创建LocalAgent]
+    J --> L
+    K --> L
+
+    L --> M[初始化ContactManager]
+    M --> N[加载联系人缓存]
+    N --> O[生成OpenAPI文档]
+    O --> P[保存接口文件]
+    P --> Q[注册到SDK]
+```
+
+### 5.2 错误处理机制
+
+```python
+@staticmethod
+def load_agent_from_module(yaml_path: str) -> Tuple[Optional[LocalAgent], Optional[Any]]:
+    """带完整错误处理的Agent加载"""
+    try:
+        plugin_dir = os.path.dirname(yaml_path)
+        handler_script_path = os.path.join(plugin_dir, "agent_handlers.py")
+
+        # 1. 检查必要文件
+        if not os.path.exists(handler_script_path):
+            logger.debug(f"⚠️  Skipping: No 'agent_handlers.py' found in {plugin_dir}")
+            return None, None
+
+        # 2. 动态导入模块（可能失败）
+        try:
+            module_path_prefix = os.path.dirname(plugin_dir).replace(os.sep, ".")
+            base_module_name = f"{module_path_prefix}.{os.path.basename(plugin_dir)}"
+            handlers_module = importlib.import_module(f"{base_module_name}.agent_handlers")
+        except ImportError as e:
+            logger.error(f"Failed to import handlers module: {e}")
+            return None, None
+
+        # 3. 解析YAML配置（可能失败）
+        try:
+            with open(yaml_path, "r", encoding="utf-8") as f:
+                cfg = yaml.safe_load(f)
+        except (yaml.YAMLError, FileNotFoundError) as e:
+            logger.error(f"Failed to load YAML config: {e}")
+            return None, None
+
+        # 4. 创建Agent（可能失败）
+        try:
+            agent = LocalAgent.from_did(cfg["did"])
+            agent.name = cfg["name"]
+            agent.api_config = cfg.get("api", [])
+        except Exception as e:
+            logger.error(f"Failed to create LocalAgent: {e}")
+            return None, None
+
+        # 5. 根据模式处理...
+
+    except Exception as e:
+        logger.error(f"Unexpected error loading agent from {yaml_path}: {e}")
+        return None, None
+```
+
+### 5.3 性能优化策略
+
+```python
+# 1. 延迟加载策略
+class LazyAgentLoader:
+    def __init__(self):
+        self._loaded_modules = {}  # 模块缓存
+        self._agent_configs = {}   # 配置缓存
+
+    def load_agent_lazy(self, yaml_path: str):
+        """延迟加载Agent"""
+        if yaml_path in self._loaded_modules:
+            return self._loaded_modules[yaml_path]
+
+        # 只有在真正需要时才加载
+        agent, module = LocalAgentManager.load_agent_from_module(yaml_path)
+        self._loaded_modules[yaml_path] = (agent, module)
+        return agent, module
+
+# 2. 批量加载优化
+class BatchAgentLoader:
+    @staticmethod
+    def load_agents_batch(yaml_paths: List[str]) -> List[Tuple[Optional[LocalAgent], Optional[Any]]]:
+        """批量加载多个Agent"""
+        results = []
+        for yaml_path in yaml_paths:
+            try:
+                result = LocalAgentManager.load_agent_from_module(yaml_path)
+                results.append(result)
+            except Exception as e:
+                logger.error(f"Failed to load agent from {yaml_path}: {e}")
+                results.append((None, None))
+        return results
+```
+
+## 6. 联系人与Token管理
+
+### 6.1 联系人数据结构
+
+```python
+# 联系人数据格式
+contact_data = {
+    "did": "did:wba:example.com:user:alice",
+    "name": "Alice",
+    "host": "example.com",
+    "port": 443,
+    "metadata": {
+        "description": "Alice的代理",
+        "capabilities": ["chat", "calculation"],
+        "last_seen": "2024-01-01T12:00:00Z"
+    }
+}
+
+# Token数据格式 (to_remote)
+token_to_remote = {
+    "token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "created_at": "2024-01-01T12:00:00Z",
+    "expires_at": "2024-01-01T13:00:00Z",
+    "is_revoked": False,
+    "req_did": "did:wba:example.com:user:alice"
+}
+
+# Token数据格式 (from_remote)
+token_from_remote = {
+    "token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "created_at": "2024-01-01T12:00:00Z",
+    "req_did": "did:wba:example.com:user:alice"
+}
+```
+
+### 6.2 Token管理策略
+
+#### 6.2.1 Token过期管理
+
+```python
+def check_token_expiry(self):
+    """检查并清理过期Token"""
+    from datetime import datetime, timezone
+    current_time = datetime.now(timezone.utc)
+
+    # 检查发出的Token
+    expired_to_remote = []
+    for did, token_info in self._token_to_remote.items():
+        if isinstance(token_info.get("expires_at"), str):
+            expires_at = datetime.fromisoformat(token_info["expires_at"])
+        else:
+            expires_at = token_info.get("expires_at")
+
+        if expires_at and current_time > expires_at:
+            expired_to_remote.append(did)
+
+    # 清理过期Token
+    for did in expired_to_remote:
+        logger.debug(f"清理过期Token (to_remote): {did}")
+        self._token_to_remote.pop(did, None)
+
+def is_token_valid(self, remote_did: str, direction: str = "to_remote") -> bool:
+    """检查Token是否有效"""
+    if direction == "to_remote":
+        token_info = self._token_to_remote.get(remote_did)
+    else:
+        token_info = self._token_from_remote.get(remote_did)
+
+    if not token_info:
+        return False
+
+    # 检查撤销状态
+    if token_info.get("is_revoked", False):
+        return False
+
+    # 检查过期时间
+    if "expires_at" in token_info:
+        from datetime import datetime, timezone
+        current_time = datetime.now(timezone.utc)
+        expires_at = token_info["expires_at"]
+        if isinstance(expires_at, str):
+            expires_at = datetime.fromisoformat(expires_at)
+        if current_time > expires_at:
+            return False
+
+    return True
+```
+
+#### 6.2.2 Token安全管理
+
+```python
+def secure_token_storage(self, remote_did: str, token: str, expires_delta: int):
+    """安全的Token存储"""
+    from datetime import datetime, timezone, timedelta
+
+    # 1. 验证Token格式
+    if not self._validate_token_format(token):
+        raise ValueError("Invalid token format")
+
+    # 2. 计算过期时间
+    now = datetime.now(timezone.utc)
+    expires_at = now + timedelta(seconds=expires_delta)
+
+    # 3. 构建Token信息
+    token_info = {
+        "token": token,
+        "created_at": now.isoformat(),
+        "expires_at": expires_at.isoformat(),
+        "is_revoked": False,
+        "req_did": remote_did,
+        "security_hash": self._generate_token_hash(token)  # 安全哈希
+    }
+
+    # 4. 存储（持久化+缓存）
+    self.user_data.store_token_to_remote(remote_did, token, expires_delta)
+    self._token_to
