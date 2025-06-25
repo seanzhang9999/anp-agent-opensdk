@@ -10,7 +10,7 @@ ANP（Agent Network Protocol）是一个基于DID（去中心化身份）的智�
 
 如下图所示，ANP采用三层架构设计，实现了用户、身份和资源的解耦：
 
-![三层网络身份架构](../did-apiwrapper/parallels%20planes.svg)
+![三层网络身份架构](./parallels-plane.png)
 
 三层架构包含：
 
@@ -22,7 +22,7 @@ ANP（Agent Network Protocol）是一个基于DID（去中心化身份）的智�
 
 系统支持5种主要的映射方法，覆盖了从高性能服务器到离线设备的全场景：
 
-![网络资源到DID空间映射方法](../did-apiwrapper/did-developer-view.svg)
+![网络资源到DID空间映射方法](./did-developer-view.svg)
 
 - **方法1**：本地DID身份代理（服务器/长连接终端）
 - **方法2**：协商托管DID（内网/动态IP设备）
@@ -36,7 +36,7 @@ ANP（Agent Network Protocol）是一个基于DID（去中心化身份）的智�
 
 如下图所示，用户可以选择4种基本模式使用ANP DID系统：
 
-![DID身份映射架构：基本模式与增强功能](../did-apiwrapper/did-user-view.svg)
+![DID身份映射架构：基本模式与增强功能](./did-user-view.svg)
 
 #### 模式1：用户持有密钥
 - 适合技术用户
