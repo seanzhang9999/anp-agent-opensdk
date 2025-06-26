@@ -1,23 +1,66 @@
 import logging
 import os
+import argparse
+import sys
 import yaml
 from anp_open_sdk.anp_sdk_user_data import LocalUserDataManager, did_create_user
 import glob
 
-from anp_open_sdk.config import UnifiedConfig, set_global_config
+from anp_open_sdk.config import UnifiedConfig, set_global_config,get_global_config
 from anp_open_sdk.utils.log_base import setup_logging
-
-app_config = UnifiedConfig(config_file='anp_open_sdk_framework_demo_agent_unified_config.yaml')
-set_global_config(app_config)
-setup_logging() # 假设 setup_logging 内部也改用 get_global_config()
 logger = logging.getLogger(__name__)
 
+def parse_arguments():
+    """
+    解析命令行参数
+    """
+    parser = argparse.ArgumentParser(description="Agent User Binding")
+    parser.add_argument(
+        '--config',
+        type=str,
+        default='anp_open_sdk_framework_demo_agent_unified_config.yaml',
+        help='Path to the unified configuration file.'
+    )
+    return parser.parse_args()
 
 
-AGENT_YAML_PATTERN = "data_user/localhost_9527/agents_config/*/agent_mappings.yaml"
+def initialize_config():
+    """
+    初始化配置
+    """
+    args = parse_arguments()
+
+    # 加载配置文件
+    app_config = UnifiedConfig(config_file=args.config)
+    set_global_config(app_config)
+    setup_logging()  # 设置日志系统
+
+    # 确保当前工作目录在 Python 路径中
+    if os.getcwd() not in sys.path:
+        sys.path.append(os.getcwd())
+
+def get_agent_yaml_pattern():
+    """
+    从全局配置中获取 agent 配置文件路径模式
+    """
+    try:
+        config = get_global_config()
+        agent_config_path = config.multi_agent_mode.agents_cfg_path
+        return f"{agent_config_path}/*/agent_mappings.yaml"
+    except (AttributeError, Exception) as e:
+        # 如果获取配置失败，使用默认路径
+        print(f"警告: 无法从配置获取 agents_cfg_path，使用默认路径。错误: {e}")
+        return "data_user/localhost_9527/agents_config/*/agent_mappings.yaml"
+
+def load_agent_yaml_files():
+    """
+    加载所有符合模式的 agent YAML 文件
+    """
+    pattern = get_agent_yaml_pattern()
+    return glob.glob(pattern)
 
 def get_all_agent_yaml_files():
-    return glob.glob(AGENT_YAML_PATTERN)
+    return load_agent_yaml_files()
 
 def get_all_used_dids(agent_yaml_files):
     dids = {}
@@ -127,4 +170,6 @@ def main():
         print("=" * 80)
 
 if __name__ == "__main__":
+    initialize_config()
+
     main()

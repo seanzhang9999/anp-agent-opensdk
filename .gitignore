@@ -1,7 +1,3 @@
-data_user/localhost_9527/anp_users/*
-data_user/localhost_9527/anp_users_hosted/*
-!data_user/localhost_9527/anp_users/user_hosted_agent-did.com*
-!data_user/localhost_9527/anp_users/user_hosted_agent-did.com*/*
 simulate/*
 anp_user_extension/node_modules/
 # Logs

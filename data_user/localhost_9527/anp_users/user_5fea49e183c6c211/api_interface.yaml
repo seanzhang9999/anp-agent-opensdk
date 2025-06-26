@@ -1,0 +1,45 @@
+info:
+  title: 我的小铃木Agent API
+  version: 1.0.0
+openapi: 3.0.0
+paths:
+  /hello:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                message:
+                  type: string
+              type: object
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+          description: 返回结果
+      summary: '
+
+        这是一个打招呼的API，传入message参数即可返回问候语。
+
+        '
+  /info:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties: {}
+              type: object
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+          description: 返回结果
+      summary: 我的小铃木的/info接口

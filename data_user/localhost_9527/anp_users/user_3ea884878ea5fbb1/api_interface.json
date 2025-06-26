@@ -1,0 +1,52 @@
+{
+  "jsonrpc": "2.0",
+  "info": {
+    "title": "我的小本田 JSON-RPC Interface",
+    "version": "0.1.0",
+    "description": "Methods offered by 我的小本田"
+  },
+  "methods": [
+    {
+      "name": "hello",
+      "summary": "hello_handler",
+      "params": {
+        "request": {
+          "type": "Any"
+        },
+        "request_data": {
+          "type": "Any"
+        }
+      },
+      "meta": {
+        "openapi": "3.0.0",
+        "info": {
+          "title": "ANP Agent API",
+          "version": "1.0.0"
+        },
+        "httpMethod": "GET",
+        "endpoint": "/hello"
+      }
+    },
+    {
+      "name": "info",
+      "summary": "info_handler",
+      "params": {
+        "request": {
+          "type": "Any"
+        },
+        "request_data": {
+          "type": "Any"
+        }
+      },
+      "meta": {
+        "openapi": "3.0.0",
+        "info": {
+          "title": "ANP Agent API",
+          "version": "1.0.0"
+        },
+        "httpMethod": "POST",
+        "endpoint": "/info"
+      }
+    }
+  ]
+}

@@ -27,9 +27,13 @@ class LocalAgentManager:
             logger.debug(f"  - ⚠️  Skipping: No 'agent_handlers.py' found in {plugin_dir}")
             return None, None
 
-        module_path_prefix = os.path.dirname(plugin_dir).replace(os.sep, ".")
-        base_module_name = f"{module_path_prefix}.{os.path.basename(plugin_dir)}"
-        base_module_name = base_module_name.replace("/", ".")
+        import sys
+        if plugin_dir not in sys.path:
+            sys.path.append(os.path.dirname(plugin_dir))
+
+        # 使用目录名作为模块名
+        base_module_name = os.path.basename(plugin_dir)
+
         handlers_module = importlib.import_module(f"{base_module_name}.agent_handlers")
 
         with open(yaml_path, "r", encoding="utf-8") as f:

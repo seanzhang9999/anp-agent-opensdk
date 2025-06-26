@@ -1,0 +1,22 @@
+name: Calculator Agent
+did: did:wba:localhost%3A9528:wba:user:28cddee0fade0258
+api:
+- path: /calculator/add
+  method: POST
+  handler: add
+  # 下面开始是为了json rpc改进添加的，未来可以考虑ai来辅助迭代生成
+  summary: 发送a和b，返回a+b的结果
+  params:
+        a:
+          type: float
+          value: 1.23
+        b:
+          type: float
+          value: 4.56
+  result:
+        result:
+          type: float
+          value: 5.79
+  openapi_version: "3.0.0"
+  title: "Caculator Agent API"
+  version: "1.0.0"

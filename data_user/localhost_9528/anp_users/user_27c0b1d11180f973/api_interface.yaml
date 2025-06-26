@@ -1,0 +1,30 @@
+info:
+  title: Large Language Model AgentAgent API
+  version: 1.0.0
+openapi: 3.0.0
+paths:
+  /llm/chat:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                prompt:
+                  type: string
+              type: object
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+          description: 返回结果
+      summary: '
+
+        API处理函数，现在直接使用模块内的 my_llm_client。
+
+        它不再需要从request中获取agent实例。
+
+        '
