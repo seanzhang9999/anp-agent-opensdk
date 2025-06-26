@@ -1,0 +1,10 @@
+name: orchestrator_9528
+unique_id: 10d863b47129b237
+did: did:wba:localhost%3A9528:wba:user:10d863b47129b237
+type: user
+owner:
+  name: anpsdk 创造用户
+  '@id': https://localhost
+description: anpsdk的测试用户
+version: 0.1.0
+created_at: '2025-06-26 11:44:54'

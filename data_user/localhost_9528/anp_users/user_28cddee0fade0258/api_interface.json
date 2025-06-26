@@ -1,0 +1,39 @@
+{
+  "jsonrpc": "2.0",
+  "info": {
+    "title": "Calculator Agent JSON-RPC Interface",
+    "version": "0.1.0",
+    "description": "Methods offered by Calculator Agent"
+  },
+  "methods": [
+    {
+      "name": "calculator.add",
+      "summary": "发送a和b，返回a+b的结果",
+      "params": {
+        "a": {
+          "type": "float",
+          "value": 1.23
+        },
+        "b": {
+          "type": "float",
+          "value": 4.56
+        }
+      },
+      "result": {
+        "result": {
+          "type": "float",
+          "value": 5.79
+        }
+      },
+      "meta": {
+        "openapi": "3.0.0",
+        "info": {
+          "title": "Caculator Agent API",
+          "version": "1.0.0"
+        },
+        "httpMethod": "POST",
+        "endpoint": "/calculator/add"
+      }
+    }
+  ]
+}

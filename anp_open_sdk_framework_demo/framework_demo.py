@@ -1,3 +1,4 @@
+import argparse
 import importlib
 import glob
 import os
@@ -19,10 +20,8 @@ from anp_open_sdk_framework.agent_manager import LocalAgentManager
 
 from anp_open_sdk_framework.local_methods.local_methods_caller import LocalMethodsCaller
 from anp_open_sdk_framework.local_methods.local_methods_doc import LocalMethodsDocGenerator
+from anp_open_sdk.config import get_global_config
 
-app_config = UnifiedConfig(config_file='anp_open_sdk_framework_demo_agent_unified_config.yaml')
-set_global_config(app_config)
-setup_logging() # 假设 setup_logging 内部也改用 get_global_config()
 logger = logging.getLogger(__name__)
 
 import inspect
@@ -30,13 +29,27 @@ import inspect
 
 
 async def main():
+    parser = argparse.ArgumentParser(description="ANP Open SDK Multi-Agent Demo")
+    parser.add_argument(
+        '--config',
+        type=str,
+        default='anp_open_sdk_framework_demo_agent_unified_config.yaml',
+        help='Path to the unified configuration file.'
+    )
+    args = parser.parse_args()
+
+    app_config = UnifiedConfig(config_file=args.config)
+    set_global_config(app_config)
+    setup_logging() # 假设 setup_logging 内部也改用 get_global_config()
+
     logger.debug("🚀 Starting Agent Host Application...")
     if os.getcwd() not in sys.path:
         sys.path.append(os.getcwd())
 
     # --- 加载和初始化所有Agent模块 ---
-
-    agent_files = glob.glob("data_user/localhost_9527/agents_config/*/agent_mappings.yaml")
+    config = get_global_config()
+    agent_config_path = config.multi_agent_mode.agents_cfg_path
+    agent_files = glob.glob(f"{agent_config_path}/*/agent_mappings.yaml")
     if not agent_files:
         logger.info("No agent configurations found. Exiting.")
         return
@@ -82,7 +95,7 @@ async def main():
     # 生成本地方法文档供查看，如果只是调用，不需要
     # 在当前程序脚本所在目录下生成文档
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    doc_path = os.path.join(script_dir, "local_methods_doc.json")
+    doc_path = os.path.join(script_dir, f"{config.anp_sdk.host}_{config.anp_sdk.port}_local_methods_doc.json")
     LocalMethodsDocGenerator.generate_methods_doc(doc_path)
 
     logger.debug("\n🔍 Searching for an agent with discovery capabilities...")
@@ -102,16 +115,16 @@ async def main():
         # agent中的联网调用函数，相当于发送消息
         #result = await discovery_agent.run_hello_demo()
         # agent中的AI联网爬取函数，从一个did地址开始爬取
-        #result = await discovery_agent.run_ai_crawler_demo()
+        # result = await discovery_agent.run_ai_crawler_demo()
         # agent中的AI联网爬取函数，从多个did汇总地址开始爬取
-        #result = await discovery_agent.run_ai_root_crawler_demo()
+        result = await discovery_agent.run_ai_root_crawler_demo()
+        # print(result)
         # agent中的本地api去调用另一个agent的本地api
-        result = await discovery_agent.run_agent_002_demo(sdk)
-        print(result)
+        # result = await discovery_agent.run_agent_002_demo(sdk)
+        #print(result)
         # agent中的本地api通过搜索本地api注册表去调用另一个agent的本地api
-        result = await discovery_agent.run_agent_002_demo_new()
-
-        print(result)
+        #result = await discovery_agent.run_agent_002_demo_new()
+        #print(result)
 
     else:
         logger.debug("⚠️ No agent with discovery capabilities was found.")

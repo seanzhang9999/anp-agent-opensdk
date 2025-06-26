@@ -1,0 +1,39 @@
+info:
+  title: 我的小本田Agent API
+  version: 1.0.0
+openapi: 3.0.0
+paths:
+  /hello:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties: {}
+              type: object
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+          description: 返回结果
+      summary: 我的小本田的/hello接口
+  /info:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties: {}
+              type: object
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+          description: 返回结果
+      summary: 我的小本田的/info接口

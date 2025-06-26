@@ -1,0 +1,10 @@
+name: orchestrator
+unique_id: 42cd01f324d61962
+did: did:wba:localhost%3A9527:wba:user:42cd01f324d61962
+type: user
+owner:
+  name: anpsdk 创造用户
+  '@id': https://localhost
+description: anpsdk的测试用户
+version: 0.1.0
+created_at: '2025-06-26 11:20:14'

@@ -1,0 +1,26 @@
+info:
+  title: Calculator AgentAgent API
+  version: 1.0.0
+openapi: 3.0.0
+paths:
+  /calculator/add:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                a:
+                  type: string
+                b:
+                  type: string
+              type: object
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+          description: 返回结果
+      summary: Calculator Agent的/calculator/add接口

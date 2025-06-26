@@ -1,0 +1,28 @@
+{
+  "jsonrpc": "2.0",
+  "info": {
+    "title": "Large Language Model Agent JSON-RPC Interface",
+    "version": "0.1.0",
+    "description": "Methods offered by Large Language Model Agent"
+  },
+  "methods": [
+    {
+      "name": "llm.chat",
+      "summary": "chat_completion",
+      "params": {
+        "prompt": {
+          "type": "str"
+        }
+      },
+      "meta": {
+        "openapi": "3.0.0",
+        "info": {
+          "title": "ANP Agent API",
+          "version": "1.0.0"
+        },
+        "httpMethod": "POST",
+        "endpoint": "/llm/chat"
+      }
+    }
+  ]
+}

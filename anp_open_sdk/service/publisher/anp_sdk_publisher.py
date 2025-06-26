@@ -15,7 +15,10 @@ class DIDManager:
         Args:
             hosted_dir: DID托管目录路径，如果为None则使用默认路径
         """
-        self.hosted_dir = Path(hosted_dir or os.environ.get('ANP_USER_HOSTED_PATH', 'anp_open_sdk/anp_users_hosted'))
+        from anp_open_sdk.config import get_global_config
+        config = get_global_config()
+        if hosted_dir is None:
+            self.hosted_dir = Path(config.anp_sdk.user_hosted_path)
         self.hosted_dir.mkdir(parents=True, exist_ok=True)
         
         # 获取主机配置

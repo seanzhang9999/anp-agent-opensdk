@@ -1,0 +1,10 @@
+name: "我的小铃木"
+did: "did:wba:localhost%3A9528:wba:user:5fea49e183c6c211"
+api:
+  - path: "/hello"
+    method: ["GET", "POST"]
+    handler: "hello_handler"
+  - path: "/info"
+    method: "POST"
+    handler: "info_handler"
+
