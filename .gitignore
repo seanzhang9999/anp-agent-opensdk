@@ -188,6 +188,7 @@ web_agent_crawler_result.json
 anp_open_sdk_demo/demo_data/*
 
 .aider*
+**/*methods_doc.json
 
 # 测试用户私钥和证书需要被同步
 !data_user/
