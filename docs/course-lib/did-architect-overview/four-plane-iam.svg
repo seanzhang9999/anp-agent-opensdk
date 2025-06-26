@@ -33,7 +33,7 @@
   
   <!-- 身份平面 (新增) -->
   <rect x="50" y="210" width="800" height="130" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="10"/>
-  <text x="70" y="235" font-size="18" font-weight="bold" fill="#7b1fa2">身份平面 (Identity Plane) - DID & Agent</text>
+  <text x="70" y="235" font-size="18" font-weight="bold" fill="#7b1fa2">身份平面 (Identity Plane) - DID and Agent</text>
   
   <!-- 身份平面组件 -->
   <rect x="80" y="250" width="100" height="35" fill="#e1bee7" stroke="#7b1fa2" rx="5"/>

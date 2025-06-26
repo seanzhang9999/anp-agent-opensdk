@@ -176,7 +176,7 @@ def _start_self_service(self, host, port):
     self._register_self_routes()
     import uvicorn
     uvicorn.run(self.app, host=host, port=port)
-
+  
 async def _start_ws_proxy_client(self, ws_proxy_url):
     """启动WebSocket代理客户端"""
     import websockets
@@ -302,7 +302,7 @@ classDiagram
 
     BaseUserDataManager <|-- LocalUserDataManager
     BaseUserData <|-- LocalUserData
-    LocalUserDataManager --> LocalUserData
+    LocalUserDataManager --|> LocalUserData
 ```
 
 ### 2.2 单例模式实现
