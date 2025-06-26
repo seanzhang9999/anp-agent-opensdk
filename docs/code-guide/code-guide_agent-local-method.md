@@ -109,21 +109,21 @@ async def run_agent_002_demo_new():
 
 ### 3.1 调用流程图
 
-Orchestrator Agent
-    ↓
-run_agent_002_demo_new()
-    ↓
-LocalMethodsCaller.call_method_by_search("demo_method")
-    ↓
-搜索 LOCAL_METHODS_REGISTRY
-    ↓
-找到 agent_002 的 demo_method
-    ↓
-通过 DID 定位到 agent_002 实例
-    ↓
-执行 agent_002.demo_method()
-    ↓
-返回结果
+```mermaid
+sequenceDiagram
+    participant Orchestrator
+    participant Caller
+    participant Registry
+    participant Agent_002
+
+    Orchestrator->>Caller: call_method_by_search("demo_method")
+    Caller->>Registry: 查询 LOCAL_METHODS_REGISTRY
+    Registry-->>Caller: 返回 demo_method 入口信息
+    Caller->>Agent_002: 调用 demo_method()
+    Agent_002-->>Caller: 返回执行结果
+    Caller-->>Orchestrator: 返回结果
+
+```
 
 ### 3.2 关键技术点
 
@@ -219,27 +219,27 @@ graph TB
     class A,B,C,D,E,F,G,H mainProcess
     class I,J,K,L,M,N,O,P,Q,R,S,T,U,V agentPlugin
     class W,X,Y,Z,AA sdkCore
-                       
+                     
 ```
 
 ## 详细调用时序图
 
 ```mermaid
-sequenceDiagram                                                               
-    participant FD as framework_demo.py                                       
-    participant LAM as LocalAgentManager                                      
-    participant A2 as agent_002/agent_register.py                             
-    participant OA as orchestrator_agent/agent_handlers.py                    
-    participant SDK as ANPSDK                                                 
-    participant LMC as LocalMethodsCaller                                     
-    participant REG as LOCAL_METHODS_REGISTRY                                 
-    FD->>LAM: load_agent_from_module()                                        
-    LAM->>A2: 导入并执行 register()                                           
-    A2->>REG: 注册 demo_method, calculate_sum 等                              
-    LAM->>OA: 导入 agent_handlers.py                                          
-    FD->>SDK: 创建 ANPSDK(agents=all_agents)                                  
-    FD->>OA: initialize_agent(agent, sdk)                                     
-    OA->>LMC: 创建 LocalMethodsCaller(sdk)                                    
-    OA->>OA: 附加方法到 agent 实例                                            
+sequenceDiagram                                                             
+    participant FD as framework_demo.py                                     
+    participant LAM as LocalAgentManager                                    
+    participant A2 as agent_002/agent_register.py                           
+    participant OA as orchestrator_agent/agent_handlers.py                  
+    participant SDK as ANPSDK                                               
+    participant LMC as LocalMethodsCaller                                   
+    participant REG as LOCAL_METHODS_REGISTRY                               
+    FD->>LAM: load_agent_from_module()                                      
+    LAM->>A2: 导入并执行 register()                                         
+    A2->>REG: 注册 demo_method, calculate_sum 等                            
+    LAM->>OA: 导入 agent_handlers.py                                        
+    FD->>SDK: 创建 ANPSDK(agents=all_agents)                                
+    FD->>OA: initialize_agent(agent, sdk)                                   
+    OA->>LMC: 创建 LocalMethodsCaller(sdk)                                  
+    OA->>OA: 附加方法到 agent 实例                                          
     FD->>OA: discovery_agent.run_agent_
 ```

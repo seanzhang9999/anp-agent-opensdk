@@ -8,14 +8,32 @@ ANP (Agent Network Protocol) 智能Agent网络实现了从用户需求描述到A
 
 ```mermaid
 graph TD
-    A[Agent启动] --> B[自动生成接口文档]
-    B --> C[用户请求]
-    C --> D[启动智能爬取]
-    D --> E[发现阶段]
-    E --> F[文档获取]
-    F --> G[智能分析]
-    G --> H[自动调用]
-    H --> I[结果返回]
+
+subgraph 服务 Agent
+    A1[服务 Agent A 启动] --> B1[生成接口文档 A]
+    A2[服务 Agent B 启动] --> B2[生成接口文档 B]
+    B1 --> C1[注册元信息到注册服务]
+    B2 --> C2[注册元信息到注册服务]
+end
+
+subgraph 公共注册服务端点
+    C1 --> R[注册服务目录]
+    C2 --> R
+end
+
+subgraph 需求 Agent
+    U[收到用户需求] --> V[启动爬取]
+    V --> R
+    R --> W[获取服务 Agent 列表及元信息]
+    W --> X[逐一访问各 Agent 的接口文档]
+    X --> B1
+    X --> B2
+    X --> Y[识别到可用接口]
+    Y --> Z[调用目标 Agent 的接口]
+    Z --> A2
+    Z --> AA[返回结果]
+end
+
 ```
 
 ## 1. Agent启动 → 自动生成接口文档
