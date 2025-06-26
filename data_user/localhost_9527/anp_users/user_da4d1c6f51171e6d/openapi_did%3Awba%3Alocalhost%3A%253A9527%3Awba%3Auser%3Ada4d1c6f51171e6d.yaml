@@ -1,0 +1,322 @@
+openapi: 3.0.0
+info:
+  title: Agent did:wba:localhost:%3A9527:wba:user:da4d1c6f51171e6d API Documentation
+  version: 1.0.0
+paths:
+  /agent/api/did:wba:localhost:%3A9527:wba:user:da4d1c6f51171e6d/tasks/send:
+    post:
+      summary: 处理代码生成请求
+      operationId: post__agent_api_did:wba:localhost:%3A9527:wba:user:da4d1c6f51171e6d_tasks_send
+      parameters:
+      - name: req_did
+        in: query
+        required: false
+        schema:
+          type: string
+        default: demo_caller
+      responses:
+        '200':
+          description: 成功响应
+          content:
+            application/json:
+              schema:
+                type: object
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+  /wba/auth:
+    get:
+      summary: DID WBA authentication endpoint
+      operationId: get__wba_auth
+      parameters:
+      - name: req_did
+        in: query
+        required: false
+        schema:
+          type: string
+        default: demo_caller
+      responses:
+        '200':
+          description: 成功响应
+          content:
+            application/json:
+              schema:
+                type: object
+  /wba/user/{user_id}/did.json:
+    get:
+      summary: Get DID document
+      operationId: get__wba_user_user_id_did.json
+      parameters:
+      - name: req_did
+        in: query
+        required: false
+        schema:
+          type: string
+        default: demo_caller
+      responses:
+        '200':
+          description: 成功响应
+          content:
+            application/json:
+              schema:
+                type: object
+  /wba/user/{resp_did}/ad.json:
+    get:
+      summary: Get agent description
+      operationId: get__wba_user_resp_did_ad.json
+      parameters:
+      - name: req_did
+        in: query
+        required: false
+        schema:
+          type: string
+        default: demo_caller
+      responses:
+        '200':
+          description: 成功响应
+          content:
+            application/json:
+              schema:
+                type: object
+  /wba/user/{resp_did}/{yaml_file_name}.yaml:
+    get:
+      summary: Get agent OpenAPI YAML
+      operationId: get__wba_user_resp_did_yaml_file_name.yaml
+      parameters:
+      - name: req_did
+        in: query
+        required: false
+        schema:
+          type: string
+        default: demo_caller
+      responses:
+        '200':
+          description: 成功响应
+          content:
+            application/json:
+              schema:
+                type: object
+  /wba/user/{resp_did}/{jsonrpc_file_name}.json:
+    get:
+      summary: Get agent JSON-RPC
+      operationId: get__wba_user_resp_did_jsonrpc_file_name.json
+      parameters:
+      - name: req_did
+        in: query
+        required: false
+        schema:
+          type: string
+        default: demo_caller
+      responses:
+        '200':
+          description: 成功响应
+          content:
+            application/json:
+              schema:
+                type: object
+  /wba/hostuser/{user_id}/did.json:
+    get:
+      summary: Get Hosted DID document
+      operationId: get__wba_hostuser_user_id_did.json
+      parameters:
+      - name: req_did
+        in: query
+        required: false
+        schema:
+          type: string
+        default: demo_caller
+      responses:
+        '200':
+          description: 成功响应
+          content:
+            application/json:
+              schema:
+                type: object
+  /agent/message/{did}/post:
+    post:
+      summary: message_entry_post
+      operationId: post__agent_message_did_post
+      parameters:
+      - name: req_did
+        in: query
+        required: false
+        schema:
+          type: string
+        default: demo_caller
+      responses:
+        '200':
+          description: 成功响应
+          content:
+            application/json:
+              schema:
+                type: object
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+  /agent/group/{did}/{group_id}/join:
+    post:
+      summary: join_group
+      operationId: post__agent_group_did_group_id_join
+      parameters:
+      - name: group_id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: req_did
+        in: query
+        required: false
+        schema:
+          type: string
+        default: demo_caller
+      responses:
+        '200':
+          description: 成功响应
+          content:
+            application/json:
+              schema:
+                type: object
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+  /agent/group/{did}/{group_id}/leave:
+    post:
+      summary: leave_group
+      operationId: post__agent_group_did_group_id_leave
+      parameters:
+      - name: group_id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: req_did
+        in: query
+        required: false
+        schema:
+          type: string
+        default: demo_caller
+      responses:
+        '200':
+          description: 成功响应
+          content:
+            application/json:
+              schema:
+                type: object
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+  /agent/group/{did}/{group_id}/message:
+    post:
+      summary: group_message
+      operationId: post__agent_group_did_group_id_message
+      parameters:
+      - name: group_id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: req_did
+        in: query
+        required: false
+        schema:
+          type: string
+        default: demo_caller
+      responses:
+        '200':
+          description: 成功响应
+          content:
+            application/json:
+              schema:
+                type: object
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+  /agent/group/{did}/{group_id}/connect:
+    get:
+      summary: group_connect
+      operationId: get__agent_group_did_group_id_connect
+      parameters:
+      - name: group_id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: req_did
+        in: query
+        required: false
+        schema:
+          type: string
+        default: demo_caller
+      responses:
+        '200':
+          description: 成功响应
+          content:
+            text/event-stream:
+              schema:
+                type: string
+  /agent/group/{did}/{group_id}/members:
+    post:
+      summary: manage_group_members
+      operationId: post__agent_group_did_group_id_members
+      parameters:
+      - name: group_id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: req_did
+        in: query
+        required: false
+        schema:
+          type: string
+        default: demo_caller
+      responses:
+        '200':
+          description: 成功响应
+          content:
+            application/json:
+              schema:
+                type: object
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+    get:
+      summary: get_group_members
+      operationId: get__agent_group_did_group_id_members
+      parameters:
+      - name: group_id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: req_did
+        in: query
+        required: false
+        schema:
+          type: string
+        default: demo_caller
+      responses:
+        '200':
+          description: 成功响应
+          content:
+            application/json:
+              schema:
+                type: object

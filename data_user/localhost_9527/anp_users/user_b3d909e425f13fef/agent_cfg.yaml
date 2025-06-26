@@ -1,0 +1,10 @@
+name: test_auth_user
+unique_id: b3d909e425f13fef
+did: did:wba:localhost%3A9527:test:agent:b3d909e425f13fef
+type: agent
+owner:
+  name: anpsdk 创造用户
+  '@id': https://localhost
+description: anpsdk的测试用户
+version: 0.1.0
+created_at: '2025-06-24 08:02:58'

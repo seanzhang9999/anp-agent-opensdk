@@ -1,0 +1,25 @@
+{
+  "jsonrpc": "2.0",
+  "summary": "基于自然语言生成代码的服务,在post请求的body部分添加message参数,说明生成代码需求,服务将自动返回结果",
+  "method": "generate_code",
+  "params": {
+    "message": {
+      "type": "string",
+      "value": "用 Python 生成冒泡排序"
+    }
+  },
+  "result": {
+    "code": {
+      "type": "string"
+    }
+  },
+  "meta": {
+    "openapi": "3.0.0",
+    "info": {
+      "title": "Code Writer Agent API",
+      "version": "1.0.0"
+    },
+    "httpMethod": "POST",
+    "endpoint": "/tasks/send"
+  }
+}

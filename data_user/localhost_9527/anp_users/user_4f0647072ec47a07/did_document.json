@@ -1,0 +1,33 @@
+{
+    "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/suites/jws-2020/v1",
+        "https://w3id.org/security/suites/secp256k1-2019/v1"
+    ],
+    "id": "did:wba:localhost%3A9528:test:agent:4f0647072ec47a07",
+    "verificationMethod": [
+        {
+            "id": "did:wba:localhost%3A9528:test:agent:4f0647072ec47a07#key-1",
+            "type": "EcdsaSecp256k1VerificationKey2019",
+            "controller": "did:wba:localhost%3A9528:test:agent:4f0647072ec47a07",
+            "publicKeyJwk": {
+                "kty": "EC",
+                "crv": "secp256k1",
+                "x": "wCD875m67fzE8OCCmfbQzXIHJg25ggt1zHg-7AK6wfc",
+                "y": "2HC31Ueh4s8OgSZUfzXKI90cgxiYb6hNtGE_1hu3HbI",
+                "kid": "0rtv7VhKUxdMGlHO6cyDVVxcuJCyjSA7JQgoC2o3BnE"
+            }
+        }
+    ],
+    "authentication": [
+        "did:wba:localhost%3A9528:test:agent:4f0647072ec47a07#key-1"
+    ],
+    "service": [
+        {
+            "id": "did:wba:localhost%3A9528:test:agent:4f0647072ec47a07#ad",
+            "type": "AgentDescription",
+            "serviceEndpoint": "http://localhost:9528/test/agent/4f0647072ec47a07/ad.json"
+        }
+    ],
+    "key_id": "key-1"
+}

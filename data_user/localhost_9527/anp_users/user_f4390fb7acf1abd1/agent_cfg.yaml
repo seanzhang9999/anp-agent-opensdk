@@ -1,0 +1,10 @@
+name: 智能体创建删除示范用户
+unique_id: f4390fb7acf1abd1
+did: did:wba:localhost%3A9527:wba:user:f4390fb7acf1abd1
+type: user
+owner:
+  name: anpsdk 创造用户
+  '@id': https://localhost
+description: anpsdk的测试用户
+version: 0.1.0
+created_at: '2025-06-14 14:32:43'

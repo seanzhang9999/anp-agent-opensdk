@@ -1,0 +1,10 @@
+name: integration_test_user_2
+unique_id: 4f0647072ec47a07
+did: did:wba:localhost%3A9528:test:agent:4f0647072ec47a07
+type: agent
+owner:
+  name: anpsdk 创造用户
+  '@id': https://localhost
+description: anpsdk的测试用户
+version: 0.1.0
+created_at: '2025-06-24 08:24:08'

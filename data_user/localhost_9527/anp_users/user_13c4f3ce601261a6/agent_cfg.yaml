@@ -1,0 +1,10 @@
+name: test_memory_user
+unique_id: 13c4f3ce601261a6
+did: did:wba:localhost%3A9527:test:agent:13c4f3ce601261a6
+type: agent
+owner:
+  name: anpsdk 创造用户
+  '@id': https://localhost
+description: anpsdk的测试用户
+version: 0.1.0
+created_at: '2025-06-24 08:07:15'

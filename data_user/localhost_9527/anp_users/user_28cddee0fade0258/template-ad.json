@@ -1,0 +1,19 @@
+{
+  "name": "DID WBA Example Agent雅马哈",
+  "owner": {
+    "name": "DID WBA Example",
+    "@id": "https://agent-search.ai"
+  },
+  "description": "An example agent implementing DID WBA authentication",
+  "version": "0.1.0",
+  "created_at": "2025-04-21T00:00:00Z",
+  "security_definitions": {
+    "didwba_sc": {
+      "scheme": "didwba",
+      "in": "header",
+      "name": "Authorization"
+    }
+  },
+  "interfaces": [],
+  "sub_agents": []
+}

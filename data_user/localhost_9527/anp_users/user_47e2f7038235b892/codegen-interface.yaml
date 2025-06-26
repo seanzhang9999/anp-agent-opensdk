@@ -1,0 +1,27 @@
+info:
+  title: Code Writer Agent API
+  version: 1.0.0
+openapi: 3.0.0
+paths:
+  /tasks/send:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                message:
+                  type: string
+              type: object
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    type: string
+                type: object
+          description: 生成的代码
+      summary: 基于自然语言生成代码的服务,在post请求的body部分添加message参数,说明生成代码需求,服务将自动返回结果

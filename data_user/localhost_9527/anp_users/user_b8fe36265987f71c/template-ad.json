@@ -1,0 +1,37 @@
+{
+  "@context": {
+    "@vocab": "https://schema.org/",
+    "did": "https://w3id.org/did#",
+    "ad": "https://agent-network-protocol.com/ad#"
+  },
+  "@type": "ad:AgentDescription",
+  "@id": "http://localhost:9527/wba/user/did:wba:localhost%3A9527:wba:user:b8fe36265987f71c/ad.json",
+  "name": "ANPSDK Agent未命名",
+  "did": "did:wba:localhost%3A9527:wba:user:b8fe36265987f71c",
+  "owner": {
+    "@type": "Organization",
+    "name": "code-writer.local",
+    "@id": "did:wba:localhost%3A9527:wba:user:b8fe36265987f71c"
+  },
+  "description": "代码生成智能体，可根据自然语言请求生成 Python 示例代码。",
+  "version": "1.0.0",
+  "created": "2025-05-25T20:00:00Z",
+  "endpoint": "http://localhost:9527/agent/api/did%3Awba%3Alocalhost%253A9527%3Awba%3Auser%3Ab8fe36265987f71c/tasks/send",
+  "ad:securityDefinitions": {
+    "didwba_sc": {
+      "scheme": "didwba",
+      "in": "header",
+      "name": "Authorization"
+    }
+  },
+  "ad:security": "didwba_sc",
+  "ad:AgentDescription": [],
+  "ad:interfaces": [
+    {
+      "@type": "ad:NaturalLanguageInterface",
+      "protocol": "JSON",
+      "url": "http://localhost:9527/wba/user/did%3Awba%3Alocalhost%253A9527%3Awba%3Auser%3Ab8fe36265987f71c/codegen-interface.json",
+      "description": "自然语言代码生成接口的 JSON 描述"
+    }
+  ]
+}

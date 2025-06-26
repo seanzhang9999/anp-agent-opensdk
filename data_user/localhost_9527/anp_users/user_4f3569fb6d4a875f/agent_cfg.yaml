@@ -1,0 +1,10 @@
+name: Python任务智能体_20250613_4
+unique_id: 4f3569fb6d4a875f
+did: did:wba:localhost:3A9527:wba:user:4f3569fb6d4a875f
+type: user
+owner:
+  name: anpsdk 创造用户
+  '@id': https://localhost
+description: anpsdk的测试用户
+version: 0.1.0
+created_at: '2025-06-13 21:41:21'

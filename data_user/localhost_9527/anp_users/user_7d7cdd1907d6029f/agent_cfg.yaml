@@ -1,0 +1,10 @@
+name: 编排智能体
+unique_id: 7d7cdd1907d6029f
+did: did:wba:localhost%3A9527:wba:user:7d7cdd1907d6029f
+type: user
+owner:
+  name: anpsdk 创造用户
+  '@id': https://localhost
+description: anpsdk的测试用户
+version: 0.1.0
+created_at: '2025-06-19 20:00:24'
